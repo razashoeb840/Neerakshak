@@ -250,16 +250,256 @@
             box-shadow: 0 3px 10px rgba(7, 34, 71, 0.22);
             transition: all 0.22s ease;
             white-space: nowrap;
+            text-decoration: none;
         }
 
         .btn-official-login:hover {
             background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
             transform: translateY(-1px);
             box-shadow: 0 5px 14px rgba(2, 132, 199, 0.3);
+            color: #ffffff;
         }
 
         .btn-official-login i {
             font-size: 13px;
+        }
+
+        /* Officer Profile Pill & Dropdown in Nav */
+        .nav-officer-profile {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .btn-officer-profile {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            padding: 4px 12px 4px 5px;
+            border-radius: 28px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(7, 34, 71, 0.08);
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .btn-officer-profile:hover {
+            border-color: #0284c7;
+            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .officer-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #e0f2fe;
+            color: #0284c7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+            box-shadow: inset 0 0 0 1px rgba(2, 132, 199, 0.25);
+        }
+
+        .officer-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            line-height: 1.15;
+            text-align: left;
+        }
+
+        .officer-name {
+            font-size: 12px;
+            font-weight: 800;
+            color: #0f172a;
+            max-width: 140px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .officer-role-badge {
+            font-size: 9.5px;
+            font-weight: 800;
+            color: #ffffff;
+            background: #0284c7;
+            padding: 1.5px 7px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.35px;
+            margin-top: 1px;
+            display: inline-block;
+        }
+
+        .officer-caret {
+            font-size: 10px;
+            color: #64748b;
+            margin-left: 2px;
+            transition: transform 0.2s ease;
+        }
+
+        /* Officer Dropdown Menu */
+        .officer-dropdown-menu {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            width: 270px;
+            background: #ffffff;
+            border-radius: 14px;
+            box-shadow: 0 14px 40px rgba(7, 34, 71, 0.18), 0 2px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+            padding: 8px;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            animation: officerDropdownFadeIn 0.18s ease-out;
+        }
+
+        .officer-dropdown-menu.show {
+            display: flex;
+        }
+
+        @keyframes officerDropdownFadeIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .officer-dropdown-header {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 8px 10px;
+        }
+
+        .officer-dropdown-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: #e0f2fe;
+            color: #0284c7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 17px;
+            flex-shrink: 0;
+        }
+
+        .officer-dropdown-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            overflow: hidden;
+        }
+
+        .officer-dropdown-meta strong {
+            font-size: 13px;
+            color: #0f172a;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .officer-dropdown-meta span {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .officer-session-tag {
+            font-size: 10px;
+            color: #16a34a;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 2px;
+        }
+
+        .session-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #16a34a;
+            display: inline-block;
+        }
+
+        .officer-dropdown-divider {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 6px 0;
+        }
+
+        .officer-dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            border-radius: 8px;
+            color: #334155;
+            font-size: 12.5px;
+            font-weight: 600;
+            text-decoration: none;
+            background: transparent;
+            border: 0;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            transition: all 0.15s ease;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        .officer-dropdown-item:hover {
+            background: #f1f5f9;
+            color: #0284c7;
+        }
+
+        .officer-dropdown-item.primary-action {
+            background: #eff6ff;
+            color: #0284c7;
+            font-weight: 700;
+        }
+
+        .officer-dropdown-item.primary-action:hover {
+            background: #dbeafe;
+            color: #0369a1;
+        }
+
+        .officer-dropdown-item .item-text {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .officer-dropdown-item .item-text strong {
+            font-size: 12px;
+            color: #0369a1;
+        }
+
+        .officer-dropdown-item .item-text small {
+            font-size: 10px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .dropdown-end-arrow {
+            font-size: 11px;
+            color: #0284c7;
+            margin-left: auto;
+        }
+
+        .officer-logout-btn {
+            color: #dc2626 !important;
+        }
+
+        .officer-logout-btn:hover {
+            background: #fef2f2 !important;
+            color: #b91c1c !important;
         }
 
         /* =====================================================================

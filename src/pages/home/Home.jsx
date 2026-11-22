@@ -91,12 +91,63 @@ const markup = (
               <a href="#contact">Contact</a>
             </li>
           </ul>
-          {/* Official Login Button (Image 3 Style: Dark Navy Button with Shield) */}
-          {" "}
-          <button className="btn-official-login" onClick={(event) => window.openLoginModal()}>
+          {/* Official Login Button (Visible when Logged Out - Navigates directly to /login) */}
+          <a href="/login" className="btn-official-login" id="navOfficialLogin" title="Access Official Officer Login">
             <i className="fas fa-shield-alt"></i>
-            {" Official Login "}
-          </button>
+            <span>Official Login</span>
+          </a>
+
+          {/* Officer Profile Pill with Role (Visible when Logged In) */}
+          <div className="nav-officer-profile" id="navOfficerProfile" style={{ display: "none" }}>
+            <button type="button" className="btn-officer-profile" id="btnOfficerToggle" onClick={(event) => window.toggleOfficerDropdown && window.toggleOfficerDropdown(event)}>
+              <div className="officer-avatar" id="navOfficerAvatar">
+                <i className="fas fa-user-shield"></i>
+              </div>
+              <div className="officer-info">
+                <span className="officer-name" id="navOfficerName">Officer</span>
+                <span className="officer-role-badge" id="navOfficerRoleBadge">Admin</span>
+              </div>
+              <i className="fas fa-chevron-down officer-caret" id="navOfficerCaret"></i>
+            </button>
+
+            {/* Officer Profile Dropdown Menu */}
+            <div className="officer-dropdown-menu" id="officerDropdown">
+              <div className="officer-dropdown-header">
+                <div className="officer-dropdown-avatar" id="dropdownAvatar">
+                  <i className="fas fa-id-badge"></i>
+                </div>
+                <div className="officer-dropdown-meta">
+                  <strong id="dropdownOfficerId">KAMRUP_ADMIN_GIS</strong>
+                  <span id="dropdownRoleName">District Admin Portal</span>
+                  <small className="officer-session-tag">
+                    <span className="session-dot"></span> Session Active
+                  </small>
+                </div>
+              </div>
+              <div className="officer-dropdown-divider"></div>
+              <a href="/admin" className="officer-dropdown-item primary-action" id="dropdownDashboardLink">
+                <i className="fas fa-gauge-high"></i>
+                <div className="item-text">
+                  <strong>Go to Dashboard</strong>
+                  <small>Access live operational controls</small>
+                </div>
+                <i className="fas fa-arrow-right dropdown-end-arrow"></i>
+              </a>
+              <a href="/login" className="officer-dropdown-item">
+                <i className="fas fa-users-gear"></i>
+                <div className="item-text">
+                  <span>Switch Role / Portal</span>
+                </div>
+              </a>
+              <div className="officer-dropdown-divider"></div>
+              <button type="button" className="officer-dropdown-item officer-logout-btn" id="navOfficerLogout" onClick={(event) => { event.preventDefault(); if (window.neerakshakLogout) window.neerakshakLogout(); else { try{sessionStorage.clear(); sessionStorage.setItem('neerakshak_logged_out', '1');}catch(e){} window.location.href = '/login?logout=1'; } }}>
+                <i className="fas fa-arrow-right-from-bracket"></i>
+                <div className="item-text">
+                  <span>Sign Out / Logout</span>
+                </div>
+              </button>
+            </div>
+          </div>
         </div>
       </nav>
       {/* =====================================================================
@@ -795,166 +846,7 @@ const markup = (
         </footer>
       </div>
       {/* =====================================================================
-         MODAL 1: OFFICIAL SECURE LOGIN & ROLE SWITCHER
-         ===================================================================== */}
-      <div className="modal-overlay" id="loginModal" onClick={(event) => window.closeLoginModal()}>
-        <div className="modal-box" onClick={(event) => event.stopPropagation()}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h3 style={{ margin: "0", fontSize: "17px", color: "var(--navy-deep)" }}>
-              <i className="fas fa-shield-halved" style={{ color: "var(--sky-rich)", marginRight: "6px" }}></i>
-              {" Official Portal Login "}
-            </h3>
-            <button onClick={(event) => window.closeLoginModal()} style={{ border: "none", background: "#e2e8f0", width: "28px", height: "28px", borderRadius: "50%", cursor: "pointer" }}>
-              <i className="fas fa-times"></i>
-            </button>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "6px 0 12px 0" }}>
-            <span style={{ fontSize: "12px", color: "var(--text-body)" }}>Select designated authority role:</span>
-            <a href="/login" style={{ fontSize: "12px", color: "#0284c7", fontWeight: "700", textDecoration: "none" }}>
-              <i className="fas fa-arrow-up-right-from-square"></i> Dedicated Login Page &rarr;
-            </a>
-          </div>
-          {/* Role Selector Pills */}
-          <div className="login-role-tabs">
-            <div className="login-role-pill active" onClick={(event) => window.selectLoginRole('admin', event.currentTarget)}>
-              <i className="fas fa-water"></i>
-              {" "}
-              <span>
-                Admin
-                <br />
-                {"(GIS & Flood)"}
-              </span>
-            </div>
-            <div className="login-role-pill" onClick={(event) => window.selectLoginRole('authority', event.currentTarget)}>
-              <i className="fas fa-user-tie"></i>
-              {" "}
-              <span>
-                Authority
-                <br />
-                (Decisions)
-              </span>
-            </div>
-            <div className="login-role-pill" onClick={(event) => window.selectLoginRole('godown', event.currentTarget)}>
-              <i className="fas fa-warehouse"></i>
-              {" "}
-              <span>
-                Godown
-                <br />
-                (Inventory)
-              </span>
-            </div>
-            <div className="login-role-pill" onClick={(event) => window.selectLoginRole('ground', event.currentTarget)}>
-              <i className="fas fa-clipboard-check"></i>
-              {" "}
-              <span>
-                Ground
-                <br />
-                (Field Officer)
-              </span>
-            </div>
-            <div className="login-role-pill" onClick={(event) => window.selectLoginRole('monitoring', event.currentTarget)}>
-              <i className="fas fa-chart-line"></i>
-              {" "}
-              <span>
-                Monitoring
-                <br />
-                (Audit)
-              </span>
-            </div>
-          </div>
-          {/* Credential Login Form */}
-          <form onSubmit={(event) => window.handleFormLogin(event)}>
-            <div className="form-group">
-              <label>Designated Officer ID</label>
-              {" "}
-              <input type="text" id="loginUserId" className="form-input" defaultValue="KAMRUP_ADMIN_GIS" placeholder="e.g. KAMRUP_ADMIN_GIS" required />
-            </div>
-            <div className="form-group">
-              <label>Official Security PIN / Password</label>
-              {" "}
-              <input type="password" id="loginPassword" className="form-input" placeholder="Enter PIN (e.g. demo@1234)" required />
-            </div>
-            <button type="submit" className="btn-submit-login">
-              <i className="fas fa-key"></i>
-              {" Authenticate & Enter Portal "}
-            </button>
-          </form>
-          <div className="quick-persona-divider">
-            <span>OR 1-CLICK INSTANT DEMO LAUNCH</span>
-          </div>
-          {/* Quick 1-Click Launch Persona Grid */}
-          <div className="persona-quick-grid">
-            <div className="persona-quick-card" onClick={(event) => window.launchRolePortal('admin')}>
-              <i className="fas fa-water" style={{ color: "#0284c7" }}></i>
-              {" "}
-              <strong>Admin</strong>
-              {" "}
-              <small>Flood Data</small>
-            </div>
-            <div className="persona-quick-card" onClick={(event) => window.launchRolePortal('authority')}>
-              <i className="fas fa-user-tie" style={{ color: "#1d4ed8" }}></i>
-              {" "}
-              <strong>Authority</strong>
-              {" "}
-              <small>Allocations</small>
-            </div>
-            <div className="persona-quick-card" onClick={(event) => window.launchRolePortal('godown')}>
-              <i className="fas fa-warehouse" style={{ color: "#d97706" }}></i>
-              {" "}
-              <strong>Godown</strong>
-              {" "}
-              <small>Dispatch</small>
-            </div>
-            <div className="persona-quick-card" onClick={(event) => window.launchRolePortal('ground')}>
-              <i className="fas fa-clipboard-check" style={{ color: "#16a34a" }}></i>
-              {" "}
-              <strong>Ground</strong>
-              {" "}
-              <small>Delivery</small>
-            </div>
-            <div className="persona-quick-card" onClick={(event) => window.launchRolePortal('monitoring')}>
-              <i className="fas fa-chart-line" style={{ color: "#7c3aed" }}></i>
-              {" "}
-              <strong>Audit</strong>
-              {" "}
-              <small>Integrity</small>
-            </div>
-          </div>
-        </div>
-      </div>
-      {/* =====================================================================
-         MODAL 2: INTERACTIVE ROLE DASHBOARD (LIVE PORTAL VIEW)
-         ===================================================================== */}
-      <div className="modal-overlay" id="rolePortalModal" onClick={(event) => window.closeRolePortalModal()}>
-        <div className="modal-box modal-wide-box" onClick={(event) => event.stopPropagation()}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1.5px solid #dce8f5", paddingBottom: "10px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div id="rolePortalIconWrap" style={{ width: "36px", height: "36px", borderRadius: "8px", background: "#e0f2fe", color: "#0284c7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "17px" }}></div>
-              <div>
-                <h3 id="rolePortalTitle" style={{ margin: "0", fontSize: "17px", color: "var(--navy-deep)" }}>Role Portal</h3>
-                <span id="rolePortalSubtitle" style={{ fontSize: "11px", color: "#64748b" }}>Operational Dashboard</span>
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-              <span style={{ fontSize: "11px", background: "#dcfce7", color: "#15803d", fontWeight: "700", padding: "3px 8px", borderRadius: "12px" }}>● Session Active</span>
-              {" "}
-              <button onClick={(event) => window.enterFullRoleDashboard && window.enterFullRoleDashboard()} style={{ border: "none", background: "#0284c7", color: "#ffffff", padding: "4px 10px", borderRadius: "6px", cursor: "pointer", fontSize: "11.5px", fontWeight: "700" }}>
-                <i className="fas fa-arrow-up-right-from-square"></i>
-                {" Open Full Page "}
-              </button>
-              {" "}
-              <button onClick={(event) => window.closeRolePortalModal()} style={{ border: "1px solid #cbd5e1", background: "#ffffff", padding: "4px 10px", borderRadius: "6px", cursor: "pointer", fontSize: "11.5px", fontWeight: "700" }}>
-                <i className="fas fa-arrow-left"></i>
-                {" Sign Out "}
-              </button>
-            </div>
-          </div>
-          {/* Dynamic Role Content Container */}
-          <div id="rolePortalBody"></div>
-        </div>
-      </div>
-      {/* =====================================================================
-         MODAL 3: CITIZEN SERVICE & FEATURE DETAILS MODAL
+         MODAL 1: CITIZEN SERVICE & FEATURE DETAILS MODAL
          ===================================================================== */}
       <div className="modal-overlay" id="serviceModal" onClick={(event) => window.closeServiceModal()}>
         <div className="modal-box" onClick={(event) => event.stopPropagation()}>

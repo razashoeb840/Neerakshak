@@ -1,17 +1,16 @@
 import { useEffect } from 'react';
 import css from './login.css?inline';
 import initLoginPage from './login.legacy.js';
-
-// Static markup, created once so React never re-renders over what the page script builds.
+//Static markup, created once so React never re-renders over what the page script builds.
 const markup = (
   <>
     <div className="bloom"></div>
     <div className="drops" id="drops"></div>
-
     <div className="login-viewport">
       {/* =========================================================================
           LEFT SIDE: LOGO, OFFICIAL SLOGAN & BOTTOM PILLARS (AS IN IMAGE 2)
           ========================================================================= */}
+
       <div className="login-left-area">
         <div className="left-hero-branding">
           {/* Logo Lockup: Waterdrop House Icon + NEERAKSHAK */}
@@ -21,6 +20,7 @@ const markup = (
               <path d="M40 4 C40 4, 8 46, 8 62 A32 32 0 0 0 72 62 C72 46, 40 4, 40 4 Z" fill="#0284c7" />
               {/* House roof & body inside droplet */}
               <path d="M40 26 L58 41 L53 41 L53 62 L27 62 L27 41 L22 41 Z" fill="#ffffff" />
+
               {/* House Door */}
               <rect x="36" y="48" width="8" height="14" fill="#0284c7" rx="1.5" />
               {/* House Window */}
@@ -28,10 +28,12 @@ const markup = (
               {/* Chimney */}
               <rect x="47" y="30" width="3.5" height="6" fill="#ffffff" />
               {/* Water ripples at bottom of drop */}
+              
               <path d="M14 69 Q27 75 42 69 T70 71" stroke="#38bdf8" strokeWidth="3" strokeLinecap="round" fill="none" />
               <path d="M20 77 Q32 83 48 77 T64 79" stroke="#bae6fd" strokeWidth="2.5" strokeLinecap="round" fill="none" />
             </svg>
             <div className="brand-text-block">
+
               <h1 className="brand-main-title">NEERAKSHAK</h1>
               <div className="brand-sub-divider">
                 <span className="dash"></span>
