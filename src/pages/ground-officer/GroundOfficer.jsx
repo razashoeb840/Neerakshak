@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import css from './ground-officer.css?inline';
 import initGroundOfficerPage from './ground-officer.legacy.js';
+import { setupRouteGuard } from '../../auth';
 
 // Static markup, created once so React never re-renders over what the page script builds.
 const markup = (
@@ -680,8 +681,10 @@ const markup = (
 
 export default function GroundOfficer() {
   useEffect(() => {
+    const cleanup = setupRouteGuard('ground');
     document.title = "NEERAKSHAK – Ground Officer Portal | Field Operations & Delivery Verification";
     initGroundOfficerPage();
+    return cleanup;
   }, []);
 
   return (

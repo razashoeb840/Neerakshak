@@ -477,6 +477,7 @@ export default function initHomePage() {
     renderSeedData();
     initScrollAnimations();
     checkNavAuthStatus();
+    window.addEventListener('pageshow', checkNavAuthStatus);
   });
 
   // Global window functions

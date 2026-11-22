@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import css from './admin.css?inline';
 import initAdminPage from './admin.legacy.js';
+import { setupRouteGuard } from '../../auth';
 
 // Static markup, created once so React never re-renders over what the page script builds.
 const markup = (
@@ -671,8 +672,10 @@ const markup = (
 
 export default function Admin() {
   useEffect(() => {
+    const cleanup = setupRouteGuard('admin');
     document.title = "NEERAKSHAK – Admin Portal | River & Flood Ecological Command";
     initAdminPage();
+    return cleanup;
   }, []);
 
   return (

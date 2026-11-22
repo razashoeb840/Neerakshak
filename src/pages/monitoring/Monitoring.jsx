@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import css from './monitoring.css?inline';
 import initMonitoringPage from './monitoring.legacy.js';
+import { setupRouteGuard } from '../../auth';
 
 // Static markup, created once so React never re-renders over what the page script builds.
 const markup = (
@@ -490,8 +491,10 @@ const markup = (
 
 export default function Monitoring() {
   useEffect(() => {
+    const cleanup = setupRouteGuard('monitoring');
     document.title = "NEERAKSHAK – Monitoring & Audit Portal | Resource Lifecycle & Accountability";
     initMonitoringPage();
+    return cleanup;
   }, []);
 
   return (

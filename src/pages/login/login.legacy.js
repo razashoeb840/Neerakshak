@@ -206,7 +206,13 @@ export default function initLoginPage() {
     /* Detect logout notification */
     try {
       const params = new URLSearchParams(window.location.search);
-      if (params.get('logout') === '1' || sessionStorage.getItem('neerakshak_logged_out') === '1') {
+      if (params.get('auth_required') === '1') {
+        msg('Access Denied: Please log in with authorized credentials to access this portal.', 'err');
+        shake();
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      } else if (params.get('logout') === '1' || sessionStorage.getItem('neerakshak_logged_out') === '1') {
         sessionStorage.removeItem('neerakshak_logged_out');
         msg('You have been securely logged out from the operational session.', 'ok');
         if (window.history && window.history.replaceState) {
@@ -273,7 +279,7 @@ export default function initLoginPage() {
               if ($('wipeTxt')) $('wipeTxt').textContent = 'Entering ' + r.fullName + '…';
               if ($('wipe')) $('wipe').classList.add('go');
               setTimeout(() => {
-                window.location.href = r.page;
+                window.location.replace(r.page);
               }, 1100);
             }, 400);
           }

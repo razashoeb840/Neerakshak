@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import css from './authority.css?inline';
 import initAuthorityPage from './authority.legacy.js';
+import { setupRouteGuard } from '../../auth';
 
 // Static markup, created once so React never re-renders over what the page script builds.
 const markup = (
@@ -652,8 +653,10 @@ const markup = (
 
 export default function Authority() {
   useEffect(() => {
+    const cleanup = setupRouteGuard('authority');
     document.title = "NEERAKSHAK – District Authority Portal | Flood Assessment, Approvals & Godown Coordination";
     initAuthorityPage();
+    return cleanup;
   }, []);
 
   return (

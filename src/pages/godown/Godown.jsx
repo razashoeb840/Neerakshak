@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import css from './godown.css?inline';
 import initGodownPage from './godown.legacy.js';
+import { setupRouteGuard } from '../../auth';
 
 // Static markup, created once so React never re-renders over what the page script builds.
 const markup = (
@@ -646,8 +647,10 @@ const markup = (
 
 export default function Godown() {
   useEffect(() => {
+    const cleanup = setupRouteGuard('godown');
     document.title = "NEERAKSHAK – Godown Manager Portal | Colorful Inventory & Dispatch";
     initGodownPage();
+    return cleanup;
   }, []);
 
   return (
