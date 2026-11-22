@@ -53,7 +53,7 @@ body::before {
 /* Atmospheric light bloom */
 .bloom {
   position: fixed;
-  left: 20vw;
+  right: 20vw;
   top: -10vh;
   width: 60vw;
   height: 60vh;
@@ -88,7 +88,7 @@ body::before {
 
 /* ==========================================================================
    MAIN 3-PANEL PORTAL STAGE
-   Left Info Panel | Center Form (over 2nd image) | Right 1st image
+   Left 1st image | Center Form (over 2nd image) | Right Info Panel
    ========================================================================== */
 .portal-stage {
   display: flex;
@@ -103,252 +103,73 @@ body::before {
 }
 
 /* --------------------------------------------------------------------------
-   1. LEFT PANEL: NEERAKSHAK BRANDING & OFFICIAL HELPLINE DIRECTORY
+   1. LEFT PANEL: IMAGE 1 (NDRF RESCUE OPERATIONS & RELIEF BASE)
    -------------------------------------------------------------------------- */
 .stage-left {
-  width: 310px;
-  min-width: 280px;
-  flex-shrink: 0;
-  background: rgba(7, 34, 71, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  width: 480px;
+  min-width: 360px;
+  flex: 1;
+  position: relative;
   border-radius: 20px;
-  padding: 20px 18px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: #081d38;
+  display: flex;
+}
+
+.left-img-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Unzoomed, razor-sharp natural image 1 display */
+.left-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  display: block;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+.left-overlay-badge {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(7, 34, 71, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: #fff;
+  z-index: 2;
+}
+
+.badge-chip {
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
-}
-
-.gov-seal-pill {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 5px 10px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 10px;
-  margin-bottom: 14px;
-}
-
-.gov-ashoka-seal {
-  width: 32px;
-  height: 32px;
-  flex-shrink: 0;
-}
-
-.gov-seal-pill div {
-  display: flex;
-  flex-direction: column;
-}
-
-.gov-name {
-  font-size: 9.5px;
-  font-weight: 800;
-  letter-spacing: 0.6px;
-  color: #f8fafc;
-}
-
-.dept-name {
-  font-size: 8.5px;
-  color: #7dd3fc;
-  font-weight: 500;
-}
-
-.left-brand {
-  margin-bottom: 16px;
-}
-
-.left-logo-title {
-  margin: 0;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-style: italic;
-  font-weight: 800;
-  font-size: 26px;
-  letter-spacing: 0.8px;
-  line-height: 1;
-  color: #fff;
-}
-
-.left-logo-title span {
-  color: #38bdf8;
-  text-shadow: 0 0 18px rgba(56, 189, 248, 0.6);
-}
-
-.left-logo-subtitle {
-  margin: 6px 0 10px;
-  font-size: 11px;
-  line-height: 1.4;
-  color: #cbd5e1;
-}
-
-.left-motto-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: #94a3b8;
-  padding: 3px 8px;
-  background: rgba(14, 165, 233, 0.12);
-  border-radius: 6px;
-  border: 1px solid rgba(56, 189, 248, 0.25);
-}
-
-.motto-dot {
-  color: #38bdf8;
-}
-
-.motto-cyan {
-  color: #38bdf8;
-}
-
-.left-features-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.feat-tile {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 9px 11px;
-  border-radius: 11px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  transition: all 0.25s ease;
-}
-
-.feat-tile:hover {
-  background: rgba(14, 165, 233, 0.12);
-  border-color: rgba(56, 189, 248, 0.3);
-  transform: translateX(3px);
-}
-
-.feat-tile i {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: rgba(14, 165, 233, 0.22);
-  color: #38bdf8;
-  display: grid;
-  place-items: center;
-  font-size: 12px;
-  flex-shrink: 0;
-}
-
-.feat-tile div {
-  display: flex;
-  flex-direction: column;
-}
-
-.feat-tile strong {
-  font-size: 11px;
-  color: #f1f5f9;
-}
-
-.feat-tile span {
-  font-size: 9.8px;
-  color: #94a3b8;
-  margin-top: 1px;
-}
-
-.left-bottom {
-  margin-top: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.helpline-card {
-  padding: 10px 12px;
-  border-radius: 11px;
-  background: linear-gradient(135deg, rgba(220, 38, 38, 0.18), rgba(220, 38, 38, 0.06));
-  border: 1px solid rgba(248, 113, 113, 0.35);
-}
-
-.hl-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 10px;
-  font-weight: 700;
-  color: #fca5a5;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.hl-head i {
-  color: #ef4444;
-  animation: pulse 1.4s infinite;
-}
-
-.hl-numbers {
-  margin-top: 4px;
-  font-size: 11px;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.hl-numbers strong {
-  color: #fecaca;
-  font-size: 12px;
-}
-
-.hl-sep {
-  color: rgba(255, 255, 255, 0.4);
-}
-
-.left-actions-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.left-back-btn {
-  display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 10.5px;
-  font-weight: 600;
-  color: #93c5fd;
-  text-decoration: none;
-  padding: 6px 10px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  transition: all 0.2s ease;
-}
-
-.left-back-btn:hover {
-  background: rgba(56, 189, 248, 0.2);
-  color: #fff;
-  border-color: #38bdf8;
-}
-
-.clock-badge {
-  font-size: 9.8px;
-  color: #94a3b8;
-  text-align: right;
-  line-height: 1.25;
-}
-
-.clock-badge span {
-  display: block;
-}
-
-#clkTime {
+  font-weight: 800;
   color: #38bdf8;
-  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.badge-chip i {
+  color: #f97316;
+}
+
+.left-overlay-badge p {
+  margin: 3px 0 0;
+  font-size: 9.8px;
+  color: #cbd5e1;
+  line-height: 1.35;
 }
 
 /* --------------------------------------------------------------------------
@@ -623,7 +444,7 @@ body::before {
 
 .input-wrap input {
   width: 100%;
-  height: 38px; /* Comfortable height */
+  height: 38px;
   padding: 0 32px 0 32px;
   font-family: inherit;
   font-size: 12px;
@@ -957,73 +778,252 @@ body::before {
 }
 
 /* --------------------------------------------------------------------------
-   3. RIGHT PANEL: IMAGE 1 (NDRF RESCUE OPERATIONS)
+   3. RIGHT PANEL: NEERAKSHAK BRANDING & OFFICIAL HELPLINE DIRECTORY
    -------------------------------------------------------------------------- */
 .stage-right {
-  width: 480px;
-  min-width: 380px;
-  flex: 1;
-  position: relative;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  background: #081d38;
-  display: flex;
-}
-
-.right-img-frame {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-/* Unzoomed, razor-sharp natural image 1 display */
-.right-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center center;
-  display: block;
-  image-rendering: -webkit-optimize-contrast;
-}
-
-.right-overlay-badge {
-  position: absolute;
-  left: 14px;
-  right: 14px;
-  bottom: 14px;
-  padding: 10px 14px;
-  border-radius: 12px;
+  width: 310px;
+  min-width: 280px;
+  flex-shrink: 0;
   background: rgba(7, 34, 71, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 20px 18px;
   color: #fff;
-  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
 }
 
-.badge-chip {
+.gov-seal-pill {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  margin-bottom: 14px;
+}
+
+.gov-ashoka-seal {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.gov-seal-pill div {
+  display: flex;
+  flex-direction: column;
+}
+
+.gov-name {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: #f8fafc;
+}
+
+.dept-name {
+  font-size: 8.5px;
+  color: #7dd3fc;
+  font-weight: 500;
+}
+
+.right-brand {
+  margin-bottom: 16px;
+}
+
+.right-logo-title {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-style: italic;
+  font-weight: 800;
+  font-size: 26px;
+  letter-spacing: 0.8px;
+  line-height: 1;
+  color: #fff;
+}
+
+.right-logo-title span {
+  color: #38bdf8;
+  text-shadow: 0 0 18px rgba(56, 189, 248, 0.6);
+}
+
+.right-logo-subtitle {
+  margin: 6px 0 10px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #cbd5e1;
+}
+
+.right-motto-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #94a3b8;
+  padding: 3px 8px;
+  background: rgba(14, 165, 233, 0.12);
+  border-radius: 6px;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.motto-dot {
+  color: #38bdf8;
+}
+
+.motto-cyan {
+  color: #38bdf8;
+}
+
+.right-features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.feat-tile {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 11px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  transition: all 0.25s ease;
+}
+
+.feat-tile:hover {
+  background: rgba(14, 165, 233, 0.12);
+  border-color: rgba(56, 189, 248, 0.3);
+  transform: translateX(3px);
+}
+
+.feat-tile i {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(14, 165, 233, 0.22);
+  color: #38bdf8;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.feat-tile div {
+  display: flex;
+  flex-direction: column;
+}
+
+.feat-tile strong {
+  font-size: 11px;
+  color: #f1f5f9;
+}
+
+.feat-tile span {
+  font-size: 9.8px;
+  color: #94a3b8;
+  margin-top: 1px;
+}
+
+.right-bottom {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.helpline-card {
+  padding: 10px 12px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.18), rgba(220, 38, 38, 0.06));
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.hl-head {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 10.5px;
-  font-weight: 800;
-  color: #38bdf8;
-  letter-spacing: 0.3px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fca5a5;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.badge-chip i {
-  color: #f97316;
+.hl-head i {
+  color: #ef4444;
+  animation: pulse 1.4s infinite;
 }
 
-.right-overlay-badge p {
-  margin: 3px 0 0;
+.hl-numbers {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hl-numbers strong {
+  color: #fecaca;
+  font-size: 12px;
+}
+
+.hl-sep {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.right-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.right-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #93c5fd;
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  transition: all 0.2s ease;
+}
+
+.right-back-btn:hover {
+  background: rgba(56, 189, 248, 0.2);
+  color: #fff;
+  border-color: #38bdf8;
+}
+
+.clock-badge {
   font-size: 9.8px;
-  color: #cbd5e1;
-  line-height: 1.35;
+  color: #94a3b8;
+  text-align: right;
+  line-height: 1.25;
+}
+
+.clock-badge span {
+  display: block;
+}
+
+#clkTime {
+  color: #38bdf8;
+  font-weight: 700;
 }
 
 /* Shake Animation */
@@ -1099,16 +1099,16 @@ body::before {
     gap: 14px;
     max-width: 100%;
   }
-  .stage-left {
+  .stage-right {
     width: 270px;
     min-width: 260px;
     padding: 16px 14px;
   }
-  .stage-right {
+  .stage-left {
     width: 400px;
     min-width: 320px;
   }
-  .left-logo-title {
+  .right-logo-title {
     font-size: 22px;
   }
 }
@@ -1126,7 +1126,7 @@ body::before {
     max-width: 680px;
     min-width: auto;
   }
-  .stage-right {
+  .stage-left {
     height: 380px;
   }
 }
