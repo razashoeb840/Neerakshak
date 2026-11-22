@@ -123,18 +123,12 @@ const markup = (
             <span>Assess</span>
           </button>
           {" "}
-          <button className="rail-btn auth-nav-btn" data-tab="requests" onClick={(event) => window.switchAuthTab('requests', event.currentTarget)} title="Incoming Field Resource Requests">
-            <i className="fas fa-inbox"></i>
+          <button className="rail-btn auth-nav-btn" data-tab="requests" onClick={(event) => window.switchAuthTab('requests', event.currentTarget)} title="Field Resource Requests & Approval Desk">
+            <i className="fas fa-clipboard-check"></i>
             {" "}
             <span>Requests</span>
             {" "}
             <span className="rail-badge-count" id="navReqBadge">0</span>
-          </button>
-          {" "}
-          <button className="rail-btn auth-nav-btn" data-tab="approval" onClick={(event) => window.switchAuthTab('approval', event.currentTarget)} title="Request Approval Desk">
-            <i className="fas fa-clipboard-check"></i>
-            {" "}
-            <span>Approve</span>
           </button>
           {" "}
           <button className="rail-btn auth-nav-btn" data-tab="allocation" onClick={(event) => window.switchAuthTab('allocation', event.currentTarget)} title="Resource Allocation to Godown">
@@ -290,32 +284,25 @@ const markup = (
             <div className="aqua-card" id="areaDetailsPanel"></div>
           </div>
           {/* ===============================================================
-                 SECTION 4: RESOURCE REQUESTS
+                 SECTION 4: FIELD RESOURCE REQUESTS & APPROVAL DESK (MERGED)
                  =============================================================== */}
           <div className="tab-view-pane" id="tab-requests">
             <div className="aqua-card">
               <div className="card-head">
                 <h2>
-                  <i className="fas fa-inbox" style={{ color: "var(--river-blue)" }}></i>
-                  {" Incoming Field & Relief Camp Resource Requests"}
+                  <i className="fas fa-clipboard-check" style={{ color: "var(--foliage-mid)" }}></i>
+                  {" Field Resource Requests & Approval Desk"}
                 </h2>
-                <button className="btn-card-action" onClick={(event) => window.switchAuthTab('approval', document.querySelector('[data-tab=approval]'))}>Open Approval Queue →</button>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <select id="requestStatusFilter" className="form-control" style={{ padding: "4px 10px", fontSize: "11.5px", width: "auto" }} onChange={() => window.renderAllAuthorityViews && window.renderAllAuthorityViews()}>
+                    <option value="ALL">All Requests</option>
+                    <option value="Pending">Pending Approvals Only</option>
+                    <option value="Approved">Approved Requests</option>
+                    <option value="Rejected">Rejected Requests</option>
+                  </select>
+                </div>
               </div>
               <div className="cards-grid-2" id="allRequestsGrid"></div>
-            </div>
-          </div>
-          {/* ===============================================================
-                 SECTION 5: REQUEST APPROVAL (APPROVE OR REJECT WITH REASON)
-                 =============================================================== */}
-          <div className="tab-view-pane" id="tab-approval">
-            <div className="aqua-card">
-              <div className="card-head">
-                <h2>
-                  <i className="fas fa-clipboard-check" style={{ color: "var(--foliage-mid)" }}></i>
-                  {" Request Approval Desk (Approve or Reject with Official Reason)"}
-                </h2>
-              </div>
-              <div className="cards-grid-2" id="approvalDeskGrid"></div>
             </div>
           </div>
           {/* ===============================================================
@@ -439,7 +426,7 @@ const markup = (
                 <span>{"Assign boats, food & kits"}</span>
               </button>
               {" "}
-              <button className="qa-color-card qa-green" onClick={(event) => window.switchAuthTab('approval', document.querySelector('[data-tab=approval]'))}>
+              <button className="qa-color-card qa-green" onClick={(event) => window.switchAuthTab('requests', document.querySelector('[data-tab=requests]'))}>
                 <i className="fas fa-clipboard-check"></i>
                 {" "}
                 <strong>Approve Requests</strong>

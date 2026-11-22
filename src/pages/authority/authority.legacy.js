@@ -76,6 +76,7 @@ export default function initAuthorityPage() {
 
   function switchAuthTab(tabKey, btnEl) {
     try {
+      if (tabKey === 'approval') tabKey = 'requests';
       document.querySelectorAll('.auth-nav-btn').forEach(b => b.classList.remove('active'));
       if (btnEl) {
         btnEl.classList.add('active');
@@ -247,12 +248,16 @@ export default function initAuthorityPage() {
         }
       }
 
-      // 4. Resource Requests & Approval Desk
-      const renderReqCards = (showActions) => {
-        if (!requests || requests.length === 0) {
-          return `<div style="grid-column:1/-1; text-align:center; padding:18px; color:var(--text-muted);">No resource requests available.</div>`;
+      // 4. Resource Requests & Approval Desk (Merged)
+      const reqFilter = document.getElementById('requestStatusFilter')?.value || 'ALL';
+      const indexedRequests = (requests || []).map((item, idx) => ({ ...item, idx }));
+      const filteredRequests = indexedRequests.filter(r => reqFilter === 'ALL' || r.status === reqFilter);
+
+      const renderMergedReqCards = (list) => {
+        if (!list || list.length === 0) {
+          return `<div style="grid-column:1/-1; text-align:center; padding:24px; border:1.5px dashed #9cc3e6; border-radius:12px; color:var(--text-muted);"><i class="fas fa-inbox" style="font-size:24px; color:#94a3b8; margin-bottom:8px; display:block;"></i>No resource requests found for this filter.</div>`;
         }
-        return requests.map((r, idx) => `
+        return list.map(r => `
           <div class="decision-card">
             <div class="dc-top">
               <div>
@@ -266,21 +271,26 @@ export default function initAuthorityPage() {
               <span>Urgency: <strong>${r.urgency || 'High'}</strong></span>
             </div>
             <p style="margin:0; font-size:11.5px; color:var(--text-body);"><strong>Decision Note:</strong> ${r.reason || 'Pending verification'}</p>
-            ${showActions && r.status === 'Pending' ? `
+            ${r.status === 'Pending' ? `
               <div class="dc-actions">
-                <button type="button" class="btn-card-action approve" onclick="window.openDecisionModal(${idx}, 'Approved')"><i class="fas fa-check"></i> Approve & Send to Godown</button>
-                <button type="button" class="btn-card-action reject" onclick="window.openDecisionModal(${idx}, 'Rejected')"><i class="fas fa-xmark"></i> Reject with Reason</button>
+                <button type="button" class="btn-card-action approve" onclick="window.openDecisionModal(${r.idx}, 'Approved')"><i class="fas fa-check"></i> Approve & Send to Godown</button>
+                <button type="button" class="btn-card-action reject" onclick="window.openDecisionModal(${r.idx}, 'Rejected')"><i class="fas fa-xmark"></i> Reject with Reason</button>
               </div>
-            ` : ''}
+            ` : `
+              <div style="margin-top:8px; padding-top:6px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-muted);">
+                <span>Status: <strong style="color:${r.status === 'Approved' ? '#16a34a' : '#dc2626'}">${r.status}</strong></span>
+                <span><i class="fas fa-shield-halved"></i> DDMA Recorded</span>
+              </div>
+            `}
           </div>
         `).join('');
       };
 
       const allReqsGrid = document.getElementById('allRequestsGrid');
-      if (allReqsGrid) allReqsGrid.innerHTML = renderReqCards(false);
+      if (allReqsGrid) allReqsGrid.innerHTML = renderMergedReqCards(filteredRequests);
 
       const appDeskGrid = document.getElementById('approvalDeskGrid');
-      if (appDeskGrid) appDeskGrid.innerHTML = renderReqCards(true);
+      if (appDeskGrid) appDeskGrid.innerHTML = renderMergedReqCards(filteredRequests);
 
       // 5. Resource Allocation & Allocation Tracking
       const allocHtml = (!allocations || allocations.length === 0)

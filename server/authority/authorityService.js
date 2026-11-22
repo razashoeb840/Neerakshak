@@ -28,7 +28,7 @@ function readData() {
     coordinations: [],
     operations: [],
     logs: []
-  };
+  }; 
 }
 
 function writeData(data) {

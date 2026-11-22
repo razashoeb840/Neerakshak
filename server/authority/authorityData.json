@@ -7,7 +7,12 @@
       "severity": "Critical",
       "pop": 4200,
       "waterStatus": "Brahmaputra at 18.2 m (Above Danger Level)",
-      "assessedNeed": { "boats": 4, "jackets": 60, "food": 500, "meds": 80 },
+      "assessedNeed": {
+        "boats": 4,
+        "jackets": 60,
+        "food": 500,
+        "meds": 80
+      },
       "lat": 26.132,
       "lng": 91.515
     },
@@ -18,7 +23,12 @@
       "severity": "High",
       "pop": 3650,
       "waterStatus": "Kolong Basin at 14.6 m (Rising)",
-      "assessedNeed": { "boats": 2, "jackets": 30, "food": 450, "meds": 65 },
+      "assessedNeed": {
+        "boats": 2,
+        "jackets": 30,
+        "food": 450,
+        "meds": 65
+      },
       "lat": 26.052,
       "lng": 91.225
     },
@@ -29,7 +39,12 @@
       "severity": "Moderate",
       "pop": 2800,
       "waterStatus": "Waterlogging watch on approach road",
-      "assessedNeed": { "boats": 1, "jackets": 15, "food": 250, "meds": 40 },
+      "assessedNeed": {
+        "boats": 1,
+        "jackets": 15,
+        "food": 250,
+        "meds": 40
+      },
       "lat": 26.095,
       "lng": 91.34
     },
@@ -40,9 +55,46 @@
       "severity": "Normal",
       "pop": 1780,
       "waterStatus": "Drainage normal; monitoring runoff",
-      "assessedNeed": { "boats": 0, "jackets": 0, "food": 100, "meds": 20 },
+      "assessedNeed": {
+        "boats": 0,
+        "jackets": 0,
+        "food": 100,
+        "meds": 20
+      },
       "lat": 25.98,
       "lng": 91.24
+    },
+    {
+      "id": "area-1795461725956",
+      "name": "Police Colony",
+      "block": "Kahara, Saharsa",
+      "severity": "Normal",
+      "pop": 2200,
+      "waterStatus": "tfgbjmk",
+      "assessedNeed": {
+        "boats": 1,
+        "jackets": 33,
+        "food": 264,
+        "meds": 44
+      },
+      "lat": 25.8828,
+      "lng": 86.5896
+    },
+    {
+      "id": "area-1795424567980",
+      "name": "Flood Sector",
+      "block": "Palasbari, Kamrup",
+      "severity": "Critical",
+      "pop": 2200,
+      "waterStatus": "incrasing",
+      "assessedNeed": {
+        "boats": 3,
+        "jackets": 33,
+        "food": 264,
+        "meds": 44
+      },
+      "lat": 26.1427,
+      "lng": 91.5611
     }
   ],
   "requests": [
@@ -78,6 +130,22 @@
     }
   ],
   "allocations": [
+    {
+      "id": "ALC-560",
+      "village": "Police Colony",
+      "summary": "3 Boats, 45 Jackets, 400 Food, 60 Meds",
+      "godownStatus": "Sent to Godown Manager • Awaiting Dispatch",
+      "deliveryProgress": 35,
+      "timestamp": "03:04 pm"
+    },
+    {
+      "id": "ALC-559",
+      "village": "Police Colony",
+      "summary": "1 Boats, 33 Jackets, 264 Food, 44 Meds",
+      "godownStatus": "Sent to Godown Manager • Awaiting Dispatch",
+      "deliveryProgress": 35,
+      "timestamp": "02:59 pm"
+    },
     {
       "id": "ALC-501",
       "village": "Palashbari Riverside Ward 2",
@@ -128,6 +196,18 @@
     }
   ],
   "logs": [
+    {
+      "id": "LOG-MWVXFXAF",
+      "time": "03:04 pm",
+      "actor": "District Authority (DDMA)",
+      "note": "Direct allocation (3 Boats, 45 Jackets, 400 Food, 60 Meds) assigned to Police Colony."
+    },
+    {
+      "id": "LOG-MWVXA6M8",
+      "time": "02:59 pm",
+      "actor": "District Authority (DDMA)",
+      "note": "Direct allocation (1 Boats, 33 Jackets, 264 Food, 44 Meds) assigned to Police Colony."
+    },
     {
       "id": "LOG-01",
       "time": "10:35 AM",
