@@ -55,10 +55,6 @@ const markup = (
                 {" "}
                 <span id="telemetryStatusText">Live Monitoring</span>
               </div>
-              <button className="hero-btn-action" id="dataModeBtn" onClick={(event) => window.toggleDataMode()} title="Toggle simulated drill data">
-                <i className="fas fa-database"></i>
-                {" Reference Drill "}
-              </button>
               {" "}
               <a href="/" className="hero-btn-action hero-btn-public" title="Return to citizen portal">
                 <i className="fas fa-arrow-left"></i>

@@ -478,10 +478,18 @@ const __onReady = (fn) => __ready.push(fn);
             setTimeout(() => { t.style.right = '-380px'; }, 3200);
         }
 
+        window.neerakshakLogout = function() {
+            try {
+                sessionStorage.clear();
+                sessionStorage.setItem('neerakshak_logged_out', '1');
+            } catch(e) {}
+            window.location.href = '/login?logout=1';
+        };
+
         __onReady( renderAllAuthorityViews);
     
 
 // Inline handlers (onClick=...) and generated HTML call these on window, exactly like a classic script.
-Object.assign(window, { closeModal, confirmAssessedAllocation, confirmRequestDecision, getSeedAuthorityData, getSevPill, openCoordModal, openDecisionModal, openDirectAllocModal, openOperationModal, quickSendVillageToGodown, renderAllAuthorityViews, selectVillageForAssessment, showToast, submitCoordRecord, submitDirectAllocation, submitOperationRecord, switchAuthTab, toggleDataMode });
+Object.assign(window, { closeModal, confirmAssessedAllocation, confirmRequestDecision, getSeedAuthorityData, getSevPill, neerakshakLogout, openCoordModal, openDecisionModal, openDirectAllocModal, openOperationModal, quickSendVillageToGodown, renderAllAuthorityViews, selectVillageForAssessment, showToast, submitCoordRecord, submitDirectAllocation, submitOperationRecord, switchAuthTab, toggleDataMode });
 __ready.forEach((fn) => fn());
 }

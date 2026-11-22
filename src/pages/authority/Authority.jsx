@@ -64,10 +64,6 @@ const markup = (
                 {" "}
                 <span id="telemetryStatusText">Command Active</span>
               </div>
-              <button className="hero-btn-action" id="dataModeBtn" onClick={(event) => window.toggleDataMode()} title="Toggle simulated drill data">
-                <i className="fas fa-database"></i>
-                {" Reference Drill "}
-              </button>
               {" "}
               <a href="/" className="hero-btn-action hero-btn-public" title="Return to citizen portal">
                 <i className="fas fa-arrow-left"></i>
@@ -174,6 +170,11 @@ const markup = (
               <i className="fas fa-arrows-rotate"></i>
               {" "}
               <span>Sync</span>
+            </button>
+            <button className="rail-btn rail-btn-logout" onClick={() => { try{sessionStorage.clear(); sessionStorage.setItem('neerakshak_logged_out', '1');}catch(e){} window.location.href = '/login?logout=1'; }} title="Sign out of district session" style={{ color: "#f87171" }}>
+              <i className="fas fa-right-from-bracket"></i>
+              {" "}
+              <span>Logout</span>
             </button>
             <div className="rail-pulse-wrap" title="DDMA Socket Online">
               <span className="rail-online-dot"></span>

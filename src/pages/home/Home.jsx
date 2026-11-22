@@ -133,12 +133,6 @@ const markup = (
                 </div>
                 <i className="fas fa-arrow-right dropdown-end-arrow"></i>
               </a>
-              <a href="/login" className="officer-dropdown-item">
-                <i className="fas fa-users-gear"></i>
-                <div className="item-text">
-                  <span>Switch Role / Portal</span>
-                </div>
-              </a>
               <div className="officer-dropdown-divider"></div>
               <button type="button" className="officer-dropdown-item officer-logout-btn" id="navOfficerLogout" onClick={(event) => { event.preventDefault(); if (window.neerakshakLogout) window.neerakshakLogout(); else { try{sessionStorage.clear(); sessionStorage.setItem('neerakshak_logged_out', '1');}catch(e){} window.location.href = '/login?logout=1'; } }}>
                 <i className="fas fa-arrow-right-from-bracket"></i>

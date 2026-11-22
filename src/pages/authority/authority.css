@@ -289,17 +289,26 @@
         }
 
         .hero-btn-logout {
-            background: rgba(239, 68, 68, 0.18) !important;
-            color: #fee2e2 !important;
-            border-color: rgba(239, 68, 68, 0.45) !important;
+            background: #dc2626 !important;
+            color: #ffffff !important;
+            border-color: #ef4444 !important;
             cursor: pointer;
+            text-decoration: none;
+            display: inline-flex !important;
+            align-items: center;
+            gap: 6px;
         }
 
         .hero-btn-logout:hover {
-            background: #dc2626 !important;
+            background: #b91c1c !important;
             color: #ffffff !important;
-            border-color: #dc2626 !important;
-            box-shadow: 0 6px 18px rgba(220, 38, 38, 0.4) !important;
+            border-color: #b91c1c !important;
+            box-shadow: 0 6px 18px rgba(220, 38, 38, 0.5) !important;
+        }
+
+        .rail-btn-logout:hover {
+            background: rgba(239, 68, 68, 0.15) !important;
+            color: #ef4444 !important;
         }
 
         /* Image 2 Banner Main Content (Headline, Eyebrow & Description) */
