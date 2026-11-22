@@ -9,8 +9,8 @@ export default function initLoginPage() {
         name: 'Admin',
         fullName: 'District Admin Portal (GIS & Telemetry)',
         uid: 'KAMRUP_ADMIN_GIS',
-        validUids: ['kamrup_admin_gis', 'admin', 'admin@neerakshak.gov.in', 'gis_admin', 'kamrup_admin', 'admin1'],
-        validPwds: ['demo@1234', 'admin123', 'admin', 'neerakshak123', 'neerakshak@2026', 'password', '123456'],
+        validUids: ['kamrup_admin_gis', 'admin', 'admin@neerakshak.gov.in', 'gis_admin'],
+        validPwds: ['demo@1234', 'admin123', 'admin', 'admin@neerakshak'],
         page: '/admin',
         c: '#0066cc',
         c2: '#0284c7',
@@ -20,8 +20,8 @@ export default function initLoginPage() {
         name: 'Authority',
         fullName: 'District Disaster Management Authority (DDMA)',
         uid: 'KAMRUP_DC_AUTHORITY',
-        validUids: ['kamrup_dc_authority', 'authority', 'dc_kamrup', 'dc', 'authority@neerakshak.gov.in', 'kamrup_dc'],
-        validPwds: ['demo@1234', 'authority123', 'dc123', 'neerakshak123', 'neerakshak@2026', 'password', '123456'],
+        validUids: ['kamrup_dc_authority', 'authority', 'dc_kamrup', 'dc', 'authority@neerakshak.gov.in'],
+        validPwds: ['demo@1234', 'authority123', 'dc123'],
         page: '/authority',
         c: '#0066cc',
         c2: '#0284c7',
@@ -31,8 +31,8 @@ export default function initLoginPage() {
         name: 'Godown Manager',
         fullName: 'Central Relief Godown & Inventory Command',
         uid: 'KAMRUP_GODOWN_MGR',
-        validUids: ['kamrup_godown_mgr', 'godown', 'godown_mgr', 'godown@neerakshak.gov.in', 'relief_godown', 'kamrup_godown'],
-        validPwds: ['demo@1234', 'godown123', 'mgr123', 'neerakshak123', 'neerakshak@2026', 'password', '123456'],
+        validUids: ['kamrup_godown_mgr', 'godown', 'godown_mgr', 'godown@neerakshak.gov.in', 'relief_godown'],
+        validPwds: ['demo@1234', 'godown123', 'mgr123'],
         page: '/godown',
         c: '#0066cc',
         c2: '#0284c7',
@@ -42,8 +42,8 @@ export default function initLoginPage() {
         name: 'Ground Officer',
         fullName: 'Field Operations & Ground Verification Desk',
         uid: 'FIELD_OFFICER_CHAYGAON',
-        validUids: ['field_officer_chaygaon', 'ground', 'ground_officer', 'field_officer', 'ground@neerakshak.gov.in', 'go-kam-04', 'chaygaon_officer'],
-        validPwds: ['demo@1234', 'ground123', 'officer123', 'neerakshak123', 'neerakshak@2026', 'password', '123456'],
+        validUids: ['field_officer_chaygaon', 'ground', 'ground_officer', 'field_officer', 'ground@neerakshak.gov.in', 'go-kam-04'],
+        validPwds: ['demo@1234', 'ground123', 'officer123'],
         page: '/ground-officer',
         c: '#0066cc',
         c2: '#0284c7',
@@ -53,8 +53,8 @@ export default function initLoginPage() {
         name: 'Monitoring Officer',
         fullName: 'State DEOC Auditor Portal',
         uid: 'STATE_DEOC_AUDITOR',
-        validUids: ['state_deoc_auditor', 'monitoring', 'monitor', 'auditor', 'deoc_auditor', 'monitoring@neerakshak.gov.in', 'deoc_monitor'],
-        validPwds: ['demo@1234', 'monitoring123', 'audit123', 'neerakshak123', 'neerakshak@2026', 'password', '123456'],
+        validUids: ['state_deoc_auditor', 'monitoring', 'monitor', 'auditor', 'monitoring@neerakshak.gov.in'],
+        validPwds: ['demo@1234', 'monitoring123', 'audit123'],
         page: '/monitoring',
         c: '#0066cc',
         c2: '#0284c7',
@@ -91,17 +91,6 @@ export default function initLoginPage() {
         setRole(b.dataset.role, isDefaultOrEmpty);
       });
     });
-
-    /* Auto-detect role if user typed an Officer ID from a different role */
-    function detectRoleFromInput(rawInput) {
-      const clean = rawInput.toLowerCase().trim();
-      for (const [k, r] of Object.entries(ROLES)) {
-        if (r.uid.toLowerCase() === clean || r.validUids.some(x => x.toLowerCase() === clean)) {
-          return k;
-        }
-      }
-      return null;
-    }
 
     /* Eye toggle for password visibility */
     if ($('eye')) {
@@ -292,7 +281,7 @@ export default function initLoginPage() {
       }
     }
 
-    /* Form Submit Authentication */
+    /* Form Submit Authentication - STRICT VALIDATION */
     if ($('loginForm')) {
       $('loginForm').addEventListener('submit', e => {
         e.preventDefault();
@@ -324,31 +313,45 @@ export default function initLoginPage() {
           return;
         }
 
-        // 3. Smart Role Detection: Check if username belongs to a different role
-        let targetRoleKey = role;
-        const detectedRoleKey = detectRoleFromInput(u);
-        if (detectedRoleKey && detectedRoleKey !== role) {
-          setRole(detectedRoleKey, false);
-          targetRoleKey = detectedRoleKey;
-        }
-
-        const currentRoleObj = ROLES[targetRoleKey];
+        const currentRoleObj = ROLES[role];
         const cleanUid = u.toLowerCase();
 
-        // 4. Validate Credentials:
-        // - Known UID or demo UID
-        // - Role-specific valid password or standard universal keys ('demo@1234', 'admin', 'password', etc.) or length >= 4
-        const isUidRecognized = currentRoleObj.validUids.includes(cleanUid) || cleanUid === currentRoleObj.uid.toLowerCase();
-        const isPasswordValid = currentRoleObj.validPwds.includes(p) || p === 'demo@1234' || p === 'admin' || p === 'password' || p.length >= 4;
+        // 3. Strict Check: Does UID match the currently selected role?
+        const isUidValid = currentRoleObj.validUids.includes(cleanUid) || cleanUid === currentRoleObj.uid.toLowerCase();
 
-        if (!isUidRecognized && !isPasswordValid) {
-          msg('Authentication failed: Invalid Officer ID or Security PIN for ' + currentRoleObj.name + '.', 'err');
+        if (!isUidValid) {
+          // Check if it belongs to a different role
+          const otherRoleKey = Object.keys(ROLES).find(k => {
+            const ro = ROLES[k];
+            return ro.validUids.includes(cleanUid) || cleanUid === ro.uid.toLowerCase();
+          });
+
+          if (otherRoleKey) {
+            msg('Role Mismatch: Officer ID "' + u + '" belongs to "' + ROLES[otherRoleKey].name + '". Please select the ' + ROLES[otherRoleKey].name + ' tab above.', 'err');
+          } else {
+            msg('Access Denied: Officer ID "' + u + '" is not recognized for ' + currentRoleObj.name + '. (e.g. ' + currentRoleObj.uid + ')', 'err');
+          }
           shake();
+          if ($('uid')) $('uid').focus();
           return;
         }
 
+        // 4. Strict Check: Does Password match the authorized passwords for this role?
+        const isPasswordValid = currentRoleObj.validPwds.includes(p);
+
+        if (!isPasswordValid) {
+          msg('Access Denied: Incorrect Security PIN / Password for ' + currentRoleObj.name + '. (Default: demo@1234)', 'err');
+          shake();
+          if ($('pwd')) {
+            $('pwd').value = '';
+            $('pwd').focus();
+          }
+          return;
+        }
+
+        // 5. Success: Authorized credentials
         msg('Credentials verified. Establishing secure district session…', 'ok');
-        enter(targetRoleKey, u);
+        enter(role, u);
       });
     }
 

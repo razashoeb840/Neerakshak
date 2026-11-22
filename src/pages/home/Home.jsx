@@ -867,12 +867,12 @@ const markup = (
             <div className="form-group">
               <label>Designated Officer ID</label>
               {" "}
-              <input type="text" id="loginUserId" className="form-input" defaultValue="KAMRUP_DEOC_01" required />
+              <input type="text" id="loginUserId" className="form-input" defaultValue="KAMRUP_ADMIN_GIS" placeholder="e.g. KAMRUP_ADMIN_GIS" required />
             </div>
             <div className="form-group">
               <label>Official Security PIN / Password</label>
               {" "}
-              <input type="password" id="loginPassword" className="form-input" defaultValue="••••••••" required />
+              <input type="password" id="loginPassword" className="form-input" placeholder="Enter PIN (e.g. demo@1234)" required />
             </div>
             <button type="submit" className="btn-submit-login">
               <i className="fas fa-key"></i>

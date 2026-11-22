@@ -203,16 +203,73 @@ const __onReady = (fn) => __ready.push(fn);
             }
         }
 
+        const ROLE_CREDENTIALS = {
+            admin: {
+                name: 'Admin',
+                validUids: ['kamrup_admin_gis', 'admin', 'admin@neerakshak.gov.in', 'gis_admin'],
+                validPwds: ['demo@1234', 'admin123', 'admin', 'admin@neerakshak'],
+                defaultUid: 'KAMRUP_ADMIN_GIS'
+            },
+            authority: {
+                name: 'Authority',
+                validUids: ['kamrup_dc_authority', 'authority', 'dc_kamrup', 'dc', 'authority@neerakshak.gov.in'],
+                validPwds: ['demo@1234', 'authority123', 'dc123'],
+                defaultUid: 'KAMRUP_DC_AUTHORITY'
+            },
+            godown: {
+                name: 'Godown Manager',
+                validUids: ['kamrup_godown_mgr', 'godown', 'godown_mgr', 'godown@neerakshak.gov.in'],
+                validPwds: ['demo@1234', 'godown123', 'mgr123'],
+                defaultUid: 'KAMRUP_GODOWN_MGR'
+            },
+            ground: {
+                name: 'Ground Officer',
+                validUids: ['field_officer_chaygaon', 'ground', 'ground_officer', 'field_officer', 'go-kam-04'],
+                validPwds: ['demo@1234', 'ground123', 'officer123'],
+                defaultUid: 'FIELD_OFFICER_CHAYGAON'
+            },
+            monitoring: {
+                name: 'Monitoring Officer',
+                validUids: ['state_deoc_auditor', 'monitoring', 'monitor', 'auditor', 'monitoring@neerakshak.gov.in'],
+                validPwds: ['demo@1234', 'monitoring123', 'audit123'],
+                defaultUid: 'STATE_DEOC_AUDITOR'
+            }
+        };
+
         function handleFormLogin(e) {
             e.preventDefault();
-            closeLoginModal();
             const userBox = document.getElementById('loginUserId');
-            const uid = userBox ? userBox.value.trim() : '';
+            const passBox = document.getElementById('loginPassword');
+            const u = userBox ? userBox.value.trim() : '';
+            const p = passBox ? passBox.value : '';
+
+            const cred = ROLE_CREDENTIALS[currentSelectedRole];
+            if (!cred || !cred.validUids.includes(u.toLowerCase())) {
+                const toastMsg = 'Access Denied: Invalid Officer ID for ' + (cred ? cred.name : currentSelectedRole) + '. (e.g. ' + (cred ? cred.defaultUid : '') + ')';
+                if (window.showToast) window.showToast(toastMsg);
+                else alert(toastMsg);
+                if (userBox) userBox.focus();
+                return;
+            }
+
+            if (!cred.validPwds.includes(p)) {
+                const toastMsg = 'Access Denied: Incorrect PIN / Password for ' + cred.name + '. (Default: demo@1234)';
+                if (window.showToast) window.showToast(toastMsg);
+                else alert(toastMsg);
+                if (passBox) {
+                    passBox.value = '';
+                    passBox.focus();
+                }
+                return;
+            }
+
+            closeLoginModal();
             try {
                 sessionStorage.setItem('neerakshak_role', currentSelectedRole);
-                sessionStorage.setItem('neerakshak_user', uid || currentSelectedRole);
+                sessionStorage.setItem('neerakshak_user', u);
                 sessionStorage.setItem('neerakshak_logged_in', 'true');
             } catch(e) {}
+
             if (ROLE_PAGES[currentSelectedRole]) {
                 window.location.href = ROLE_PAGES[currentSelectedRole];
             } else {
