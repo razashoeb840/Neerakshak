@@ -5,16 +5,13 @@ import initLoginPage from './login.legacy.js';
 // Static markup, created once so React never re-renders over what the page script builds.
 const markup = (
   <>
-      <div className="bloom"></div>
-      <div className="drops" id="drops"></div>
-      <div className="card-wrap" id="tilt">
-        <div className="card">
-          {/* HEADER */}
-          <div className="card-head">
-            <span className="live-chip">
-              <i></i>
-              Brahmaputra 18.2 m ↑ Dangerous
-            </span>
+    <div className="bloom"></div>
+    <div className="drops" id="drops"></div>
+    <div className="card-wrap" id="tilt">
+      <div className="card">
+        {/* COMPACT SLEEK HEADER */}
+        <div className="card-head">
+          <div className="head-inner">
             <div className="brand">
               <svg className="seal" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <circle cx="50" cy="52" r="46" fill="#fff"></circle>
@@ -32,139 +29,145 @@ const markup = (
                 <rect x="46" y="3" width="8" height="8" rx="2" fill="#072247"></rect>
               </svg>
               <div>
-                <h1>
-                  <span>NEERAKSHAK</span>
-                </h1>
-                <p>{"Integrated Flood Monitoring, Intelligence & Resource Coordination"}</p>
+                <h1><span>NEERAKSHAK</span> <small className="auth-badge">Official</small></h1>
+                <p>Flood Relief Management &amp; Tactical Intelligence</p>
+              </div>
+            </div>
+            <div className="head-right">
+              <span className="live-chip">
+                <i></i>
+                Brahmaputra 18.2m ↑ High
+              </span>
+              <div className="clock">
+                <span id="clkTime">--:--:--</span> • <span id="clkDate"></span>
               </div>
             </div>
           </div>
-          {/* BODY */}
-          <div className="card-body">
-            <div className="title-row">
-              <h2>
-                <i className="fas fa-shield-halved"></i>
-                Official Portal Login
-              </h2>
-              <div className="clock">
-                <span id="clkTime">--:--:--</span>
-                <br />
-                <span id="clkDate"></span>
-              </div>
-            </div>
-            <p className="sub">
-              Select your designated district role to access the operational portal.
-            </p>
-            <div className="roles" id="roles">
-              <button type="button" className="role active" data-role="admin" style={{ "--c": "#0284c7", "--c2": "#0ea5e9" }}>
-                <i className="fas fa-water"></i>
-                <span>Admin</span>
-              </button>
-              {" "}
-              <button type="button" className="role" data-role="authority" style={{ "--c": "#0f766e", "--c2": "#14b8a6" }}>
-                <i className="fas fa-user-tie"></i>
-                <span>Authority</span>
-              </button>
-              {" "}
-              <button type="button" className="role" data-role="godown" style={{ "--c": "#ea580c", "--c2": "#fb923c" }}>
-                <i className="fas fa-warehouse"></i>
-                <span>Godown</span>
-              </button>
-              {" "}
-              <button type="button" className="role" data-role="ground" style={{ "--c": "#15803d", "--c2": "#22c55e" }}>
-                <i className="fas fa-clipboard-check"></i>
-                <span>Ground</span>
-              </button>
-              {" "}
-              <button type="button" className="role" data-role="monitoring" style={{ "--c": "#6d28d9", "--c2": "#8b5cf6" }}>
-                <i className="fas fa-chart-line"></i>
-                <span>Monitor</span>
-              </button>
-            </div>
-            <div className="role-desc" id="roleDesc"></div>
-            <form id="loginForm" noValidate autoComplete="off">
+        </div>
+
+        {/* LIGHT, BREATHABLE BODY */}
+        <div className="card-body">
+          {/* ROLES HORIZONTAL ROW */}
+          <div className="roles" id="roles">
+            <button type="button" className="role active" data-role="admin" style={{ "--c": "#0284c7", "--c2": "#0ea5e9" }}>
+              <i className="fas fa-water"></i>
+              <span>Admin</span>
+            </button>
+            <button type="button" className="role" data-role="authority" style={{ "--c": "#0f766e", "--c2": "#14b8a6" }}>
+              <i className="fas fa-user-tie"></i>
+              <span>Authority</span>
+            </button>
+            <button type="button" className="role" data-role="godown" style={{ "--c": "#ea580c", "--c2": "#fb923c" }}>
+              <i className="fas fa-warehouse"></i>
+              <span>Godown</span>
+            </button>
+            <button type="button" className="role" data-role="ground" style={{ "--c": "#15803d", "--c2": "#22c55e" }}>
+              <i className="fas fa-clipboard-check"></i>
+              <span>Ground</span>
+            </button>
+            <button type="button" className="role" data-role="monitoring" style={{ "--c": "#6d28d9", "--c2": "#8b5cf6" }}>
+              <i className="fas fa-chart-line"></i>
+              <span>Monitor</span>
+            </button>
+          </div>
+
+          <div className="role-desc" id="roleDesc"></div>
+
+          {/* 2-COLUMN BALANCED COMPACT FORM */}
+          <form id="loginForm" noValidate autoComplete="off">
+            <div className="form-grid">
               <div className="field">
                 <label htmlFor="uid">Designated Officer ID</label>
                 <div className="input-wrap">
                   <i className="fas fa-id-badge lead"></i>
-                  {" "}
                   <input id="uid" type="text" placeholder="e.g. KAMRUP_ADMIN_GIS" spellCheck="false" autoCapitalize="characters" />
                 </div>
               </div>
+
               <div className="field">
-                <label htmlFor="pwd">Official Security PIN / Password</label>
+                <label htmlFor="pwd">Security PIN / Password</label>
                 <div className="input-wrap">
                   <i className="fas fa-lock lead"></i>
-                  {" "}
-                  <input id="pwd" type="password" placeholder="Enter your secure password" />
-                  {" "}
+                  <input id="pwd" type="password" placeholder="Enter password" />
                   <button type="button" className="eye" id="eye" aria-label="Show password">
                     <i className="fas fa-eye"></i>
                   </button>
                 </div>
                 <div className="caps" id="caps">
-                  <i className="fas fa-triangle-exclamation"></i>
-                  {" Caps Lock is ON"}
+                  <i className="fas fa-triangle-exclamation"></i> Caps Lock is ON
                 </div>
               </div>
-              <div className="cap-row">
-                <div className="captcha">
-                  <span id="capQ">7 + 5 = ?</span>
-                  <button type="button" id="capRefresh" aria-label="New question">
-                    <i className="fas fa-rotate"></i>
-                  </button>
-                </div>
-                <div className="input-wrap">
-                  <input id="capA" type="text" inputMode="numeric" placeholder="Answer" />
+
+              <div className="field cap-col">
+                <label>Security Verification</label>
+                <div className="cap-row">
+                  <div className="captcha">
+                    <span id="capQ">7 + 5 = ?</span>
+                    <button type="button" id="capRefresh" aria-label="New question">
+                      <i className="fas fa-rotate"></i>
+                    </button>
+                  </div>
+                  <div className="input-wrap cap-input">
+                    <input id="capA" type="text" inputMode="numeric" placeholder="Answer" />
+                  </div>
                 </div>
               </div>
-              <div className="options">
-                <label className="check">
-                  <input type="checkbox" id="rem" />
-                  {" Keep me signed in"}
-                </label>
-                {" "}
-                <a href="#" id="forgot">Forgot password?</a>
+
+              <div className="field options-col">
+                <label className="options-label">&nbsp;</label>
+                <div className="options">
+                  <label className="check">
+                    <input type="checkbox" id="rem" />
+                    <span>Keep signed in</span>
+                  </label>
+                  <a href="#" id="forgot">Forgot PIN?</a>
+                </div>
               </div>
-              <div className="msg" id="msg"></div>
+            </div>
+
+            <div className="msg" id="msg"></div>
+
+            {/* ACTION ROW: SUBMIT & DEMO */}
+            <div className="actions-row">
               <button type="submit" className="btn" id="btn">
                 <i className="fas fa-key"></i>
-                <span>{"Authenticate & Enter Portal"}</span>
+                <span>Authenticate &amp; Enter Portal</span>
               </button>
-            </form>
-            <div className="divider">OR 1-CLICK DEMO LAUNCH</div>
-            <div className="demo-row">
-              <button type="button" className="demo-btn" id="demoFill">
-                <i className="fas fa-wand-magic-sparkles"></i>
-                Fill demo login
-              </button>
-              {" "}
-              <button type="button" className="demo-btn" id="demoGo">
-                <i className="fas fa-bolt"></i>
-                Instant enter
-              </button>
+              <div className="demo-group">
+                <button type="button" className="demo-btn" id="demoFill" title="Fill sample credentials">
+                  <i className="fas fa-wand-magic-sparkles"></i>
+                  Fill Demo
+                </button>
+                <button type="button" className="demo-btn instant" id="demoGo" title="Instant bypass enter">
+                  <i className="fas fa-bolt"></i>
+                  Instant
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="card-foot">
-            <span className="sec">
-              <i className="fas fa-lock"></i>
-              256-bit secured session
-            </span>
-            {" "}
-            <a href="/">
-              <i className="fas fa-arrow-left"></i>
-              {" Public portal"}
-            </a>
-          </div>
+          </form>
+        </div>
+
+        {/* COMPACT FOOTER */}
+        <div className="card-foot">
+          <span className="sec">
+            <i className="fas fa-lock"></i>
+            256-bit Encrypted Session
+          </span>
+          <a href="/">
+            <i className="fas fa-arrow-left"></i>
+            Citizen Public Portal
+          </a>
         </div>
       </div>
-      <div className="portal-wipe" id="wipe">
-        <div>
-          <span className="ring" style={{ display: "block" }}></span>
-          <span id="wipeTxt">Entering portal…</span>
-          <small>Establishing secure district session</small>
-        </div>
+    </div>
+
+    <div className="portal-wipe" id="wipe">
+      <div>
+        <span className="ring" style={{ display: "block" }}></span>
+        <span id="wipeTxt">Entering portal…</span>
+        <small>Establishing secure district session</small>
       </div>
+    </div>
   </>
 );
 
