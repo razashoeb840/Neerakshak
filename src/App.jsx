@@ -43,6 +43,17 @@ export default function App() {
     }
   }
 
+  // Strict Security Check: If already authenticated, /login must NOT open; redirect straight to dashboard
+  if (path === '/login') {
+    const isLogoutParam = typeof window !== 'undefined' && window.location.search.includes('logout=1');
+    if (isAuthenticated() && !isLogoutParam) {
+      const currentRole = sessionStorage.getItem('neerakshak_role');
+      const authorizedPage = ROLE_PAGES[currentRole] || '/admin';
+      window.location.replace(authorizedPage);
+      return null;
+    }
+  }
+
   const Page = routes[path];
   if (!Page) {
     window.location.replace('/');

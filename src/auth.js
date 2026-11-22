@@ -61,6 +61,24 @@ if (typeof window !== 'undefined') {
 }
 
 /**
+ * Automatically redirects an already authenticated officer away from the login page
+ * directly to their active role dashboard.
+ */
+export function redirectIfAuthenticated() {
+  if (typeof window === 'undefined') return false;
+  try {
+    const isLogoutParam = window.location.search.includes('logout=1');
+    if (isAuthenticated() && !isLogoutParam) {
+      const currentRole = sessionStorage.getItem('neerakshak_role');
+      const targetDashboard = ROLE_PAGES[currentRole] || '/admin';
+      window.location.replace(targetDashboard);
+      return true;
+    }
+  } catch (e) {}
+  return false;
+}
+
+/**
  * Strict verification helper to protect specific dashboard roles.
  */
 export function verifyPageAccess(expectedRole) {

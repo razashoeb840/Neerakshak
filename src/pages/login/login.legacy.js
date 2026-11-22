@@ -3,6 +3,25 @@ export default function initLoginPage() {
   const __ready = [];
   const __onReady = (fn) => __ready.push(fn);
 
+  // Immediately redirect if user already has an active authenticated session
+  try {
+    const isLogged = sessionStorage.getItem('neerakshak_logged_in') === 'true';
+    const hasRole = sessionStorage.getItem('neerakshak_role');
+    const hasUser = sessionStorage.getItem('neerakshak_user');
+    const isLogout = window.location.search.includes('logout=1');
+    if (isLogged && hasRole && hasUser && !isLogout) {
+      const roleMap = {
+        admin: '/admin',
+        authority: '/authority',
+        godown: '/godown',
+        ground: '/ground-officer',
+        monitoring: '/monitoring'
+      };
+      window.location.replace(roleMap[hasRole] || '/admin');
+      return;
+    }
+  } catch (e) {}
+
   (function() {
     const ROLES = {
       admin: {

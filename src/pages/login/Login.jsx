@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import css from './login.css?inline';
 import initLoginPage from './login.legacy.js';
+import { redirectIfAuthenticated } from '../../auth';
 //Static markup, created once so React never re-renders over what the page script builds.
 const markup = (
   <>
@@ -295,8 +296,15 @@ const markup = (
 
 export default function Login() {
   useEffect(() => {
+    if (redirectIfAuthenticated()) return;
     document.title = "Login to NEERAKSHAK – Official Portal";
     initLoginPage();
+
+    const handlePageshow = () => {
+      redirectIfAuthenticated();
+    };
+    window.addEventListener('pageshow', handlePageshow);
+    return () => window.removeEventListener('pageshow', handlePageshow);
   }, []);
 
   return (
