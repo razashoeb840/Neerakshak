@@ -87,6 +87,11 @@ const markup = (
                 <i className="fas fa-arrow-left"></i>
                 {" Public Portal "}
               </a>
+              {" "}
+              <a href="/login?logout=1" onClick={(event) => { event.preventDefault(); if (window.neerakshakLogout) window.neerakshakLogout(); else { try{sessionStorage.clear(); sessionStorage.setItem('neerakshak_logged_out', '1');}catch(e){} window.location.href = '/login?logout=1'; } }} className="hero-btn-action hero-btn-logout" title="Sign out of district session">
+                <i className="fas fa-right-from-bracket"></i>
+                {" Logout "}
+              </a>
             </div>
           </div>
           {/* Main Banner Headline & Eyebrow Pill */}

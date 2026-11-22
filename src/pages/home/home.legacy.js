@@ -188,10 +188,36 @@ const __onReady = (fn) => __ready.push(fn);
             else if (role === 'monitoring') userBox.value = 'STATE_DEOC_AUDITOR';
         }
 
+        const ROLE_PAGES = {
+            admin: '/admin',
+            authority: '/authority',
+            godown: '/godown',
+            ground: '/ground-officer',
+            monitoring: '/monitoring'
+        };
+
+        function enterFullRoleDashboard() {
+            closeRolePortalModal();
+            if (ROLE_PAGES[currentSelectedRole]) {
+                window.location.href = ROLE_PAGES[currentSelectedRole];
+            }
+        }
+
         function handleFormLogin(e) {
             e.preventDefault();
             closeLoginModal();
-            launchRolePortal(currentSelectedRole);
+            const userBox = document.getElementById('loginUserId');
+            const uid = userBox ? userBox.value.trim() : '';
+            try {
+                sessionStorage.setItem('neerakshak_role', currentSelectedRole);
+                sessionStorage.setItem('neerakshak_user', uid || currentSelectedRole);
+                sessionStorage.setItem('neerakshak_logged_in', 'true');
+            } catch(e) {}
+            if (ROLE_PAGES[currentSelectedRole]) {
+                window.location.href = ROLE_PAGES[currentSelectedRole];
+            } else {
+                launchRolePortal(currentSelectedRole);
+            }
         }
 
         // Role Portals Live View Generator
@@ -527,6 +553,6 @@ const __onReady = (fn) => __ready.push(fn);
     
 
 // Inline handlers (onClick=...) and generated HTML call these on window, exactly like a classic script.
-Object.assign(window, { adjustFontSize, closeIncidentModal, closeLoginModal, closeMapModal, closeRolePortalModal, closeServiceModal, copyNumber, handleFormLogin, handleIncidentSubmit, initScrollAnimations, launchRolePortal, openCitizenModal, openFeatureModal, openIncidentReportModal, openLiveMapModal, openLoginModal, renderSeedData, selectLoginRole, showToast, toggleMapFullscreen, toggleTheme });
+Object.assign(window, { adjustFontSize, closeIncidentModal, closeLoginModal, closeMapModal, closeRolePortalModal, closeServiceModal, copyNumber, enterFullRoleDashboard, handleFormLogin, handleIncidentSubmit, initScrollAnimations, launchRolePortal, openCitizenModal, openFeatureModal, openIncidentReportModal, openLiveMapModal, openLoginModal, renderSeedData, selectLoginRole, showToast, toggleMapFullscreen, toggleTheme });
 __ready.forEach((fn) => fn());
 }

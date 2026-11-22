@@ -808,9 +808,12 @@ const markup = (
               <i className="fas fa-times"></i>
             </button>
           </div>
-          <p style={{ fontSize: "12px", color: "var(--text-body)", margin: "6px 0 12px 0" }}>
-            {" Select your designated district authority role to access the operational portal: "}
-          </p>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "6px 0 12px 0" }}>
+            <span style={{ fontSize: "12px", color: "var(--text-body)" }}>Select designated authority role:</span>
+            <a href="/login" style={{ fontSize: "12px", color: "#0284c7", fontWeight: "700", textDecoration: "none" }}>
+              <i className="fas fa-arrow-up-right-from-square"></i> Dedicated Login Page &rarr;
+            </a>
+          </div>
           {/* Role Selector Pills */}
           <div className="login-role-tabs">
             <div className="login-role-pill active" onClick={(event) => window.selectLoginRole('admin', event.currentTarget)}>
@@ -935,9 +938,14 @@ const markup = (
             <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
               <span style={{ fontSize: "11px", background: "#dcfce7", color: "#15803d", fontWeight: "700", padding: "3px 8px", borderRadius: "12px" }}>● Session Active</span>
               {" "}
+              <button onClick={(event) => window.enterFullRoleDashboard && window.enterFullRoleDashboard()} style={{ border: "none", background: "#0284c7", color: "#ffffff", padding: "4px 10px", borderRadius: "6px", cursor: "pointer", fontSize: "11.5px", fontWeight: "700" }}>
+                <i className="fas fa-arrow-up-right-from-square"></i>
+                {" Open Full Page "}
+              </button>
+              {" "}
               <button onClick={(event) => window.closeRolePortalModal()} style={{ border: "1px solid #cbd5e1", background: "#ffffff", padding: "4px 10px", borderRadius: "6px", cursor: "pointer", fontSize: "11.5px", fontWeight: "700" }}>
                 <i className="fas fa-arrow-left"></i>
-                {" Sign Out to Public "}
+                {" Sign Out "}
               </button>
             </div>
           </div>

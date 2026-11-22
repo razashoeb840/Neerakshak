@@ -288,6 +288,20 @@
             box-shadow: 0 6px 16px rgba(255, 255, 255, 0.4);
         }
 
+        .hero-btn-logout {
+            background: rgba(239, 68, 68, 0.18) !important;
+            color: #fee2e2 !important;
+            border-color: rgba(239, 68, 68, 0.45) !important;
+            cursor: pointer;
+        }
+
+        .hero-btn-logout:hover {
+            background: #dc2626 !important;
+            color: #ffffff !important;
+            border-color: #dc2626 !important;
+            box-shadow: 0 6px 18px rgba(220, 38, 38, 0.4) !important;
+        }
+
         /* Image 2 Banner Main Content (Headline, Eyebrow & Description) */
         .auth-banner-main-content {
             display: flex;

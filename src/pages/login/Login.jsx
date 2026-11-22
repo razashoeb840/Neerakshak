@@ -208,6 +208,78 @@ const markup = (
       </div>
     </div>
 
+    {/* Official Password Assistance & Helpline Modal */}
+    <div className="forgot-modal-overlay" id="forgotModal">
+      <div className="forgot-modal-card">
+        <div className="forgot-modal-head">
+          <div className="forgot-modal-title-wrap">
+            <div className="forgot-modal-icon">
+              <i className="fas fa-shield-halved"></i>
+            </div>
+            <div>
+              <h3 className="forgot-title">Official Password Assistance</h3>
+              <p className="forgot-subtitle">Assam SDMA • District Emergency Operation Centre (DEOC)</p>
+            </div>
+          </div>
+          <button type="button" className="forgot-close-btn" id="forgotClose" aria-label="Close modal">
+            <i className="fas fa-xmark"></i>
+          </button>
+        </div>
+
+        <div className="forgot-modal-body">
+          <div className="forgot-notice-box">
+            <i className="fas fa-circle-info"></i>
+            <p>
+              Official designated officer credentials are encrypted and centrally provisioned.
+              For emergency access during flood response or operational drills, use the verified channels below:
+            </p>
+          </div>
+
+          <div className="forgot-helpline-grid">
+            <div className="forgot-helpline-card">
+              <i className="fas fa-phone-volume"></i>
+              <div>
+                <strong>District DEOC Helpline</strong>
+                <span>1077 (Kamrup District Toll-Free)</span>
+              </div>
+            </div>
+            <div className="forgot-helpline-card">
+              <i className="fas fa-tower-broadcast"></i>
+              <div>
+                <strong>National Emergency</strong>
+                <span>112 (Police, SDRF &amp; NDRF)</span>
+              </div>
+            </div>
+            <div className="forgot-helpline-card">
+              <i className="fas fa-building-shield"></i>
+              <div>
+                <strong>State Control Room</strong>
+                <span>0361-2237011 / 1070</span>
+              </div>
+            </div>
+            <div className="forgot-helpline-card">
+              <i className="fas fa-envelope"></i>
+              <div>
+                <strong>Official Email Support</strong>
+                <span>deoc.kamrup@neerakshak.gov.in</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="forgot-demo-action-box">
+            <div className="forgot-demo-text">
+              <strong>Need Immediate Evaluation / Drill Access?</strong>
+              <p>You can automatically apply the official training passkey (<code>demo@1234</code>) to your selected role.</p>
+            </div>
+            <button type="button" className="btn-apply-demo-pin" id="forgotApplyDemo">
+              <i className="fas fa-key"></i>
+              <span>Apply demo@1234 &amp; Continue</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     {/* Full Screen Portal Wipe Transition on Login */}
     <div className="portal-wipe" id="wipe">
       <div>

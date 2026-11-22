@@ -313,6 +313,20 @@
             border-color: #38bdf8 !important;
         }
 
+        .hero-btn-logout {
+            background: rgba(239, 68, 68, 0.18) !important;
+            color: #fee2e2 !important;
+            border: 1.5px solid rgba(239, 68, 68, 0.45) !important;
+            cursor: pointer;
+        }
+
+        .hero-btn-logout:hover {
+            background: #dc2626 !important;
+            color: #ffffff !important;
+            border-color: #dc2626 !important;
+            box-shadow: 0 6px 18px rgba(220, 38, 38, 0.4) !important;
+        }
+
         /* =====================================================================
            WORKSPACE SHELL & 70px VERTICAL ICON RAIL (MATCHED TO 2ADMIN.HTML)
            ===================================================================== */
