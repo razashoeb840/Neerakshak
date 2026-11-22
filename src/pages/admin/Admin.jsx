@@ -1,0 +1,683 @@
+import { useEffect } from 'react';
+import css from './admin.css?inline';
+import initAdminPage from './admin.legacy.js';
+
+// Static markup, created once so React never re-renders over what the page script builds.
+const markup = (
+  <>
+      {/* COMPACT HIGH-DEFINITION COMMAND HERO BANNER (IMAGE 2 BRANDING + IMAGE 1 CONTROLS) */}
+      <header className="admin-hero-banner">
+        <div className="admin-banner-img-wrap">
+          <img src="/img.png" alt="NEERAKSHAK Flood Relief Management System Admin Banner" className="admin-banner-img" />
+        </div>
+        <div className="admin-banner-vignette"></div>
+        <div className="admin-hero-inner">
+          <div className="banner-top-bar">
+            {/* Image 2 Lockup with "Admin" badge */}
+            <div className="hero-brand-lockup">
+              <div className="hero-vertical-pillar"></div>
+              <div className="hero-brand-content">
+                <div className="hero-brand-title-wrap">
+                  <h1 className="hero-brand-title">
+                    NEERA
+                    <span className="hero-brand-cyan">KSHAK</span>
+                  </h1>
+                  <span className="hero-admin-badge">Admin</span>
+                </div>
+                <div className="hero-brand-subtitle">Flood Relief Management System</div>
+                <div className="hero-brand-tagline">
+                  <span className="tag-italic">Monitor</span>
+                  {" "}
+                  <span className="tag-dot">•</span>
+                  {" "}
+                  <span className="tag-italic">Coordinate</span>
+                  {" "}
+                  <span className="tag-dot">•</span>
+                  {" "}
+                  <span className="tag-italic tag-cyan">Rescue</span>
+                </div>
+              </div>
+            </div>
+            {/* Blended Options from Image 1: Frosted Glass HUD Controls */}
+            <div className="hero-action-controls">
+              <div className="hero-ctrl-pill">
+                <i className="fas fa-location-dot" style={{ color: "#38bdf8" }}></i>
+                {" "}
+                <select className="hero-district-select" onChange={(event) => window.showToast('Switched monitoring sector to ' + event.currentTarget.value)}>
+                  <option>Kamrup, Assam</option>
+                  <option>Majuli, Assam</option>
+                  <option>Barpeta, Assam</option>
+                  <option>Dhemaji, Assam</option>
+                </select>
+              </div>
+              <div className="hero-ctrl-pill">
+                <span className="hero-live-dot"></span>
+                {" "}
+                <span id="telemetryStatusText">Live Monitoring</span>
+              </div>
+              <button className="hero-btn-action" id="dataModeBtn" onClick={(event) => window.toggleDataMode()} title="Toggle simulated drill data">
+                <i className="fas fa-database"></i>
+                {" Reference Drill "}
+              </button>
+              {" "}
+              <a href="/" className="hero-btn-action hero-btn-public" title="Return to citizen portal">
+                <i className="fas fa-arrow-left"></i>
+                {" Public Portal "}
+              </a>
+            </div>
+          </div>
+        </div>
+      </header>
+      {/* 3. MAIN WORKSPACE (LEFT ICON RAIL | CENTER MAP + GRID CARDS | RIGHT PANEL) */}
+      <div className="workspace-shell">
+        {/* LEFT VERTICAL RAIL: EXTENDED HEIGHT & FLUSH ALIGNMENT */}
+        <aside className="left-rail">
+          <button className="rail-btn active" onClick={(event) => window.switchTab('map-hub', event.currentTarget)} title="GIS Command Map Viewport">
+            <i className="fas fa-map-location-dot"></i>
+            {" "}
+            <span>{"Map & GIS"}</span>
+          </button>
+          {" "}
+          <button className="rail-btn" onClick={(event) => window.switchTab('zones-hub', event.currentTarget)} title={"Marked Flood Zones & Villages"}>
+            <i className="fas fa-draw-polygon"></i>
+            {" "}
+            <span>Flood Zones</span>
+          </button>
+          {" "}
+          <button className="rail-btn" onClick={(event) => window.switchTab('gauges-hub', event.currentTarget)} title={"River Gauges & Rain Radar"}>
+            <i className="fas fa-water"></i>
+            {" "}
+            <span>Rivers/Rain</span>
+          </button>
+          {" "}
+          <button className="rail-btn" onClick={(event) => window.switchTab('alerts-hub', event.currentTarget)} title="Public Alert Broadcasts">
+            <i className="fas fa-bell"></i>
+            {" "}
+            <span>Alerts</span>
+          </button>
+          {" "}
+          <button className="rail-btn" onClick={(event) => window.switchTab('facilities-hub', event.currentTarget)} title={"Emergency Camps & Facilities"}>
+            <i className="fas fa-hospital-user"></i>
+            {" "}
+            <span>Facilities</span>
+          </button>
+          {" "}
+          {/* Bottom Tools & Telemetry Sync Anchor */}
+          <div className="rail-bottom-cluster">
+            <div className="rail-divider"></div>
+            <button className="rail-btn" onClick={(event) => { window.renderAllCards(); window.showToast('Telemetry & map layers refreshed'); }} title="Sync All Records">
+              <i className="fas fa-arrows-rotate"></i>
+              {" "}
+              <span>Sync</span>
+            </button>
+            <div className="rail-pulse-wrap" title="GIS Socket Online">
+              <span className="rail-online-dot"></span>
+              {" "}
+              <span className="rail-online-text">SYS OK</span>
+            </div>
+          </div>
+        </aside>
+        {/* CENTER STAGE */}
+        <main className="center-stage">
+          {/* 4-KPI CARDS GRID */}
+          <div className="kpi-grid-4 anim-card" id="adminKpiGrid"></div>
+          {/* TAB 1: COMPACT MAP VIEWPORT + MAP DATA MAINTENANCE CARDS */}
+          <div className="tab-view-pane active" id="tab-map-hub">
+            <div className="aqua-card anim-card">
+              <div className="card-head">
+                <h2>
+                  <i className="fas fa-map-location-dot" style={{ color: "var(--river-blue)" }}></i>
+                  {" District GIS Flood Map Viewport"}
+                </h2>
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                  <button className="card-action-btn" onClick={(event) => window.openAreaModal()}>
+                    <i className="fas fa-plus"></i>
+                    {" Add Map Marker"}
+                  </button>
+                  {" "}
+                  <button className="card-action-btn" onClick={(event) => window.switchTab('areas-grid', document.querySelectorAll('.rail-btn')[1])}>
+                    <i className="fas fa-sliders"></i>
+                    {" Maintain Map Data"}
+                  </button>
+                </div>
+              </div>
+              {/* COMPACT EMPTY MAP SLOT (290px HEIGHT) */}
+              <div id="mapViewportSlot">
+                <div className="map-float-search">
+                  <i className="fas fa-search" style={{ color: "#64748b" }}></i>
+                  {" "}
+                  <input type="text" placeholder="Search village, river, basin..." onKeyUp={(event) => { if(event.key==='Enter') window.showToast('Map search hook ready for: ' + event.currentTarget.value); }} />
+                </div>
+                <div className="map-float-tools">
+                  <button className="map-tool-pill" onClick={(event) => window.openAreaModal()}>
+                    <i className="fas fa-map-pin" style={{ color: "#dc2626" }}></i>
+                    {" Pin Flood Zone"}
+                  </button>
+                  {" "}
+                  <button className="map-tool-pill" onClick={(event) => window.openFacilityModal()}>
+                    <i className="fas fa-hospital" style={{ color: "#16a34a" }}></i>
+                    {" Pin Facility"}
+                  </button>
+                </div>
+                <div className="map-slot-label">
+                  <i className="far fa-map"></i>
+                  {" "}
+                  <strong>MAP VIEWPORT / EMBED AREA</strong>
+                  {" "}
+                  <span>
+                    {"Mount Leaflet, MapLibre, or district river GeoJSON layers inside "}
+                    <code>#mapViewportSlot</code>
+                    .
+                  </span>
+                </div>
+                {/* Decorative Riparian Trees & Riverbank Silhouette in Corner */}
+                {" "}
+                <svg className="map-corner-nature" viewBox="0 0 240 80" fill="none">
+                  <path d="M40 80 Q110 45 180 65 T240 55 L240 80 Z" fill="#86efac"></path>
+                  <path d="M90 80 Q150 58 240 70 L240 80 Z" fill="#38bdf8"></path>
+                  <g fill="#15803d">
+                    <polygon points="165,62 173,36 181,62"></polygon>
+                    <polygon points="184,64 194,30 204,64"></polygon>
+                    <polygon points="207,62 216,38 225,62"></polygon>
+                  </g>
+                </svg>
+                <div className="map-legend-pill">
+                  <span>
+                    <i className="l-dot" style={{ background: "#dc2626" }}></i>
+                    Critical
+                  </span>
+                  {" "}
+                  <span>
+                    <i className="l-dot" style={{ background: "#f97316" }}></i>
+                    High
+                  </span>
+                  {" "}
+                  <span>
+                    <i className="l-dot" style={{ background: "#eab308" }}></i>
+                    Moderate
+                  </span>
+                  {" "}
+                  <span>
+                    <i className="l-dot" style={{ background: "#16a34a" }}></i>
+                    Normal
+                  </span>
+                </div>
+                <div className="map-zoom-group">
+                  <button className="z-mini-btn" onClick={(event) => window.showToast('Map Zoom In hook')} title="Zoom In">+</button>
+                  {" "}
+                  <button className="z-mini-btn" onClick={(event) => window.showToast('Map Zoom Out hook')} title="Zoom Out">−</button>
+                  {" "}
+                  <button className="z-mini-btn" onClick={(event) => window.showToast('Recenter District Bounds')} title="Recenter">
+                    <i className="fas fa-crosshairs"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            {/* MAP DATA MAINTENANCE GRID CARDS */}
+            <div className="aqua-card anim-card">
+              <div className="card-head">
+                <h2>
+                  <i className="fas fa-layer-group" style={{ color: "var(--foliage-mid)" }}></i>
+                  {" Map Data Maintenance – Marked Flood Zones & Severity"}
+                </h2>
+                <button className="card-action-btn" onClick={(event) => window.openAreaModal()}>
+                  <i className="fas fa-plus-circle"></i>
+                  {" Mark New Area"}
+                </button>
+              </div>
+              <div className="cards-grid-2" id="mapZonesCardGrid"></div>
+            </div>
+          </div>
+          {/* TAB 2: ALL FLOOD ZONES & SEVERITY GRID */}
+          <div className="tab-view-pane" id="tab-areas-grid">
+            <div className="aqua-card">
+              <div className="card-head">
+                <h2>
+                  <i className="fas fa-draw-polygon" style={{ color: "var(--river-blue)" }}></i>
+                  {" Flood-Affected Villages & Severity Classification"}
+                </h2>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <select id="sevFilter" className="form-control" style={{ padding: "4px 10px", fontSize: "11.5px", width: "auto" }} onChange={(event) => window.renderAllCards()}>
+                    <option value="ALL">All Severities</option>
+                    <option value="Critical">Critical</option>
+                    <option value="High">High</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="Normal">Normal</option>
+                  </select>
+                  {" "}
+                  <button className="card-action-btn" onClick={(event) => window.openAreaModal()}>
+                    <i className="fas fa-plus"></i>
+                    {" Add Flood Zone"}
+                  </button>
+                </div>
+              </div>
+              <div className="cards-grid-2" id="fullAreasCardGrid"></div>
+            </div>
+          </div>
+          {/* TAB 3: RIVERS & WEATHER GRID */}
+          <div className="tab-view-pane" id="tab-rivers-weather">
+            <div className="aqua-card">
+              <div className="card-head">
+                <h2>
+                  <i className="fas fa-water" style={{ color: "var(--river-blue)" }}></i>
+                  {" River Water-Level vs Danger Level Cards"}
+                </h2>
+                <button className="card-action-btn" onClick={(event) => window.openRiverModal()}>
+                  <i className="fas fa-pen"></i>
+                  {" Log River Reading"}
+                </button>
+              </div>
+              <div className="cards-grid-3" id="fullRiversCardGrid"></div>
+            </div>
+            <div className="aqua-card">
+              <div className="card-head">
+                <h2>
+                  <i className="fas fa-cloud-showers-heavy" style={{ color: "var(--river-blue)" }}></i>
+                  {" District Weather & Rainfall Telemetry"}
+                </h2>
+                <button className="card-action-btn" onClick={(event) => window.openWeatherModal()}>
+                  <i className="fas fa-sliders"></i>
+                  {" Update Weather"}
+                </button>
+              </div>
+              <div className="kpi-grid-4" id="weatherCardGrid"></div>
+            </div>
+          </div>
+          {/* TAB 4: FLOOD ALERTS GRID */}
+          <div className="tab-view-pane" id="tab-alerts-grid">
+            <div className="aqua-card">
+              <div className="card-head">
+                <h2>
+                  <i className="fas fa-bullhorn" style={{ color: "#dc2626" }}></i>
+                  {" Published Public Flood Alerts & Warnings"}
+                </h2>
+                <button className="card-action-btn" style={{ background: "#dc2626", color: "#fff", borderColor: "#dc2626" }} onClick={(event) => window.openAlertModal()}>
+                  <i className="fas fa-plus"></i>
+                  {" Publish Warning"}
+                </button>
+              </div>
+              <div className="cards-grid-2" id="fullAlertsCardGrid"></div>
+            </div>
+          </div>
+          {/* TAB 5: EMERGENCY FACILITIES GRID */}
+          <div className="tab-view-pane" id="tab-facilities-grid">
+            <div className="aqua-card">
+              <div className="card-head">
+                <h2>
+                  <i className="fas fa-hospital" style={{ color: "var(--foliage-mid)" }}></i>
+                  {" Hospitals, Police Stations & Relief Camps"}
+                </h2>
+                <button className="card-action-btn" onClick={(event) => window.openFacilityModal()}>
+                  <i className="fas fa-plus"></i>
+                  {" Add Facility Marker"}
+                </button>
+              </div>
+              <div className="cards-grid-3" id="fullFacilitiesCardGrid"></div>
+            </div>
+          </div>
+        </main>
+        {/* 4. RIGHT PANEL (NAVIGATION REMOVED + COLORFUL QUICK ACTIONS + LIVE TELEMETRY) */}
+        <aside className="right-panel">
+          {/* COLORFUL QUICK ACTIONS 2x2 GRID */}
+          <div className="aqua-card anim-card">
+            <div className="card-head">
+              <h2>
+                <i className="fas fa-bolt" style={{ color: "#f59e0b" }}></i>
+                {" Admin Quick Actions"}
+              </h2>
+            </div>
+            <div className="qa-grid-2x2">
+              <button className="qa-color-card qa-river" onClick={(event) => window.openAreaModal()}>
+                <i className="fas fa-map-pin"></i>
+                {" "}
+                <strong>Mark Flood Area</strong>
+                {" "}
+                <span>Add / update map zone</span>
+              </button>
+              {" "}
+              <button className="qa-color-card qa-alert" onClick={(event) => window.openAlertModal()}>
+                <i className="fas fa-bullhorn"></i>
+                {" "}
+                <strong>Publish Alert</strong>
+                {" "}
+                <span>Issue citizen warning</span>
+              </button>
+              {" "}
+              <button className="qa-color-card qa-green" onClick={(event) => window.openRiverModal()}>
+                <i className="fas fa-water"></i>
+                {" "}
+                <strong>Log River Level</strong>
+                {" "}
+                <span>Update gauge telemetry</span>
+              </button>
+              {" "}
+              <button className="qa-color-card qa-amber" onClick={(event) => window.openFacilityModal()}>
+                <i className="fas fa-hospital"></i>
+                {" "}
+                <strong>Add Facility</strong>
+                {" "}
+                <span>Hospital / Camp / Police</span>
+              </button>
+            </div>
+          </div>
+          {/* RIVER ACTIVITY CARDS */}
+          <div className="aqua-card anim-card">
+            <div className="card-head">
+              <h2>
+                <i className="fas fa-water" style={{ color: "var(--river-blue)" }}></i>
+                {" River Activity"}
+              </h2>
+              <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--river-blue)", cursor: "pointer" }} onClick={(event) => window.switchTab('rivers-weather', document.querySelectorAll('.rail-btn')[2])}>All Gauges →</span>
+            </div>
+            <div className="right-cards-grid" id="rightRiverCards"></div>
+          </div>
+          {/* ACTIVE ALERTS CARDS */}
+          <div className="aqua-card anim-card">
+            <div className="card-head">
+              <h2>
+                <i className="fas fa-triangle-exclamation" style={{ color: "#dc2626" }}></i>
+                {" Active Alerts ("}
+                <span id="rightAlertCount">0</span>
+                )
+              </h2>
+              <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--river-blue)", cursor: "pointer" }} onClick={(event) => window.switchTab('alerts-grid', document.querySelectorAll('.rail-btn')[3])}>Manage →</span>
+            </div>
+            <div className="right-cards-grid" id="rightAlertsCards"></div>
+          </div>
+          {/* NEARBY PUBLIC HELP 2x2 GRID */}
+          <div className="aqua-card anim-card">
+            <div className="card-head">
+              <h2>
+                <i className="fas fa-tree" style={{ color: "var(--foliage-mid)" }}></i>
+                {" Nearby Public Help"}
+              </h2>
+            </div>
+            <div className="help-grid-2x2">
+              <div className="help-tile-box" onClick={(event) => window.switchTab('facilities-grid', document.querySelectorAll('.rail-btn')[4])}>
+                <div className="help-badge-ic" style={{ background: "#dc2626" }}>
+                  <i className="fas fa-hospital"></i>
+                </div>
+                <div>
+                  <strong style={{ display: "block", fontSize: "11.5px", color: "var(--navy-deep)" }}>Hospital</strong>
+                  {" "}
+                  <span style={{ fontSize: "10px", color: "var(--text-muted)" }} id="rDistHosp">—</span>
+                </div>
+              </div>
+              <div className="help-tile-box" onClick={(event) => window.switchTab('facilities-grid', document.querySelectorAll('.rail-btn')[4])}>
+                <div className="help-badge-ic" style={{ background: "#0284c7" }}>
+                  <i className="fas fa-shield"></i>
+                </div>
+                <div>
+                  <strong style={{ display: "block", fontSize: "11.5px", color: "var(--navy-deep)" }}>Police Post</strong>
+                  {" "}
+                  <span style={{ fontSize: "10px", color: "var(--text-muted)" }} id="rDistPol">—</span>
+                </div>
+              </div>
+              <div className="help-tile-box" onClick={(event) => window.switchTab('facilities-grid', document.querySelectorAll('.rail-btn')[4])}>
+                <div className="help-badge-ic" style={{ background: "#16a34a" }}>
+                  <i className="fas fa-campground"></i>
+                </div>
+                <div>
+                  <strong style={{ display: "block", fontSize: "11.5px", color: "var(--navy-deep)" }}>Relief Camp</strong>
+                  {" "}
+                  <span style={{ fontSize: "10px", color: "var(--text-muted)" }} id="rDistCamp">—</span>
+                </div>
+              </div>
+              <div className="help-tile-box" onClick={(event) => window.copyHelpline('112')}>
+                <div className="help-badge-ic" style={{ background: "#f59e0b" }}>
+                  <i className="fas fa-phone"></i>
+                </div>
+                <div>
+                  <strong style={{ display: "block", fontSize: "11.5px", color: "var(--navy-deep)" }}>Helpline</strong>
+                  {" "}
+                  <span style={{ fontSize: "10px", color: "var(--text-muted)" }}>112 / 1077</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+      {/* 5. RIPARIAN HILLS, TREES & FLOWING RIVER FOOTER */}
+      <div className="riparian-footer-wrap">
+        <div className="footer-scenic-banner">
+          <img src="/footer.jpg" alt="Misty Brahmaputra River Basin Landscape" className="footer-scenic-img" />
+          <div className="footer-scenic-blend"></div>
+        </div>
+        <div className="riparian-footer-bar">
+          <div className="footer-flex">
+            <span>
+              <strong>NEERAKSHAK Admin Portal</strong>
+              {" • Flood Situational Awareness & GIS Data Management"}
+            </span>
+            {" "}
+            <span>
+              {"Admin Scope: Flood Maps, River Gauges, Weather & Warnings (Resource Allocation handled by District Authority)"}
+            </span>
+          </div>
+        </div>
+      </div>
+      {/* =====================================================================
+         MODALS FOR MAP DATA & TELEMETRY MAINTENANCE
+         ===================================================================== */}
+      <div className="modal-overlay" id="areaModal" onClick={(event) => window.closeModal('areaModal')}>
+        <div className="modal-box" onClick={(event) => event.stopPropagation()}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+            <h3 id="areaModalHeading" style={{ margin: "0", fontSize: "16px", color: "var(--navy-deep)" }}>Mark / Update Flood Area on Map</h3>
+            <button onClick={(event) => window.closeModal('areaModal')} style={{ border: "none", background: "#e2e8f0", width: "28px", height: "28px", borderRadius: "50%", cursor: "pointer" }}>
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+          <form onSubmit={(event) => window.saveAreaRecord(event)}>
+            <input type="hidden" id="editAreaIdx" value="-1" />
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label>Village / Ward Name *</label>
+                {" "}
+                <input type="text" id="inpAreaName" className="form-control" placeholder="e.g. Chaygaon Ward 4" required />
+              </div>
+              <div className="form-group">
+                <label>Block / Circle *</label>
+                {" "}
+                <input type="text" id="inpAreaBlock" className="form-control" placeholder="e.g. Palashbari Circle" required />
+              </div>
+            </div>
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label>Flood Severity *</label>
+                {" "}
+                <select id="inpAreaSev" className="form-control">
+                  <option value="Critical">Critical</option>
+                  <option value="High">High</option>
+                  <option value="Moderate">Moderate</option>
+                  <option value="Normal">Normal</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Est. Affected Population</label>
+                {" "}
+                <input type="number" id="inpAreaPop" className="form-control" defaultValue="2200" required />
+              </div>
+            </div>
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label>Latitude</label>
+                {" "}
+                <input type="number" step="0.0001" id="inpAreaLat" className="form-control" defaultValue="26.1250" required />
+              </div>
+              <div className="form-group">
+                <label>Longitude</label>
+                {" "}
+                <input type="number" step="0.0001" id="inpAreaLng" className="form-control" defaultValue="91.5180" required />
+              </div>
+            </div>
+            <div className="form-group">
+              <label>{"Situation & Map Marker Notes *"}</label>
+              {" "}
+              <input type="text" id="inpAreaNotes" className="form-control" placeholder="e.g. Embankment waterlogging; boat access only" required />
+            </div>
+            <button type="submit" className="btn-save-primary">
+              <i className="fas fa-check-circle"></i>
+              {" Save Map Zone Record"}
+            </button>
+          </form>
+        </div>
+      </div>
+      <div className="modal-overlay" id="alertModal" onClick={(event) => window.closeModal('alertModal')}>
+        <div className="modal-box" onClick={(event) => event.stopPropagation()}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+            <h3 style={{ margin: "0", fontSize: "16px", color: "#b91c1c" }}>
+              <i className="fas fa-bullhorn"></i>
+              {" Publish Public Flood Warning"}
+            </h3>
+            <button onClick={(event) => window.closeModal('alertModal')} style={{ border: "none", background: "#e2e8f0", width: "28px", height: "28px", borderRadius: "50%", cursor: "pointer" }}>
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+          <form onSubmit={(event) => window.saveAlertRecord(event)}>
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label>Target Location *</label>
+                {" "}
+                <input type="text" id="inpAlertLoc" className="form-control" placeholder="e.g. Chaygaon, North Kamrup" required />
+              </div>
+              <div className="form-group">
+                <label>Severity Level *</label>
+                {" "}
+                <select id="inpAlertSev" className="form-control">
+                  <option value="Critical">Critical</option>
+                  <option value="High">High</option>
+                  <option value="Moderate">Moderate</option>
+                </select>
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Warning Headline *</label>
+              {" "}
+              <input type="text" id="inpAlertTitle" className="form-control" placeholder="e.g. River level approaching danger mark" required />
+            </div>
+            <div className="form-group">
+              <label>Detailed Citizen Advisory *</label>
+              {" "}
+              <textarea id="inpAlertDesc" className="form-control" rows="3" placeholder="Safety instructions and relief shelter guidance..." required />
+            </div>
+            <button type="submit" className="btn-save-primary" style={{ background: "#dc2626" }}>Publish Flood Warning</button>
+          </form>
+        </div>
+      </div>
+      <div className="modal-overlay" id="riverModal" onClick={(event) => window.closeModal('riverModal')}>
+        <div className="modal-box" onClick={(event) => event.stopPropagation()}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+            <h3 style={{ margin: "0", fontSize: "16px", color: "var(--navy-deep)" }}>Log River Gauge Reading</h3>
+            <button onClick={(event) => window.closeModal('riverModal')} style={{ border: "none", background: "#e2e8f0", width: "28px", height: "28px", borderRadius: "50%", cursor: "pointer" }}>
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+          <form onSubmit={(event) => window.saveRiverReading(event)}>
+            <div className="form-group">
+              <label>River Station</label>
+              {" "}
+              <select id="inpRiverSelect" className="form-control"></select>
+            </div>
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label>Current Water Level (m) *</label>
+                {" "}
+                <input type="number" step="0.1" id="inpRiverLevel" className="form-control" required />
+              </div>
+              <div className="form-group">
+                <label>Flow Trend</label>
+                {" "}
+                <select id="inpRiverTrend" className="form-control">
+                  <option value="Rising">Rising (↑)</option>
+                  <option value="Steady">Steady (→)</option>
+                  <option value="Falling">Falling (↓)</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" className="btn-save-primary">Update River Telemetry</button>
+          </form>
+        </div>
+      </div>
+      <div className="modal-overlay" id="weatherModal" onClick={(event) => window.closeModal('weatherModal')}>
+        <div className="modal-box" onClick={(event) => event.stopPropagation()}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+            <h3 style={{ margin: "0", fontSize: "16px", color: "var(--navy-deep)" }}>{"Update Rainfall & Weather Advisory"}</h3>
+            <button onClick={(event) => window.closeModal('weatherModal')} style={{ border: "none", background: "#e2e8f0", width: "28px", height: "28px", borderRadius: "50%", cursor: "pointer" }}>
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+          <form onSubmit={(event) => window.saveWeatherRecord(event)}>
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label>24-Hr Rainfall</label>
+                {" "}
+                <input type="text" id="inpWeatherRain" className="form-control" defaultValue="78 mm (Heavy)" required />
+              </div>
+              <div className="form-group">
+                <label>Weather Warning</label>
+                {" "}
+                <input type="text" id="inpWeatherAdv" className="form-control" defaultValue="Orange Alert – Heavy Rain" required />
+              </div>
+            </div>
+            <button type="submit" className="btn-save-primary">Update Weather Telemetry</button>
+          </form>
+        </div>
+      </div>
+      <div className="modal-overlay" id="facilityModal" onClick={(event) => window.closeModal('facilityModal')}>
+        <div className="modal-box" onClick={(event) => event.stopPropagation()}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+            <h3 style={{ margin: "0", fontSize: "16px", color: "var(--navy-deep)" }}>Add Emergency Facility Marker</h3>
+            <button onClick={(event) => window.closeModal('facilityModal')} style={{ border: "none", background: "#e2e8f0", width: "28px", height: "28px", borderRadius: "50%", cursor: "pointer" }}>
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+          <form onSubmit={(event) => window.saveFacilityRecord(event)}>
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label>Facility Name *</label>
+                {" "}
+                <input type="text" id="inpFacName" className="form-control" placeholder="e.g. Chaygaon PHC" required />
+              </div>
+              <div className="form-group">
+                <label>Category *</label>
+                {" "}
+                <select id="inpFacCat" className="form-control">
+                  <option value="Relief Camp">Relief Camp</option>
+                  <option value="Hospital">Hospital</option>
+                  <option value="Police Station">Police Station</option>
+                </select>
+              </div>
+            </div>
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label>Sector / Distance *</label>
+                {" "}
+                <input type="text" id="inpFacDist" className="form-control" placeholder="e.g. 2.1 km • Chaygaon" required />
+              </div>
+              <div className="form-group">
+                <label>Helpline / Contact *</label>
+                {" "}
+                <input type="text" id="inpFacPhone" className="form-control" defaultValue="1077 / 108" required />
+              </div>
+            </div>
+            <button type="submit" className="btn-save-primary">Save Facility Marker</button>
+          </form>
+        </div>
+      </div>
+      <div id="toast"></div>
+  </>
+);
+
+export default function Admin() {
+  useEffect(() => {
+    document.title = "NEERAKSHAK – Admin Portal | River & Flood Ecological Command";
+    initAdminPage();
+  }, []);
+
+  return (
+    <>
+      <style>{css}</style>
+      {markup}
+    </>
+  );
+}
