@@ -1,2 +1,5 @@
 node_modules
 dist
+.next
+server/.next
+server/node_modules

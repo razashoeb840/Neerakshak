@@ -143,73 +143,67 @@ const markup = (
                   </button>
                 </div>
               </div>
-              {/* COMPACT EMPTY MAP SLOT (290px HEIGHT) */}
+              {/* LIVE LEAFLET GIS FLOOD MAP VIEWPORT */}
               <div id="mapViewportSlot">
-                <div className="map-float-search">
+                <div id="leafletMap" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 1 }}></div>
+
+                <div className="map-float-search" style={{ zIndex: 500 }}>
                   <i className="fas fa-search" style={{ color: "#64748b" }}></i>
                   {" "}
-                  <input type="text" placeholder="Search village, river, basin..." onKeyUp={(event) => { if(event.key==='Enter') window.showToast('Map search hook ready for: ' + event.currentTarget.value); }} />
+                  <input
+                    type="text"
+                    id="mapFloatSearch"
+                    placeholder="Search village, river, basin..."
+                    onKeyUp={(event) => {
+                      if (window.searchMapLocation) {
+                        window.searchMapLocation(event.currentTarget.value);
+                      }
+                    }}
+                  />
                 </div>
-                <div className="map-float-tools">
-                  <button className="map-tool-pill" onClick={(event) => window.openAreaModal()}>
+                <div className="map-float-tools" style={{ zIndex: 500 }}>
+                  <button className="map-tool-pill" onClick={() => window.triggerPinZoneMode ? window.triggerPinZoneMode() : window.openAreaModal()} title="Pin flood zone coordinates on GIS map">
                     <i className="fas fa-map-pin" style={{ color: "#dc2626" }}></i>
                     {" Pin Flood Zone"}
                   </button>
                   {" "}
-                  <button className="map-tool-pill" onClick={(event) => window.openFacilityModal()}>
+                  <button className="map-tool-pill" onClick={() => window.triggerPinFacilityMode ? window.triggerPinFacilityMode() : window.openFacilityModal()} title="Pin emergency hospital/camp on map">
                     <i className="fas fa-hospital" style={{ color: "#16a34a" }}></i>
                     {" Pin Facility"}
                   </button>
                 </div>
-                <div className="map-slot-label">
-                  <i className="far fa-map"></i>
-                  {" "}
-                  <strong>MAP VIEWPORT / EMBED AREA</strong>
-                  {" "}
-                  <span>
-                    {"Mount Leaflet, MapLibre, or district river GeoJSON layers inside "}
-                    <code>#mapViewportSlot</code>
-                    .
+
+                <div className="map-legend-pill" style={{ zIndex: 500 }}>
+                  <span style={{ cursor: "pointer" }} onClick={() => window.setSeverityFilter && window.setSeverityFilter('ALL')} title="Show All Zones">
+                    All
                   </span>
-                </div>
-                {/* Decorative Riparian Trees & Riverbank Silhouette in Corner */}
-                {" "}
-                <svg className="map-corner-nature" viewBox="0 0 240 80" fill="none">
-                  <path d="M40 80 Q110 45 180 65 T240 55 L240 80 Z" fill="#86efac"></path>
-                  <path d="M90 80 Q150 58 240 70 L240 80 Z" fill="#38bdf8"></path>
-                  <g fill="#15803d">
-                    <polygon points="165,62 173,36 181,62"></polygon>
-                    <polygon points="184,64 194,30 204,64"></polygon>
-                    <polygon points="207,62 216,38 225,62"></polygon>
-                  </g>
-                </svg>
-                <div className="map-legend-pill">
-                  <span>
+                  {" "}
+                  <span style={{ cursor: "pointer" }} onClick={() => window.setSeverityFilter && window.setSeverityFilter('Critical')} title="Filter Critical Risk Zones">
                     <i className="l-dot" style={{ background: "#dc2626" }}></i>
                     Critical
                   </span>
                   {" "}
-                  <span>
+                  <span style={{ cursor: "pointer" }} onClick={() => window.setSeverityFilter && window.setSeverityFilter('High')} title="Filter High Risk Zones">
                     <i className="l-dot" style={{ background: "#f97316" }}></i>
                     High
                   </span>
                   {" "}
-                  <span>
+                  <span style={{ cursor: "pointer" }} onClick={() => window.setSeverityFilter && window.setSeverityFilter('Moderate')} title="Filter Moderate Risk Zones">
                     <i className="l-dot" style={{ background: "#eab308" }}></i>
                     Moderate
                   </span>
                   {" "}
-                  <span>
+                  <span style={{ cursor: "pointer" }} onClick={() => window.setSeverityFilter && window.setSeverityFilter('Normal')} title="Filter Normal Risk Zones">
                     <i className="l-dot" style={{ background: "#16a34a" }}></i>
                     Normal
                   </span>
                 </div>
-                <div className="map-zoom-group">
-                  <button className="z-mini-btn" onClick={(event) => window.showToast('Map Zoom In hook')} title="Zoom In">+</button>
+                <div className="map-zoom-group" style={{ zIndex: 500 }}>
+                  <button className="z-mini-btn" onClick={() => window.mapZoomIn && window.mapZoomIn()} title="Zoom In">+</button>
                   {" "}
-                  <button className="z-mini-btn" onClick={(event) => window.showToast('Map Zoom Out hook')} title="Zoom Out">−</button>
+                  <button className="z-mini-btn" onClick={() => window.mapZoomOut && window.mapZoomOut()} title="Zoom Out">−</button>
                   {" "}
-                  <button className="z-mini-btn" onClick={(event) => window.showToast('Recenter District Bounds')} title="Recenter">
+                  <button className="z-mini-btn" onClick={() => window.mapRecenter && window.mapRecenter()} title="Recenter District View">
                     <i className="fas fa-crosshairs"></i>
                   </button>
                 </div>

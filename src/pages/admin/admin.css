@@ -512,24 +512,162 @@
         }
 
         /* =====================================================================
-           COMPACT MAP VIEWPORT PLACEHOLDER (290px HEIGHT - READY FOR YOUR MAP)
+           LIVE LEAFLET GIS FLOOD MAP VIEWPORT (360px HEIGHT)
            ===================================================================== */
         #mapViewportSlot {
             position: relative;
             width: 100%;
-            height: 290px;
+            height: 360px;
             border-radius: 14px;
-            border: 1.5px dashed #7cc0f5;
-            background: linear-gradient(180deg, #eaf6ff 0%, #dff2fc 100%);
-            background-image:
-                linear-gradient(to right, rgba(2, 132, 199, 0.12) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(2, 132, 199, 0.12) 1px, transparent 1px);
-            background-size: 32px 32px;
+            border: 1.5px solid #93c5fd;
+            background: #e2e8f0;
+            overflow: hidden;
+            box-shadow: 0 4px 18px rgba(2, 132, 199, 0.08);
+        }
+
+        #leafletMap {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Leaflet custom map markers & animations */
+        .flood-marker-div {
+            background: transparent;
+            border: none;
+        }
+
+        .custom-flood-pin {
+            position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .pin-head {
+            width: 28px;
+            height: 28px;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 11px;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+            border: 2px solid #ffffff;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .pin-head i {
+            transform: rotate(45deg);
+        }
+
+        .custom-flood-pin:hover .pin-head {
+            transform: rotate(-45deg) scale(1.15);
+        }
+
+        .pin-pulse {
+            position: absolute;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            animation: pinPulseAnim 2s infinite ease-out;
+            opacity: 0.6;
+            z-index: -1;
+        }
+
+        @keyframes pinPulseAnim {
+            0% { transform: scale(0.6); opacity: 0.9; }
+            100% { transform: scale(1.9); opacity: 0; }
+        }
+
+        .pin-title {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            background: rgba(15, 23, 42, 0.85);
+            color: #ffffff;
+            font-size: 9.5px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 6px;
+            pointer-events: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+        }
+
+        /* Facility Pin */
+        .fac-marker-div {
+            background: transparent;
+            border: none;
+        }
+
+        .custom-fac-pin {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 11px;
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 7px rgba(0,0,0,0.25);
+            cursor: pointer;
+        }
+
+        /* Leaflet Popup Styling */
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(2, 44, 84, 0.18);
+            border: 1px solid #bfdbfe;
+            padding: 0;
             overflow: hidden;
         }
+
+        .leaflet-popup-content {
+            margin: 12px 14px;
+            line-height: 1.4;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .map-rich-popup .popup-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .popup-btn-edit, .popup-btn-zoom {
+            border: none;
+            padding: 4px 9px;
+            border-radius: 6px;
+            font-size: 10.5px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: 0.15s;
+        }
+
+        .popup-btn-edit {
+            background: #0284c7;
+            color: #ffffff;
+        }
+        .popup-btn-edit:hover { background: #0369a1; }
+
+        .popup-btn-zoom {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+        }
+        .popup-btn-zoom:hover { background: #e2e8f0; }
 
         /* Subtle Riparian Foliage & Riverbank Corner Accents inside Map Slot */
         .map-corner-nature {
