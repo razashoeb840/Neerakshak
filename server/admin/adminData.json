@@ -1,54 +1,24 @@
 {
   "areas": [
     {
-      "id": "area-1",
-      "name": "Palashbari Riverside Ward 2",
-      "block": "Palashbari Circle",
+      "id": "area-1795424567980",
+      "name": "Flood Sector",
+      "block": "Palasbari, Kamrup",
       "severity": "Critical",
-      "pop": 4200,
-      "lat": 26.132,
-      "lng": 91.515,
-      "notes": "Embankment seepage watch; low-lying homes evacuated to primary school camp."
-    },
-    {
-      "id": "area-2",
-      "name": "Chaygaon Lowland Belt",
-      "block": "Chaygaon Circle",
-      "severity": "High",
-      "pop": 3650,
-      "lat": 26.052,
-      "lng": 91.225,
-      "notes": "Approach road under 2.5 ft water; relief distribution point operational."
-    },
-    {
-      "id": "area-3",
-      "name": "Goroimari Char Cluster",
-      "block": "Goroimari Circle",
-      "severity": "Moderate",
-      "pop": 2800,
-      "lat": 26.095,
-      "lng": 91.34,
-      "notes": "Riverbank waterlogging watch; country boat transfer active at ghat."
-    },
-    {
-      "id": "area-4",
-      "name": "Boko Upland Sector",
-      "block": "Boko Circle",
-      "severity": "Normal",
-      "pop": 1780,
-      "lat": 25.98,
-      "lng": 91.24,
-      "notes": "Drainage channels normal; monitoring rainfall runoff from foothills."
+      "pop": 2200,
+      "lat": 26.1427,
+      "lng": 91.5611,
+      "notes": "incrasing"
     }
   ],
   "rivers": [
     {
       "id": "riv-1",
       "name": "Brahmaputra River",
-      "current": 18.2,
+      "current": 10.8,
       "danger": 18,
       "trend": "Rising",
-      "barColor": "#dc2626",
+      "barColor": "#16a34a",
       "spark": "M2 16 L12 13 L22 14 L32 8 L42 6 L52 3"
     },
     {

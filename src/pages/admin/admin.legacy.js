@@ -28,8 +28,15 @@ import {
   searchMapLocation,
   startMapPickMode,
   cancelMapPick,
-  openAreaModalWithCoords
+  openAreaModalWithCoords,
+  flyToDistrictSector
 } from './adminMap.js';
+
+import {
+  INDIA_DISTRICT_SECTORS,
+  getRiversForDistrict,
+  detectNearestRiver
+} from './indiaGisData.js';
 
 export default function initAdminPage() {
   const __ready = [];
@@ -315,6 +322,54 @@ export default function initAdminPage() {
     updateMapLayers(state.areas || [], state.facilities || []);
   }
 
+  // --- RIVER DANGER LEVEL CALCULATOR & MONITORING SWITCHER ---
+  function calcRiverDangerStatus() {
+    const curInp = document.getElementById('inpRiverCur');
+    const dangInp = document.getElementById('inpRiverDanger');
+    const statusBadge = document.getElementById('lblRiverDangerStatus');
+    const diffText = document.getElementById('lblDangerDiff');
+    if (!curInp || !dangInp || !statusBadge || !diffText) return;
+
+    const cur = parseFloat(curInp.value) || 0;
+    const dang = parseFloat(dangInp.value) || 0;
+    const diff = (cur - dang).toFixed(1);
+
+    if (cur >= dang) {
+      statusBadge.className = 'sev-pill sev-critical';
+      statusBadge.textContent = 'DANGER BREACH';
+      diffText.style.color = '#dc2626';
+      diffText.innerHTML = `⚠️ River level is +${diff} m ABOVE Danger Mark! Critical inundation risk active.`;
+    } else if (cur >= dang - 0.8) {
+      statusBadge.className = 'sev-pill sev-moderate';
+      statusBadge.textContent = 'WARNING LEVEL';
+      diffText.style.color = '#d97706';
+      diffText.innerHTML = `⚡ River level is approaching Danger Mark (${Math.abs(diff)}m below). Embankment watch active.`;
+    } else {
+      statusBadge.className = 'sev-pill sev-normal';
+      statusBadge.textContent = 'SAFE LEVEL';
+      diffText.style.color = '#15803d';
+      diffText.innerHTML = `✓ Water level is ${Math.abs(diff)} m below Danger Mark. Normal river discharge.`;
+    }
+  }
+
+  function switchMonitoringDistrict(districtId) {
+    const sector = INDIA_DISTRICT_SECTORS.find(s => s.id === districtId);
+    if (!sector) return;
+
+    flyToDistrictSector(districtId);
+
+    const regionalRivers = getRiversForDistrict(districtId);
+    if (regionalRivers && regionalRivers.length > 0) {
+      state.rivers = regionalRivers;
+      renderAllCards();
+    }
+
+    const statusText = document.getElementById('telemetryStatusText');
+    if (statusText) statusText.textContent = `${sector.name.split(',')[0]} Active`;
+
+    showToast(`🛰️ Telemetry loaded for ${sector.name} (${sector.basin})`);
+  }
+
   // --- AREA MODAL & CRUD ---
   function openAreaModal() {
     document.getElementById('editAreaIdx').value = '-1';
@@ -322,9 +377,18 @@ export default function initAdminPage() {
     document.getElementById('inpAreaName').value = '';
     document.getElementById('inpAreaBlock').value = '';
     document.getElementById('inpAreaNotes').value = '';
-    // Sensible default coordinates for Kamrup if not already filled by map click
-    if (!document.getElementById('inpAreaLat').value) document.getElementById('inpAreaLat').value = '26.1200';
-    if (!document.getElementById('inpAreaLng').value) document.getElementById('inpAreaLng').value = '91.4500';
+
+    const detectBadge = document.getElementById('geoDetectBadge');
+    if (detectBadge) detectBadge.style.display = 'none';
+
+    const lat = parseFloat(document.getElementById('inpAreaLat')?.value) || 26.15;
+    const lng = parseFloat(document.getElementById('inpAreaLng')?.value) || 91.60;
+    const riv = detectNearestRiver(lat, lng);
+    if (document.getElementById('inpAreaRiver')) document.getElementById('inpAreaRiver').value = riv.name;
+    if (document.getElementById('inpRiverCur')) document.getElementById('inpRiverCur').value = riv.current;
+    if (document.getElementById('inpRiverDanger')) document.getElementById('inpRiverDanger').value = riv.danger;
+
+    calcRiverDangerStatus();
     document.getElementById('areaModal').classList.add('open');
   }
 
@@ -340,26 +404,63 @@ export default function initAdminPage() {
     document.getElementById('inpAreaLat').value = item.lat;
     document.getElementById('inpAreaLng').value = item.lng;
     document.getElementById('inpAreaNotes').value = item.notes;
+
+    const lat = Number(item.lat) || 26.15;
+    const lng = Number(item.lng) || 91.60;
+    const riv = item.river ? { name: item.river, current: item.riverCurrent || 18.2, danger: item.riverDanger || 18.0 } : detectNearestRiver(lat, lng);
+
+    if (document.getElementById('inpAreaRiver')) document.getElementById('inpAreaRiver').value = item.river || riv.name;
+    if (document.getElementById('inpRiverCur')) document.getElementById('inpRiverCur').value = item.riverCurrent !== undefined ? item.riverCurrent : riv.current;
+    if (document.getElementById('inpRiverDanger')) document.getElementById('inpRiverDanger').value = item.riverDanger !== undefined ? item.riverDanger : riv.danger;
+
+    calcRiverDangerStatus();
     document.getElementById('areaModal').classList.add('open');
   }
 
   async function saveAreaRecord(e) {
     e.preventDefault();
     const idx = Number(document.getElementById('editAreaIdx').value);
+    const riverName = document.getElementById('inpAreaRiver')?.value?.trim() || 'Brahmaputra River';
+    const riverCur = parseFloat(document.getElementById('inpRiverCur')?.value) || 18.2;
+    const riverDang = parseFloat(document.getElementById('inpRiverDanger')?.value) || 18.0;
+
     const rec = {
-      name: document.getElementById('inpAreaName').value.trim(),
-      block: document.getElementById('inpAreaBlock').value.trim(),
+      name: document.getElementById('inpAreaName').value.trim() || 'Sector',
+      block: document.getElementById('inpAreaBlock').value.trim() || 'District Block',
       severity: document.getElementById('inpAreaSev').value,
       pop: Number(document.getElementById('inpAreaPop').value) || 0,
       lat: Number(document.getElementById('inpAreaLat').value),
       lng: Number(document.getElementById('inpAreaLng').value),
-      notes: document.getElementById('inpAreaNotes').value.trim()
+      notes: document.getElementById('inpAreaNotes').value.trim(),
+      river: riverName,
+      riverCurrent: riverCur,
+      riverDanger: riverDang
     };
+
+    // Update active river list with this river's reading
+    if (!state.rivers) state.rivers = [];
+    const existingRiver = state.rivers.find(r => r.name.toLowerCase() === riverName.toLowerCase());
+    if (existingRiver) {
+      existingRiver.current = riverCur;
+      existingRiver.danger = riverDang;
+      existingRiver.trend = riverCur >= riverDang ? 'Rising' : 'Steady';
+      existingRiver.barColor = riverCur >= riverDang ? '#dc2626' : (riverCur >= riverDang - 0.8 ? '#eab308' : '#16a34a');
+    } else {
+      state.rivers.unshift({
+        id: `riv-${Date.now()}`,
+        name: riverName,
+        current: riverCur,
+        danger: riverDang,
+        trend: riverCur >= riverDang ? 'Rising' : 'Steady',
+        barColor: riverCur >= riverDang ? '#dc2626' : '#0284c7',
+        spark: 'M2 15 L12 13 L22 11 L32 8 L42 6 L52 3'
+      });
+    }
 
     closeModal('areaModal');
     await saveAreaApi(rec, idx);
     renderAllCards();
-    showToast(idx >= 0 ? `Updated GIS zone: ${rec.name}` : `Added ${rec.severity} flood zone to Next.js backend.`);
+    showToast(idx >= 0 ? `Updated GIS zone & river telemetry: ${rec.name}` : `Added ${rec.severity} flood zone (${riverName}: ${riverCur}m) to Next.js backend.`);
     
     // Smoothly fly map to updated zone
     zoomToCoords(rec.lat, rec.lng);
@@ -552,7 +653,10 @@ export default function initAdminPage() {
     searchMapLocation,
     startMapPickMode,
     cancelMapPick,
-    openAreaModalWithCoords
+    openAreaModalWithCoords,
+    calcRiverDangerStatus,
+    switchMonitoringDistrict,
+    flyToDistrictSector
   });
 
   __ready.forEach((fn) => fn());

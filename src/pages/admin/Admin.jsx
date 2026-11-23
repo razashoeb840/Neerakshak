@@ -44,11 +44,44 @@ const markup = (
               <div className="hero-ctrl-pill">
                 <i className="fas fa-location-dot" style={{ color: "#38bdf8" }}></i>
                 {" "}
-                <select className="hero-district-select" onChange={(event) => window.showToast('Switched monitoring sector to ' + event.currentTarget.value)}>
-                  <option>Kamrup, Assam</option>
-                  <option>Majuli, Assam</option>
-                  <option>Barpeta, Assam</option>
-                  <option>Dhemaji, Assam</option>
+                <select
+                  className="hero-district-select"
+                  id="heroDistrictSelect"
+                  defaultValue="kamrup"
+                  onChange={(event) => window.switchMonitoringDistrict && window.switchMonitoringDistrict(event.currentTarget.value)}
+                >
+                  <optgroup label="Assam & Northeast (Brahmaputra & Barak)">
+                    <option value="kamrup">Kamrup, Assam (Brahmaputra Basin)</option>
+                    <option value="majuli">Majuli Island, Assam (Subansiri)</option>
+                    <option value="barpeta">Barpeta, Assam (Manas & Beki)</option>
+                    <option value="dhemaji">Dhemaji, Assam (Jiabharali)</option>
+                    <option value="cachar">Silchar (Cachar), Assam (Barak)</option>
+                  </optgroup>
+                  <optgroup label="Bihar (Ganga & Kosi Basin)">
+                    <option value="patna">Patna, Bihar (Ganga & Son Basin)</option>
+                    <option value="katihar">Katihar / Purnia, Bihar (Kosi Basin)</option>
+                    <option value="muzaffarpur">Muzaffarpur, Bihar (Burhi Gandak)</option>
+                  </optgroup>
+                  <optgroup label="Uttar Pradesh (Ganga & Yamuna)">
+                    <option value="varanasi">Varanasi, UP (Ganga Basin)</option>
+                    <option value="prayagraj">Prayagraj, UP (Ganga-Yamuna Sangam)</option>
+                    <option value="gorakhpur">Gorakhpur, UP (Rapti & Rohini)</option>
+                  </optgroup>
+                  <optgroup label="Odisha & Bengal (Mahanadi Basin)">
+                    <option value="cuttack">Cuttack, Odisha (Mahanadi Delta)</option>
+                    <option value="balasore">Balasore, Odisha (Subarnarekha)</option>
+                    <option value="malda">Malda, West Bengal (Ganga / Padma)</option>
+                  </optgroup>
+                  <optgroup label="South & West India">
+                    <option value="wayanad">Wayanad, Kerala (Kabini Basin)</option>
+                    <option value="kolhapur">Kolhapur, Maharashtra (Panchganga)</option>
+                    <option value="surat">Surat / Bharuch, Gujarat (Tapti / Narmada)</option>
+                    <option value="vijayawada">Vijayawada, AP (Krishna River Basin)</option>
+                    <option value="srinagar">Srinagar, J&K (Jhelum River Basin)</option>
+                  </optgroup>
+                  <optgroup label="Pan-India National Hydrology">
+                    <option value="all-india">🇮🇳 Pan-India Overview (All River Basins)</option>
+                  </optgroup>
                 </select>
               </div>
               <div className="hero-ctrl-pill">
@@ -472,18 +505,41 @@ const markup = (
           </div>
           <form onSubmit={(event) => window.saveAreaRecord(event)}>
             <input type="hidden" id="editAreaIdx" value="-1" />
-            <div className="form-grid-2">
-              <div className="form-group">
-                <label>Village / Ward Name *</label>
-                {" "}
-                <input type="text" id="inpAreaName" className="form-control" placeholder="e.g. Chaygaon Ward 4" required />
-              </div>
-              <div className="form-group">
-                <label>Block / Circle *</label>
-                {" "}
-                <input type="text" id="inpAreaBlock" className="form-control" placeholder="e.g. Palashbari Circle" required />
+
+            {/* Auto-Detection Indicator Pill */}
+            <div id="geoDetectBadge" style={{ display: "none", alignItems: "center", gap: "8px", background: "#ecfdf5", border: "1px solid #a7f3d0", color: "#065f46", padding: "6px 10px", borderRadius: "8px", fontSize: "11px", fontWeight: "700", marginBottom: "12px" }}>
+              <i className="fas fa-circle-check" style={{ color: "#10b981" }}></i>
+              <span>Auto-detected from GIS coordinates.</span>
+            </div>
+
+            <div className="form-group" style={{ marginBottom: "14px", marginTop: "4px" }}>
+              <button
+                type="button"
+                className="btn-pick-map-coords"
+                id="btnPickOnMap"
+                onClick={() => window.startMapPickMode && window.startMapPickMode()}
+              >
+                <i className="fas fa-location-crosshairs" style={{ color: "#0284c7", fontSize: "14px" }}></i>
+                {" 📍 Click Map to Auto-Detect Location & River"}
+              </button>
+              <div id="lblMapPickStatus" style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px", fontWeight: "600" }}>
+                Click anywhere on the map: Village, Block, Coordinates & River Danger Level will be auto-filled!
               </div>
             </div>
+
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label>Village / Town / Sector Name *</label>
+                {" "}
+                <input type="text" id="inpAreaName" className="form-control" placeholder="Auto-detected or custom name" required />
+              </div>
+              <div className="form-group">
+                <label>Block / District / Circle *</label>
+                {" "}
+                <input type="text" id="inpAreaBlock" className="form-control" placeholder="Auto-detected or custom circle" required />
+              </div>
+            </div>
+
             <div className="form-grid-2">
               <div className="form-group">
                 <label>Flood Severity *</label>
@@ -501,20 +557,40 @@ const markup = (
                 <input type="number" id="inpAreaPop" className="form-control" defaultValue="2200" required />
               </div>
             </div>
-            <div className="form-group" style={{ marginBottom: "14px", marginTop: "4px" }}>
-              <button
-                type="button"
-                className="btn-pick-map-coords"
-                id="btnPickOnMap"
-                onClick={() => window.startMapPickMode && window.startMapPickMode()}
-              >
-                <i className="fas fa-location-crosshairs" style={{ color: "#0284c7", fontSize: "14px" }}></i>
-                {" 📍 Pick Location on GIS Map"}
-              </button>
-              <div id="lblMapPickStatus" style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px", fontWeight: "600" }}>
-                Click above to place marker pin directly on the map, or enter coordinates below:
+
+            {/* River Basin & Danger Level Telemetry Box */}
+            <div className="river-telemetry-box" style={{ background: "#f0f9ff", border: "1.5px solid #bae6fd", borderRadius: "10px", padding: "12px", marginBottom: "14px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <label style={{ margin: 0, fontWeight: "800", color: "var(--navy-deep)", fontSize: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <i className="fas fa-water" style={{ color: "#0284c7" }}></i>
+                  <span>River Basin & Danger Level Telemetry</span>
+                </label>
+                <span id="lblRiverDangerStatus" className="sev-pill sev-critical" style={{ fontSize: "10px", padding: "2px 8px" }}>
+                  Danger Breach
+                </span>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "8px" }}>
+                <label style={{ fontSize: "11px" }}>Associated River / Basin</label>
+                <input type="text" id="inpAreaRiver" className="form-control" placeholder="e.g. Brahmaputra River / Ganga" defaultValue="Brahmaputra River" />
+              </div>
+
+              <div className="form-grid-2">
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontSize: "11px" }}>Current Water Level (m) *</label>
+                  <input type="number" step="0.1" id="inpRiverCur" className="form-control" defaultValue="18.2" onChange={() => window.calcRiverDangerStatus && window.calcRiverDangerStatus()} required />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontSize: "11px" }}>Danger Mark Level (m) *</label>
+                  <input type="number" step="0.1" id="inpRiverDanger" className="form-control" defaultValue="18.0" onChange={() => window.calcRiverDangerStatus && window.calcRiverDangerStatus()} required />
+                </div>
+              </div>
+
+              <div id="lblDangerDiff" style={{ fontSize: "11px", color: "#dc2626", fontWeight: "700", marginTop: "6px" }}>
+                ⚠️ River is +0.2 m ABOVE Danger Mark! Inundation risk active.
               </div>
             </div>
+
             <div className="form-grid-2">
               <div className="form-group">
                 <label>Latitude</label>

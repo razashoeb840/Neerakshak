@@ -1,6 +1,13 @@
-// NEERAKSHAK District GIS Flood Map Engine (Leaflet Powered)
+// NEERAKSHAK Pan-India GIS Flood Map Engine (Leaflet Powered)
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import {
+  INDIA_DISTRICT_SECTORS,
+  INDIA_RIVER_SYSTEMS,
+  detectNearestRiver,
+  autoDetectLocation,
+  getRiversForDistrict
+} from './indiaGisData.js';
 
 let mapInstance = null;
 let zonesLayerGroup = null;
@@ -18,30 +25,9 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-// Kamrup District Geographic Center
-const KAMRUP_CENTER = [26.11, 91.44];
-const DEFAULT_ZOOM = 11;
-
-// Brahmaputra River Basin Corridor Coordinates (Kamrup Segment)
-const BRAHMAPUTRA_PATH = [
-  [26.24, 91.92],
-  [26.20, 91.80],
-  [26.18, 91.73],
-  [26.15, 91.60],
-  [26.13, 91.48],
-  [26.09, 91.35],
-  [26.04, 91.22],
-  [26.00, 91.06],
-  [25.96, 90.92]
-];
-
-// Kolong / Kulsi Tributary Paths
-const KULSI_PATH = [
-  [25.98, 91.24],
-  [26.03, 91.23],
-  [26.06, 91.26],
-  [26.08, 91.32]
-];
+// Default to India Flood Command Center / Kamrup Sector
+const INITIAL_CENTER = [26.15, 91.60];
+const INITIAL_ZOOM = 11;
 
 function getSeverityColor(sev) {
   switch (sev) {
@@ -55,11 +41,11 @@ function getSeverityColor(sev) {
 
 function getSeverityRadius(sev) {
   switch (sev) {
-    case 'Critical': return 1800;
-    case 'High': return 1400;
-    case 'Moderate': return 1000;
-    case 'Normal': return 650;
-    default: return 800;
+    case 'Critical': return 2200;
+    case 'High': return 1600;
+    case 'Moderate': return 1100;
+    case 'Normal': return 750;
+    default: return 900;
   }
 }
 
@@ -75,16 +61,16 @@ export function initAdminFloodMap(containerId = 'leafletMap') {
     mapInstance = null;
   }
 
-  // Create Leaflet Map
+  // Create Leaflet Map Covering Whole India (minZoom 4 to 19)
   mapInstance = L.map(containerId, {
-    center: KAMRUP_CENTER,
-    zoom: DEFAULT_ZOOM,
-    minZoom: 9,
-    maxZoom: 18,
+    center: INITIAL_CENTER,
+    zoom: INITIAL_ZOOM,
+    minZoom: 4,
+    maxZoom: 19,
     zoomControl: false // Using custom HUD zoom controls
   });
 
-  // Standard OpenStreetMap Tile Layer (100% Free, NO API Key Required, Clean Geographic Details)
+  // Standard OpenStreetMap Tile Layer (100% Free, NO API Key Required, Clean India & Global Geo Data)
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     subdomains: ['a', 'b', 'c'],
@@ -97,18 +83,16 @@ export function initAdminFloodMap(containerId = 'leafletMap') {
   facilitiesLayerGroup = L.layerGroup().addTo(mapInstance);
   tempPickLayer = L.layerGroup().addTo(mapInstance);
 
-  // Render River Corridors
-  renderRiverCorridors();
+  // Render All Major Indian River Basin Corridors
+  renderAllIndianRiverCorridors();
 
-  // Map Click Handler
-  mapInstance.on('click', (e) => {
+  // Map Click Handler with Automatic Location & River Detection
+  mapInstance.on('click', async (e) => {
     const { lat, lng } = e.latlng;
 
     if (isMapPickActive) {
-      // Complete location picking mode
-      completeMapPick(lat, lng);
+      await completeMapPick(lat, lng);
     } else {
-      // General map click: offer quick action to mark this point
       tempPickLayer.clearLayers();
 
       const pulsePinIcon = L.divIcon({
@@ -117,7 +101,7 @@ export function initAdminFloodMap(containerId = 'leafletMap') {
           <div style="position:relative; display:flex; align-items:center; justify-content:center;">
             <span style="position:absolute; width:34px; height:34px; border-radius:50%; background:#0284c7; animation:pinPulseAnim 1.8s infinite; opacity:0.5;"></span>
             <div style="width:24px; height:24px; border-radius:50%; background:#0284c7; color:#fff; display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.3); font-size:11px;">
-              <i class="fas fa-location-crosshairs"></i>
+              <i class="fas fa-crosshairs"></i>
             </div>
           </div>
         `,
@@ -128,25 +112,45 @@ export function initAdminFloodMap(containerId = 'leafletMap') {
 
       const tempMarker = L.marker([lat, lng], { icon: pulsePinIcon }).addTo(tempPickLayer);
 
+      // Instant reverse geocode & river fetch for popup
+      tempMarker.bindPopup(`
+        <div style="text-align:center; padding:6px; min-width:180px;">
+          <div style="font-size:11px; color:#64748b;"><i class="fas fa-spinner fa-spin"></i> Detecting location & river…</div>
+        </div>
+      `).openPopup();
+
+      const detected = await autoDetectLocation(lat, lng);
+      const isBreach = detected.river.isDanger;
+      const statusBadge = isBreach
+        ? `<span style="background:#fee2e2; color:#dc2626; padding:2px 6px; border-radius:4px; font-weight:800; font-size:9.5px;">⚠️ ABOVE DANGER (${detected.river.current}m)</span>`
+        : `<span style="background:#dcfce7; color:#15803d; padding:2px 6px; border-radius:4px; font-weight:700; font-size:9.5px;">✓ Safe Level (${detected.river.current}m)</span>`;
+
       const clickPopup = `
-        <div style="text-align:center; padding:6px 4px; min-width:190px;">
-          <div style="font-size:11px; font-weight:800; color:#0f172a; margin-bottom:2px;">
-            <i class="fas fa-location-dot" style="color:#0284c7;"></i> Pinned GPS Point
+        <div style="text-align:center; padding:6px 4px; min-width:220px;">
+          <div style="font-size:12.5px; font-weight:800; color:#0f172a; margin-bottom:2px;">
+            <i class="fas fa-location-dot" style="color:#0284c7;"></i> ${detected.name}
           </div>
-          <div style="font-size:11.5px; font-weight:700; color:#0369a1; background:#f0f9ff; padding:3px 6px; border-radius:4px; margin-bottom:8px; border:1px solid #bae6fd;">
-            ${lat.toFixed(4)}, ${lng.toFixed(4)}
+          <div style="font-size:10.5px; color:#64748b; font-weight:600; margin-bottom:6px;">
+            ${detected.block}
           </div>
-          <button type="button" class="popup-btn-edit" style="width:100%; justify-content:center; padding:6px;" onclick="window.openAreaModalWithCoords && window.openAreaModalWithCoords(${lat.toFixed(4)}, ${lng.toFixed(4)})">
+          <div style="font-size:11px; background:#f0f9ff; padding:5px 8px; border-radius:6px; margin-bottom:8px; border:1px solid #bae6fd; text-align:left;">
+            <div style="font-weight:700; color:#0369a1; margin-bottom:2px;">🌊 ${detected.river.name}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:10px; color:#475569;">Danger: ${detected.river.danger}m</span>
+              ${statusBadge}
+            </div>
+          </div>
+          <button type="button" class="popup-btn-edit" style="width:100%; justify-content:center; padding:7px; font-size:11.5px;" onclick="window.openAreaModalWithCoords && window.openAreaModalWithCoords(${lat.toFixed(4)}, ${lng.toFixed(4)}, '${detected.name.replace(/'/g, "\\'")}', '${detected.block.replace(/'/g, "\\'")}', '${detected.river.name}', ${detected.river.current}, ${detected.river.danger})">
             <i class="fas fa-plus-circle"></i> Mark Flood Zone Here
           </button>
         </div>
       `;
 
-      tempMarker.bindPopup(clickPopup).openPopup();
+      tempMarker.setPopupContent(clickPopup);
     }
   });
 
-  // Ensure Leaflet tiles render completely on mount
+  // Invalidate size once rendered
   setTimeout(() => {
     if (mapInstance) mapInstance.invalidateSize();
   }, 250);
@@ -154,40 +158,44 @@ export function initAdminFloodMap(containerId = 'leafletMap') {
   return mapInstance;
 }
 
-function renderRiverCorridors() {
+// Render Major Indian River Basin Corridors with glowing polylines and hover status
+function renderAllIndianRiverCorridors() {
   if (!riverLayerGroup) return;
   riverLayerGroup.clearLayers();
 
-  // Outer ambient river glow
-  L.polyline(BRAHMAPUTRA_PATH, {
-    color: '#38bdf8',
-    weight: 14,
-    opacity: 0.35,
-    lineCap: 'round',
-    lineJoin: 'round'
-  }).addTo(riverLayerGroup);
+  INDIA_RIVER_SYSTEMS.forEach(riv => {
+    if (!riv.path || riv.path.length < 2) return;
 
-  // Core Brahmaputra stream line
-  const mainRiver = L.polyline(BRAHMAPUTRA_PATH, {
-    color: '#0284c7',
-    weight: 6.5,
-    opacity: 0.85,
-    lineCap: 'round',
-    lineJoin: 'round'
-  }).addTo(riverLayerGroup);
+    const isDanger = Number(riv.current) >= Number(riv.danger);
+    const color = isDanger ? '#dc2626' : '#0284c7';
+    const glowColor = isDanger ? 'rgba(220, 38, 38, 0.35)' : 'rgba(56, 189, 248, 0.35)';
 
-  mainRiver.bindTooltip('<b>Brahmaputra River Basin (Kamrup Sector)</b><br><span style="color:#0284c7;">Active Water Level: 18.2 m (Danger: 18.0 m)</span>', {
-    sticky: true,
-    className: 'leaflet-river-tooltip'
+    // Ambient glow polyline
+    L.polyline(riv.path, {
+      color: glowColor,
+      weight: 12,
+      opacity: 0.45,
+      lineCap: 'round',
+      lineJoin: 'round'
+    }).addTo(riverLayerGroup);
+
+    // River centerline
+    const riverLine = L.polyline(riv.path, {
+      color: color,
+      weight: 5,
+      opacity: 0.9,
+      lineCap: 'round',
+      lineJoin: 'round'
+    }).addTo(riverLayerGroup);
+
+    riverLine.bindTooltip(`
+      <div style="font-size:11px;">
+        <strong style="color:${color}; font-size:12px;">${riv.name}</strong> (${riv.basin})<br>
+        <span>Current Level: <b>${riv.current} m</b></span> | <span>Danger Mark: <b>${riv.danger} m</b></span><br>
+        <span style="font-weight:700; color:${isDanger ? '#dc2626' : '#16a34a'};">${isDanger ? '⚠️ CRITICAL: Exceeded Danger Mark' : '✓ Normal Hydrological Flow'}</span>
+      </div>
+    `, { sticky: true, className: 'leaflet-river-tooltip' });
   });
-
-  // Tributary stream
-  L.polyline(KULSI_PATH, {
-    color: '#0ea5e9',
-    weight: 3.5,
-    opacity: 0.75,
-    dashArray: '6, 6'
-  }).addTo(riverLayerGroup);
 }
 
 export function updateMapLayers(areas = [], facilities = []) {
@@ -196,13 +204,12 @@ export function updateMapLayers(areas = [], facilities = []) {
   zonesLayerGroup.clearLayers();
   facilitiesLayerGroup.clearLayers();
 
-  // 1. RENDER FLOOD AFFECTED AREAS
+  // 1. RENDER FLOOD AFFECTED AREAS ACROSS INDIA
   areas.forEach((area, idx) => {
     const lat = Number(area.lat);
     const lng = Number(area.lng);
     if (!lat || !lng || isNaN(lat) || isNaN(lng)) return;
 
-    // Filter check
     if (activeSeverityFilter !== 'ALL' && area.severity !== activeSeverityFilter) {
       return;
     }
@@ -240,17 +247,31 @@ export function updateMapLayers(areas = [], facilities = []) {
 
     const marker = L.marker([lat, lng], { icon: customIcon }).addTo(zonesLayerGroup);
 
-    // Rich Interactive Popup
+    // River danger detail
+    const riverName = area.river || detectNearestRiver(lat, lng).name;
+    const riverCur = area.riverCurrent !== undefined ? area.riverCurrent : '18.2';
+    const riverDang = area.riverDanger !== undefined ? area.riverDanger : '18.0';
+    const isOver = Number(riverCur) >= Number(riverDang);
+
     const popupContent = `
       <div class="map-rich-popup">
         <div class="popup-top">
           <div>
             <h4 style="margin:0 0 2px; font-size:13px; font-weight:800; color:#0f172a;">${area.name}</h4>
-            <span style="font-size:10.5px; color:#64748b; font-weight:600;">${area.block || 'Kamrup'}</span>
+            <span style="font-size:10.5px; color:#64748b; font-weight:600;">${area.block || 'District Sector'}</span>
           </div>
           <span class="sev-pill" style="background:${color}15; color:${color}; font-weight:800; border:1px solid ${color}30; padding:2px 8px; border-radius:12px; font-size:10px;">${area.severity}</span>
         </div>
-        <div style="display:flex; justify-content:space-between; margin:8px 0; font-size:11px; background:#f8fafc; padding:6px 8px; border-radius:6px; border:1px solid #e2e8f0;">
+
+        <div style="background:#f0f9ff; border:1px solid #bae6fd; padding:6px 8px; border-radius:6px; margin:7px 0; font-size:10.5px;">
+          <div style="font-weight:700; color:#0369a1; margin-bottom:2px;"><i class="fas fa-water"></i> ${riverName}</div>
+          <div style="display:flex; justify-content:space-between;">
+            <span>Level: <strong>${riverCur} m</strong></span>
+            <span style="color:${isOver ? '#dc2626' : '#16a34a'}; font-weight:700;">Danger: ${riverDang} m (${isOver ? 'BREACHED' : 'SAFE'})</span>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; margin-bottom:7px; font-size:11px; background:#f8fafc; padding:5px 8px; border-radius:6px; border:1px solid #e2e8f0;">
           <span>Pop: <strong style="color:#0369a1;">${Number(area.pop || 0).toLocaleString()}</strong></span>
           <span>GPS: <strong style="color:#334155;">${lat.toFixed(3)}, ${lng.toFixed(3)}</strong></span>
         </div>
@@ -266,7 +287,7 @@ export function updateMapLayers(areas = [], facilities = []) {
       </div>
     `;
 
-    marker.bindPopup(popupContent, { minWidth: 220 });
+    marker.bindPopup(popupContent, { minWidth: 230 });
   });
 
   // 2. RENDER EMERGENCY FACILITIES
@@ -315,30 +336,47 @@ export function updateMapLayers(areas = [], facilities = []) {
 }
 
 // =========================================================================
-// INTERACTIVE MAP LOCATION PICKING MODE
+// FLY TO DISTRICT / SECTOR FROM TOP DROPDOWN (ALL INDIA)
+// =========================================================================
+
+export function flyToDistrictSector(districtId) {
+  if (!mapInstance) return;
+
+  const sector = INDIA_DISTRICT_SECTORS.find(s => s.id === districtId);
+  if (!sector) return;
+
+  mapInstance.flyTo(sector.coords, sector.zoom, {
+    duration: 1.6,
+    easeLinearity: 0.25
+  });
+
+  if (window.showToast) {
+    window.showToast(`🛰️ Switched to ${sector.name} (${sector.basin})`);
+  }
+}
+
+// =========================================================================
+// INTERACTIVE MAP LOCATION PICKING & AUTO-DETECTION
 // =========================================================================
 
 export function startMapPickMode() {
   isMapPickActive = true;
   document.body.style.cursor = 'crosshair';
 
-  // Show top banner inside map viewport
   const banner = document.getElementById('mapPickBanner');
   if (banner) banner.style.display = 'flex';
 
-  // Ensure map is visible (switch to map-hub tab if on another tab)
   if (window.switchTab) {
     const mapBtn = document.querySelectorAll('.rail-btn')[0];
     window.switchTab('map-hub', mapBtn);
   }
 
-  // Close the modal so user can see the map clearly
   if (window.closeModal) {
     window.closeModal('areaModal');
   }
 
   if (window.showToast) {
-    window.showToast('🎯 Map Pinning Active: Click anywhere on the map to place the flood zone marker.');
+    window.showToast('🎯 Click anywhere on the map to automatically detect village, block & river level.');
   }
 }
 
@@ -349,16 +387,11 @@ export function cancelMapPick() {
   const banner = document.getElementById('mapPickBanner');
   if (banner) banner.style.display = 'none';
 
-  if (window.showToast) {
-    window.showToast('Map location picking cancelled.');
-  }
-
-  // Re-open area modal
   const modal = document.getElementById('areaModal');
   if (modal) modal.classList.add('open');
 }
 
-function completeMapPick(lat, lng) {
+async function completeMapPick(lat, lng) {
   isMapPickActive = false;
   document.body.style.cursor = 'default';
 
@@ -384,50 +417,95 @@ function completeMapPick(lat, lng) {
     L.marker([lat, lng], { icon: tempIcon }).addTo(tempPickLayer);
   }
 
-  // Update input fields in areaModal
+  if (window.showToast) {
+    window.showToast('🔍 Auto-detecting Village, Block & River Telemetry…');
+  }
+
+  // AUTO-DETECT LOCATION & RIVER TELEMETRY
+  const detected = await autoDetectLocation(lat, lng);
+
+  // Auto-fill all inputs in areaModal
+  const nameInp = document.getElementById('inpAreaName');
+  const blockInp = document.getElementById('inpAreaBlock');
   const latInp = document.getElementById('inpAreaLat');
   const lngInp = document.getElementById('inpAreaLng');
-  const statusLbl = document.getElementById('lblMapPickStatus');
+  const riverInp = document.getElementById('inpAreaRiver');
+  const curInp = document.getElementById('inpRiverCur');
+  const dangInp = document.getElementById('inpRiverDanger');
+  const detectBadge = document.getElementById('geoDetectBadge');
 
+  if (nameInp) nameInp.value = detected.name;
+  if (blockInp) blockInp.value = detected.block;
   if (latInp) {
-    latInp.value = lat.toFixed(4);
+    latInp.value = Number(lat).toFixed(4);
     latInp.style.borderColor = '#16a34a';
-    latInp.style.boxShadow = '0 0 0 3px rgba(22, 163, 74, 0.2)';
   }
   if (lngInp) {
-    lngInp.value = lng.toFixed(4);
+    lngInp.value = Number(lng).toFixed(4);
     lngInp.style.borderColor = '#16a34a';
-    lngInp.style.boxShadow = '0 0 0 3px rgba(22, 163, 74, 0.2)';
-  }
-  if (statusLbl) {
-    statusLbl.innerHTML = `<span style="color:#16a34a; font-weight:700;"><i class="fas fa-circle-check"></i> GPS Captured: ${lat.toFixed(4)}, ${lng.toFixed(4)}</span>`;
   }
 
-  // Re-open area modal
+  if (riverInp) riverInp.value = detected.river.name;
+  if (curInp) curInp.value = detected.river.current;
+  if (dangInp) dangInp.value = detected.river.danger;
+
+  if (window.calcRiverDangerStatus) {
+    window.calcRiverDangerStatus();
+  }
+
+  if (detectBadge) {
+    detectBadge.style.display = 'flex';
+    detectBadge.innerHTML = `
+      <i class="fas fa-circle-check" style="color:#10b981;"></i>
+      <span>Auto-detected: <strong>${detected.name}</strong> (${detected.block}) • Nearest River: <strong>${detected.river.name}</strong></span>
+    `;
+  }
+
+  // Re-open area modal with everything prefilled!
   const modal = document.getElementById('areaModal');
   if (modal) modal.classList.add('open');
 
   if (window.showToast) {
-    window.showToast(`✓ Coordinates captured: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+    window.showToast(`✓ Auto-detected: ${detected.name}, ${detected.district}`);
   }
 }
 
 // Quick action from general map click
-export function openAreaModalWithCoords(lat, lng) {
+export function openAreaModalWithCoords(lat, lng, name = '', block = '', river = '', cur = '', danger = '') {
   if (tempPickLayer) tempPickLayer.closePopup();
 
   if (window.openAreaModal) {
     window.openAreaModal();
   }
 
+  const nameInp = document.getElementById('inpAreaName');
+  const blockInp = document.getElementById('inpAreaBlock');
   const latInp = document.getElementById('inpAreaLat');
   const lngInp = document.getElementById('inpAreaLng');
-  const statusLbl = document.getElementById('lblMapPickStatus');
+  const riverInp = document.getElementById('inpAreaRiver');
+  const curInp = document.getElementById('inpRiverCur');
+  const dangInp = document.getElementById('inpRiverDanger');
+  const detectBadge = document.getElementById('geoDetectBadge');
 
+  if (name && nameInp) nameInp.value = name;
+  if (block && blockInp) blockInp.value = block;
   if (latInp) latInp.value = Number(lat).toFixed(4);
   if (lngInp) lngInp.value = Number(lng).toFixed(4);
-  if (statusLbl) {
-    statusLbl.innerHTML = `<span style="color:#16a34a; font-weight:700;"><i class="fas fa-circle-check"></i> GPS Captured: ${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}</span>`;
+
+  if (river && riverInp) riverInp.value = river;
+  if (cur && curInp) curInp.value = cur;
+  if (danger && dangInp) dangInp.value = danger;
+
+  if (window.calcRiverDangerStatus) {
+    window.calcRiverDangerStatus();
+  }
+
+  if (detectBadge && name) {
+    detectBadge.style.display = 'flex';
+    detectBadge.innerHTML = `
+      <i class="fas fa-circle-check" style="color:#10b981;"></i>
+      <span>Auto-detected: <strong>${name}</strong> (${block}) • River: <strong>${river}</strong></span>
+    `;
   }
 }
 
@@ -442,8 +520,8 @@ export function mapZoomOut() {
 
 export function mapRecenter() {
   if (mapInstance) {
-    mapInstance.setView(KAMRUP_CENTER, DEFAULT_ZOOM, { animate: true });
-    if (window.showToast) window.showToast('Recentered to Kamrup District GIS View');
+    mapInstance.setView(INITIAL_CENTER, INITIAL_ZOOM, { animate: true });
+    if (window.showToast) window.showToast('Recentered to Active Flood Command Sector');
   }
 }
 
@@ -482,6 +560,24 @@ export function searchMapLocation(query) {
   if (!query || !query.trim() || !mapInstance) return;
   const q = query.trim().toLowerCase();
 
+  // 1. Check if user typed an Indian District Sector
+  const foundSector = INDIA_DISTRICT_SECTORS.find(s => s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q));
+  if (foundSector) {
+    flyToDistrictSector(foundSector.id);
+    const sel = document.getElementById('heroDistrictSelect');
+    if (sel) sel.value = foundSector.id;
+    return;
+  }
+
+  // 2. Check if user typed a river name
+  const foundRiver = INDIA_RIVER_SYSTEMS.find(r => r.name.toLowerCase().includes(q) || r.basin.toLowerCase().includes(q));
+  if (foundRiver && foundRiver.center) {
+    mapInstance.setView(foundRiver.center, 12, { animate: true });
+    if (window.showToast) window.showToast(`Focused on ${foundRiver.name} (${foundRiver.basin})`);
+    return;
+  }
+
+  // 3. Check active flood zone records
   const areas = (window.adminState && window.adminState.areas) || [];
   const found = areas.find(a => a.name.toLowerCase().includes(q) || (a.block || '').toLowerCase().includes(q));
   if (found && found.lat && found.lng) {
@@ -490,10 +586,5 @@ export function searchMapLocation(query) {
     return;
   }
 
-  if (q.includes('brahmaputra')) {
-    mapInstance.setView([26.18, 91.68], 12, { animate: true });
-    if (window.showToast) window.showToast('Focused on Brahmaputra River Basin');
-  } else {
-    if (window.showToast) window.showToast(`No exact match for "${query}". Try "Palashbari" or "Chaygaon"`);
-  }
+  if (window.showToast) window.showToast(`Searching location "${query}" across India…`);
 }
