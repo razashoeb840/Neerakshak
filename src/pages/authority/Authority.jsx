@@ -45,7 +45,7 @@ const markup = (
                     NEERA
                     <span className="hero-brand-cyan">KSHAK</span>
                   </h1>
-                  <span className="hero-admin-badge" style={{ background: "linear-gradient(135deg, #0284c7 0%, #0d9488 100%)" }}>Authority</span>
+                  <span className="hero-admin-badge" id="heroBasinBadge" style={{ background: "linear-gradient(135deg, #0284c7 0%, #0d9488 100%)" }}>Authority</span>
                 </div>
               </div>
             </div>
@@ -54,10 +54,15 @@ const markup = (
               <div className="hero-ctrl-pill">
                 <i className="fas fa-location-dot" style={{ color: "#38bdf8" }}></i>
                 {" "}
-                <select className="hero-district-select" onChange={(event) => window.showToast('Switched district command to ' + event.currentTarget.value)}>
-                  <option>Kamrup District, Assam</option>
-                  <option>Majuli District, Assam</option>
-                  <option>Barpeta District, Assam</option>
+                <select
+                  className="hero-district-select"
+                  id="heroDistrictSelect"
+                  defaultValue=""
+                  onChange={(event) => window.switchAuthoritySector && window.switchAuthoritySector(event.currentTarget.value)}
+                >
+                  <optgroup id="heroDistrictOptgroup" label="Assigned District Command Sectors">
+                    <option value="kamrup">Kamrup District, Assam</option>
+                  </optgroup>
                 </select>
               </div>
               <div className="hero-ctrl-pill">
@@ -200,31 +205,21 @@ const markup = (
                   {" District Flood Map Viewport – Inspect Critical Areas"}
                 </h2>
                 <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                  <button className="btn-card-action" onClick={(event) => window.showToast('Map layer hook: All Zones')}>All Zones</button>
+                  <button className="btn-card-action" onClick={() => window.filterAuthorityMapSeverity && window.filterAuthorityMapSeverity('ALL')}>All Zones</button>
                   {" "}
-                  <button className="btn-card-action" style={{ color: "#b91c1c" }} onClick={(event) => window.showToast('Map layer hook: Critical Only')}>Critical Only</button>
+                  <button className="btn-card-action" style={{ color: "#b91c1c" }} onClick={() => window.filterAuthorityMapSeverity && window.filterAuthorityMapSeverity('Critical')}>Critical Only</button>
                   {" "}
-                  <button className="btn-card-action" style={{ color: "#c2410c" }} onClick={(event) => window.showToast('Map layer hook: High Only')}>High Only</button>
+                  <button className="btn-card-action" style={{ color: "#c2410c" }} onClick={() => window.filterAuthorityMapSeverity && window.filterAuthorityMapSeverity('High')}>High Only</button>
                 </div>
               </div>
-              <div id="authorityMapSlot">
-                <div className="map-float-search">
+              <div id="authorityMapSlot" style={{ position: "relative" }}>
+                <div id="authorityLeafletMap" style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0, zIndex: 1, borderRadius: "12px" }}></div>
+                <div className="map-float-search" style={{ zIndex: 10 }}>
                   <i className="fas fa-search" style={{ color: "#64748b" }}></i>
                   {" "}
-                  <input type="text" placeholder="Search village, river basin..." onKeyUp={(event) => { if(event.key==='Enter') window.showToast('Map search hook ready for: ' + event.currentTarget.value); }} />
+                  <input type="text" placeholder="Search village, river basin..." onKeyUp={(event) => { if(event.key==='Enter') window.searchAuthorityMap && window.searchAuthorityMap(event.currentTarget.value); }} />
                 </div>
-                <div className="map-slot-center-info">
-                  <i className="far fa-map"></i>
-                  {" "}
-                  <strong>DISTRICT FLOOD MAP VIEWPORT</strong>
-                  {" "}
-                  <span>
-                    GIS Map Container (
-                    <code>#authorityMapSlot</code>
-                    ) — Mount your interactive map here later to click villages and allocate resources.
-                  </span>
-                </div>
-                <div className="map-legend-overlay">
+                <div className="map-legend-overlay" style={{ zIndex: 10 }}>
                   <span>
                     <i className="l-dot" style={{ background: "#dc2626" }}></i>
                     Critical
@@ -245,12 +240,12 @@ const markup = (
                     Normal
                   </span>
                 </div>
-                <div className="map-zoom-controls">
-                  <button className="map-z-btn" onClick={(event) => window.showToast('Map Zoom In hook')} title="Zoom In">+</button>
+                <div className="map-zoom-controls" style={{ zIndex: 10 }}>
+                  <button className="map-z-btn" onClick={() => window.authMapZoomIn && window.authMapZoomIn()} title="Zoom In">+</button>
                   {" "}
-                  <button className="map-z-btn" onClick={(event) => window.showToast('Map Zoom Out hook')} title="Zoom Out">−</button>
+                  <button className="map-z-btn" onClick={() => window.authMapZoomOut && window.authMapZoomOut()} title="Zoom Out">−</button>
                   {" "}
-                  <button className="map-z-btn" onClick={(event) => window.showToast('Recenter District Map hook')} title="Recenter">
+                  <button className="map-z-btn" onClick={() => window.authMapRecenter && window.authMapRecenter()} title="Recenter">
                     <i className="fas fa-crosshairs"></i>
                   </button>
                 </div>
@@ -653,10 +648,21 @@ const markup = (
 
 export default function Authority() {
   useEffect(() => {
-    const cleanup = setupRouteGuard('authority');
+    let cleanup = () => {};
+    try {
+      cleanup = setupRouteGuard('authority') || (() => {});
+    } catch (e) {
+      console.warn('setupRouteGuard notice:', e);
+    }
     document.title = "NEERAKSHAK – District Authority Portal | Flood Assessment, Approvals & Godown Coordination";
-    initAuthorityPage();
-    return cleanup;
+    try {
+      initAuthorityPage();
+    } catch (err) {
+      console.error('initAuthorityPage error:', err);
+    }
+    return () => {
+      try { cleanup(); } catch (e) {}
+    };
   }, []);
 
   return (

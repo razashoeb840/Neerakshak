@@ -1,6 +1,16 @@
 {
   "areas": [
     {
+      "id": "area-1795461725956",
+      "name": "Police Colony",
+      "block": "Kahara, Saharsa",
+      "severity": "Normal",
+      "pop": 2200,
+      "lat": 25.8828,
+      "lng": 86.5896,
+      "notes": "tfgbjmk"
+    },
+    {
       "id": "area-1795424567980",
       "name": "Flood Sector",
       "block": "Palasbari, Kamrup",

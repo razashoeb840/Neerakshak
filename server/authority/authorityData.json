@@ -1,0 +1,150 @@
+{
+  "villages": [
+    {
+      "id": "V-01",
+      "name": "Palashbari Riverside Ward 2",
+      "block": "Palashbari Circle",
+      "severity": "Critical",
+      "pop": 4200,
+      "waterStatus": "Brahmaputra at 18.2 m (Above Danger Level)",
+      "assessedNeed": { "boats": 4, "jackets": 60, "food": 500, "meds": 80 },
+      "lat": 26.132,
+      "lng": 91.515
+    },
+    {
+      "id": "V-02",
+      "name": "Chaygaon Lowland Belt",
+      "block": "Chaygaon Circle",
+      "severity": "High",
+      "pop": 3650,
+      "waterStatus": "Kolong Basin at 14.6 m (Rising)",
+      "assessedNeed": { "boats": 2, "jackets": 30, "food": 450, "meds": 65 },
+      "lat": 26.052,
+      "lng": 91.225
+    },
+    {
+      "id": "V-03",
+      "name": "Goroimari Char Cluster",
+      "block": "Goroimari Circle",
+      "severity": "Moderate",
+      "pop": 2800,
+      "waterStatus": "Waterlogging watch on approach road",
+      "assessedNeed": { "boats": 1, "jackets": 15, "food": 250, "meds": 40 },
+      "lat": 26.095,
+      "lng": 91.34
+    },
+    {
+      "id": "V-04",
+      "name": "Boko Upland Sector",
+      "block": "Boko Circle",
+      "severity": "Normal",
+      "pop": 1780,
+      "waterStatus": "Drainage normal; monitoring runoff",
+      "assessedNeed": { "boats": 0, "jackets": 0, "food": 100, "meds": 20 },
+      "lat": 25.98,
+      "lng": 91.24
+    }
+  ],
+  "requests": [
+    {
+      "id": "REQ-204",
+      "from": "Ground Officer – Palashbari",
+      "village": "Palashbari Riverside Ward 2",
+      "items": "4 Rescue Boats, 60 Life Jackets",
+      "urgency": "Critical",
+      "status": "Pending",
+      "reason": "Awaiting Authority review",
+      "timestamp": "Today, 10:30 AM"
+    },
+    {
+      "id": "REQ-205",
+      "from": "Relief Camp Desk – Chaygaon",
+      "village": "Chaygaon Lowland Belt",
+      "items": "450 Food Packets, 65 Medicine Kits",
+      "urgency": "High",
+      "status": "Pending",
+      "reason": "Awaiting Authority review",
+      "timestamp": "Today, 09:45 AM"
+    },
+    {
+      "id": "REQ-201",
+      "from": "DEOC Field Desk",
+      "village": "Goroimari Char Cluster",
+      "items": "250 Food Packets, 40 Medicine Kits",
+      "urgency": "Moderate",
+      "status": "Approved",
+      "reason": "Approved & routed to Godown Manager",
+      "timestamp": "Yesterday, 04:15 PM"
+    }
+  ],
+  "allocations": [
+    {
+      "id": "ALC-501",
+      "village": "Palashbari Riverside Ward 2",
+      "summary": "4 Boats, 60 Jackets, 500 Food, 80 Meds",
+      "godownStatus": "Sent to Godown Manager • Preparing Dispatch",
+      "deliveryProgress": 65,
+      "timestamp": "Today, 11:00 AM"
+    },
+    {
+      "id": "ALC-502",
+      "village": "Chaygaon Lowland Belt",
+      "summary": "2 Boats, 30 Jackets, 450 Food, 65 Meds",
+      "godownStatus": "Dispatched by Godown • En-Route",
+      "deliveryProgress": 85,
+      "timestamp": "Today, 08:30 AM"
+    }
+  ],
+  "coordinations": [
+    {
+      "id": "CORD-101",
+      "agency": "NDRF (1st Bn)",
+      "sector": "Palashbari Riverside Ward 2",
+      "update": "Coordinated via DEOC Control Room; 2 NDRF boat teams evacuating stranded families under independent command.",
+      "timestamp": "Today, 10:15 AM"
+    },
+    {
+      "id": "CORD-102",
+      "agency": "SDRF District Unit",
+      "sector": "Chaygaon Lowland Belt",
+      "update": "Official requisition acknowledged; 1 SDRF unit stationed at Chaygaon ferry point.",
+      "timestamp": "Today, 09:00 AM"
+    }
+  ],
+  "operations": [
+    {
+      "id": "OP-301",
+      "title": "Palashbari Embankment Evacuation",
+      "status": "Ongoing",
+      "summary": "140 residents evacuated to Palashbari Govt. HS Relief Camp; boat shuttle active.",
+      "timestamp": "Active"
+    },
+    {
+      "id": "OP-302",
+      "title": "Chaygaon Medical & Ration Supply Run",
+      "status": "Completed",
+      "summary": "First batch of 300 food packets & drinking water verified by Ground Officer.",
+      "timestamp": "Completed"
+    }
+  ],
+  "logs": [
+    {
+      "id": "LOG-01",
+      "time": "10:35 AM",
+      "actor": "District Authority (DDMA)",
+      "note": "Requisitioned 2 additional rescue boats from Central Godown buffer pool for Palashbari."
+    },
+    {
+      "id": "LOG-02",
+      "time": "09:40 AM",
+      "actor": "District Authority (DDMA)",
+      "note": "Approved REQ-201 for Goroimari Char Cluster; transmitted packing directive to Godown Manager."
+    },
+    {
+      "id": "LOG-03",
+      "time": "08:15 AM",
+      "actor": "System Telemetry",
+      "note": "Synchronized with Central Water Commission (CWC) hydrology telemetry and Admin flood markers."
+    }
+  ]
+}
