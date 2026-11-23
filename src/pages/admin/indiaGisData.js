@@ -925,6 +925,11 @@ function getDistanceKm(lat1, lon1, lat2, lon2) {
 
 // Find nearest river based on geographic coordinates (optionally scoped to a basin)
 export function detectNearestRiver(lat, lng, basinKey) {
+  // If live telemetry is available on window.adminState, merge live readings!
+  const liveRivers = (typeof window !== 'undefined' && window.adminState && Array.isArray(window.adminState.rivers) && window.adminState.rivers.length > 0)
+    ? window.adminState.rivers
+    : null;
+
   const riverPool = (basinKey && USER_BASIN_REGISTRY[basinKey])
     ? USER_BASIN_REGISTRY[basinKey].rivers
     : INDIA_RIVER_SYSTEMS;
@@ -946,11 +951,22 @@ export function detectNearestRiver(lat, lng, basinKey) {
     }
   });
 
-  const isDanger = Number(nearest.current) >= Number(nearest.danger);
-  const diff = (Number(nearest.current) - Number(nearest.danger)).toFixed(1);
+  // Check if we have live telemetry for this river in liveRivers
+  let liveMatch = null;
+  if (liveRivers) {
+    liveMatch = liveRivers.find(lr => lr.id === nearest.id || lr.name.toLowerCase().includes(nearest.id.toLowerCase()) || nearest.name.toLowerCase().includes(lr.name.toLowerCase()));
+  }
+
+  const currentVal = liveMatch ? Number(liveMatch.current) : Number(nearest.current);
+  const dangerVal = liveMatch ? Number(liveMatch.danger) : Number(nearest.danger);
+  const isDanger = currentVal >= dangerVal;
+  const diff = (currentVal - dangerVal).toFixed(2);
 
   return {
     ...nearest,
+    ...(liveMatch || {}),
+    current: currentVal,
+    danger: dangerVal,
     distanceKm: Math.round(minDistance),
     isDanger,
     diffText: isDanger ? `+${diff} m (ABOVE DANGER MARK)` : `${Math.abs(diff)} m (Below Danger Mark)`,

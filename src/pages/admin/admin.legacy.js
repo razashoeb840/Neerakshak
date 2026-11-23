@@ -339,8 +339,8 @@ export default function initAdminPage() {
     if (rDistPolEl) rDistPolEl.textContent = pol ? (pol.distance.split('•')[0].trim() || pol.distance) : '—';
     if (rDistCampEl) rDistCampEl.textContent = camp ? (camp.distance.split('•')[0].trim() || camp.distance) : '—';
 
-    // 7. SYNC LIVE LEAFLET GIS MAP MARKERS & RISK BUFFERS
-    updateMapLayers(state.areas || [], state.facilities || []);
+    // 7. SYNC LIVE LEAFLET GIS MAP MARKERS, LIVE RIVERS & RISK BUFFERS
+    updateMapLayers(state.areas || [], state.facilities || [], state.rivers || []);
   }
 
   // --- RIVER DANGER LEVEL CALCULATOR & MONITORING SWITCHER ---
