@@ -49,7 +49,7 @@ function getSeverityRadius(sev) {
   }
 }
 
-export function initAdminFloodMap(containerId = 'leafletMap') {
+export function initAdminFloodMap(containerId = 'leafletMap', initialCoords, initialZoom, basinKey) {
   const container = document.getElementById(containerId);
   if (!container) return null;
 
@@ -61,10 +61,13 @@ export function initAdminFloodMap(containerId = 'leafletMap') {
     mapInstance = null;
   }
 
+  const center = initialCoords || INITIAL_CENTER;
+  const zoom = initialZoom || INITIAL_ZOOM;
+
   // Create Leaflet Map Covering Whole India (minZoom 4 to 19)
   mapInstance = L.map(containerId, {
-    center: INITIAL_CENTER,
-    zoom: INITIAL_ZOOM,
+    center: center,
+    zoom: zoom,
     minZoom: 4,
     maxZoom: 19,
     zoomControl: false // Using custom HUD zoom controls
@@ -83,8 +86,8 @@ export function initAdminFloodMap(containerId = 'leafletMap') {
   facilitiesLayerGroup = L.layerGroup().addTo(mapInstance);
   tempPickLayer = L.layerGroup().addTo(mapInstance);
 
-  // Render All Major Indian River Basin Corridors
-  renderAllIndianRiverCorridors();
+  // Render Major Indian River Basin Corridors (scoped or pan-India)
+  renderAllIndianRiverCorridors(basinKey);
 
   // Map Click Handler with Automatic Location & River Detection
   mapInstance.on('click', async (e) => {
@@ -421,8 +424,9 @@ async function completeMapPick(lat, lng) {
     window.showToast('🔍 Auto-detecting Village, Block & River Telemetry…');
   }
 
-  // AUTO-DETECT LOCATION & RIVER TELEMETRY
-  const detected = await autoDetectLocation(lat, lng);
+  // AUTO-DETECT LOCATION & RIVER TELEMETRY (SCOPED TO ACTIVE BASIN)
+  const activeBasinKey = (window.activeUserBasin && window.activeUserBasin.id) || 'bk';
+  const detected = await autoDetectLocation(lat, lng, activeBasinKey);
 
   // Auto-fill all inputs in areaModal
   const nameInp = document.getElementById('inpAreaName');
@@ -559,25 +563,36 @@ export function triggerPinFacilityMode() {
 export function searchMapLocation(query) {
   if (!query || !query.trim() || !mapInstance) return;
   const q = query.trim().toLowerCase();
+  const userBasin = window.activeUserBasin;
 
-  // 1. Check if user typed an Indian District Sector
-  const foundSector = INDIA_DISTRICT_SECTORS.find(s => s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q));
+  // 1. Check if user typed an assigned sector within their river basin
+  const basinSectors = (userBasin && userBasin.sectors) || INDIA_DISTRICT_SECTORS;
+  const foundSector = basinSectors.find(s => s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q) || (s.block && s.block.toLowerCase().includes(q)));
   if (foundSector) {
     flyToDistrictSector(foundSector.id);
     const sel = document.getElementById('heroDistrictSelect');
     if (sel) sel.value = foundSector.id;
+    if (window.showToast) window.showToast(`Navigated to ${foundSector.name}`);
     return;
   }
 
-  // 2. Check if user typed a river name
-  const foundRiver = INDIA_RIVER_SYSTEMS.find(r => r.name.toLowerCase().includes(q) || r.basin.toLowerCase().includes(q));
+  // 2. Strict Isolation: Check if they are trying to search an outside sector
+  const isOutsideSector = INDIA_DISTRICT_SECTORS.some(s => s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q));
+  if (isOutsideSector && userBasin) {
+    if (window.showToast) window.showToast(`⚠️ Sector outside your assigned ${userBasin.basinName} jurisdiction. Access restricted.`);
+    return;
+  }
+
+  // 3. Check if user typed an assigned basin river name
+  const basinRivers = (userBasin && userBasin.rivers) || INDIA_RIVER_SYSTEMS;
+  const foundRiver = basinRivers.find(r => r.name.toLowerCase().includes(q) || r.basin.toLowerCase().includes(q));
   if (foundRiver && foundRiver.center) {
     mapInstance.setView(foundRiver.center, 12, { animate: true });
     if (window.showToast) window.showToast(`Focused on ${foundRiver.name} (${foundRiver.basin})`);
     return;
   }
 
-  // 3. Check active flood zone records
+  // 4. Check active flood zone records
   const areas = (window.adminState && window.adminState.areas) || [];
   const found = areas.find(a => a.name.toLowerCase().includes(q) || (a.block || '').toLowerCase().includes(q));
   if (found && found.lat && found.lng) {
@@ -586,5 +601,5 @@ export function searchMapLocation(query) {
     return;
   }
 
-  if (window.showToast) window.showToast(`Searching location "${query}" across India…`);
+  if (window.showToast) window.showToast(`No matching locations within your assigned operational basin.`);
 }

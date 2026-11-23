@@ -33,6 +33,8 @@ import {
 } from './adminMap.js';
 
 import {
+  USER_BASIN_REGISTRY,
+  resolveUserBasin,
   INDIA_DISTRICT_SECTORS,
   getRiversForDistrict,
   detectNearestRiver
@@ -353,21 +355,26 @@ export default function initAdminPage() {
   }
 
   function switchMonitoringDistrict(districtId) {
-    const sector = INDIA_DISTRICT_SECTORS.find(s => s.id === districtId);
-    if (!sector) return;
-
-    flyToDistrictSector(districtId);
-
-    const regionalRivers = getRiversForDistrict(districtId);
-    if (regionalRivers && regionalRivers.length > 0) {
-      state.rivers = regionalRivers;
-      renderAllCards();
+    const userBasin = window.activeUserBasin || resolveUserBasin(sessionStorage.getItem('neerakshak_user') || 'ad1558bk');
+    
+    // STRICT ISOLATION: User can ONLY view sectors that belong to their assigned river basin!
+    let sector = userBasin.sectors.find(s => s.id === districtId);
+    if (!sector) {
+      sector = userBasin.sectors[0];
+      const sel = document.getElementById('heroDistrictSelect');
+      if (sel) sel.value = sector.id;
     }
 
-    const statusText = document.getElementById('telemetryStatusText');
-    if (statusText) statusText.textContent = `${sector.name.split(',')[0]} Active`;
+    flyToDistrictSector(sector.id);
 
-    showToast(`🛰️ Telemetry loaded for ${sector.name} (${sector.basin})`);
+    // Update real river telemetry strictly for this officer's basin
+    state.rivers = userBasin.rivers;
+    renderAllCards();
+
+    const statusText = document.getElementById('telemetryStatusText');
+    if (statusText) statusText.textContent = `${sector.name.split(' ')[0]} Active`;
+
+    showToast(`🛰️ Telemetry loaded for ${sector.name} (${userBasin.basinName})`);
   }
 
   // --- AREA MODAL & CRUD ---
@@ -381,9 +388,17 @@ export default function initAdminPage() {
     const detectBadge = document.getElementById('geoDetectBadge');
     if (detectBadge) detectBadge.style.display = 'none';
 
-    const lat = parseFloat(document.getElementById('inpAreaLat')?.value) || 26.15;
-    const lng = parseFloat(document.getElementById('inpAreaLng')?.value) || 91.60;
-    const riv = detectNearestRiver(lat, lng);
+    const userBasin = window.activeUserBasin || resolveUserBasin(sessionStorage.getItem('neerakshak_user') || 'ad1558bk');
+    const curSectorId = document.getElementById('heroDistrictSelect')?.value;
+    const curSector = userBasin.sectors.find(s => s.id === curSectorId) || userBasin.sectors[0];
+
+    const lat = parseFloat(document.getElementById('inpAreaLat')?.value) || curSector.coords[0];
+    const lng = parseFloat(document.getElementById('inpAreaLng')?.value) || curSector.coords[1];
+
+    if (document.getElementById('inpAreaLat')) document.getElementById('inpAreaLat').value = lat.toFixed(4);
+    if (document.getElementById('inpAreaLng')) document.getElementById('inpAreaLng').value = lng.toFixed(4);
+
+    const riv = detectNearestRiver(lat, lng, userBasin.id);
     if (document.getElementById('inpAreaRiver')) document.getElementById('inpAreaRiver').value = riv.name;
     if (document.getElementById('inpRiverCur')) document.getElementById('inpRiverCur').value = riv.current;
     if (document.getElementById('inpRiverDanger')) document.getElementById('inpRiverDanger').value = riv.danger;
@@ -597,26 +612,70 @@ export default function initAdminPage() {
 
   // INITIALIZE ON DOM READY
   __onReady(() => {
-    // 1. Initialize Leaflet Map
-    const map = initAdminFloodMap('leafletMap');
+    // 1. Resolve logged-in officer's jurisdiction & river basin
+    let loggedUser = '';
+    try {
+      loggedUser = sessionStorage.getItem('neerakshak_user') || 'ad1558bk';
+    } catch (e) {
+      loggedUser = 'ad1558bk';
+    }
+    const userBasin = resolveUserBasin(loggedUser);
+    window.activeUserBasin = userBasin;
+
+    // 2. Strict Sector Isolation: Populate Dropdown with EXACT 5-6 sectors belonging to this basin
+    const sel = document.getElementById('heroDistrictSelect');
+    if (sel) {
+      sel.innerHTML = `
+        <optgroup label="${userBasin.stateName} — ${userBasin.basinName} (${userBasin.sectors.length} Sectors Assigned)">
+          ${userBasin.sectors.map(sec => `
+            <option value="${sec.id}">${sec.name} (${sec.river})</option>
+          `).join('')}
+        </optgroup>
+      `;
+      sel.value = userBasin.sectors[0].id;
+    }
+
+    // 3. Update Hero Badge & Window title
+    const basinBadge = document.getElementById('heroBasinBadge');
+    if (basinBadge) {
+      basinBadge.textContent = `Admin • ${userBasin.shortName}`;
+      basinBadge.title = `Officer ID: ${loggedUser} | Division: ${userBasin.tagline}`;
+    }
+
+    // 4. Initialize Leaflet Map centered on user's primary assigned sector
+    const initialSector = userBasin.sectors[0];
+    const map = initAdminFloodMap('leafletMap', initialSector.coords, initialSector.zoom, userBasin.id);
     window.leafletMapInstance = map;
 
-    // 2. Fetch full state from Next.js backend & render
+    // 5. Initialize state with user's real river telemetry
+    state.rivers = userBasin.rivers;
+    window.adminState = state;
+
+    // 6. Fetch full state from Next.js backend & render
     fetchFullAdminState().then(data => {
       if (data) {
-        state = data;
+        state = {
+          ...data,
+          rivers: userBasin.rivers // Preserve real basin river gauges
+        };
         window.adminState = state;
         renderAllCards();
       }
     });
 
-    // 3. Start real-time sync with backend
+    // 7. Start real-time sync with backend
     startRealtimeSync();
     onSync((newState) => {
-      state = newState;
+      state = {
+        ...newState,
+        rivers: userBasin.rivers
+      };
       window.adminState = state;
       renderAllCards();
     });
+
+    // 8. Focus on the primary sector
+    switchMonitoringDistrict(initialSector.id);
   });
 
   // Attach all handlers to window for inline HTML & React calls

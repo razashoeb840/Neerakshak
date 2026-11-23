@@ -1,4 +1,7 @@
 // Official NEERAKSHAK District Portal Authentication Script
+// Supports Structured Basin-Specific User IDs (<role><id><state><basin>) & Strict Access Control
+import { USER_BASIN_REGISTRY, resolveUserBasin } from '../admin/indiaGisData.js';
+
 export default function initLoginPage() {
   const __ready = [];
   const __onReady = (fn) => __ready.push(fn);
@@ -25,10 +28,9 @@ export default function initLoginPage() {
   (function() {
     const ROLES = {
       admin: {
+        prefix: 'ad',
         name: 'Admin',
         fullName: 'District Admin Portal (GIS & Telemetry)',
-        uid: 'KAMRUP_ADMIN_GIS',
-        validUids: ['kamrup_admin_gis', 'admin', 'admin@neerakshak.gov.in', 'gis_admin'],
         validPwds: ['demo@1234', 'admin123', 'admin', 'admin@neerakshak'],
         page: '/admin',
         c: '#0066cc',
@@ -36,44 +38,40 @@ export default function initLoginPage() {
         desc: '<b>District Admin</b> · Flood monitoring map, river gauges &amp; GIS zone marking'
       },
       authority: {
+        prefix: 'au',
         name: 'Authority',
         fullName: 'District Disaster Management Authority (DDMA)',
-        uid: 'KAMRUP_DC_AUTHORITY',
-        validUids: ['kamrup_dc_authority', 'authority', 'dc_kamrup', 'dc', 'authority@neerakshak.gov.in'],
-        validPwds: ['demo@1234', 'authority123', 'dc123'],
+        validPwds: ['demo@1234', 'authority123', 'dc123', 'ddma123'],
         page: '/authority',
         c: '#0066cc',
         c2: '#0284c7',
         desc: '<b>Authority</b> · Resource allocation &amp; NDRF/SDRF coordination records'
       },
       godown: {
+        prefix: 'gd',
         name: 'Godown Manager',
         fullName: 'Central Relief Godown & Inventory Command',
-        uid: 'KAMRUP_GODOWN_MGR',
-        validUids: ['kamrup_godown_mgr', 'godown', 'godown_mgr', 'godown@neerakshak.gov.in', 'relief_godown'],
-        validPwds: ['demo@1234', 'godown123', 'mgr123'],
+        validPwds: ['demo@1234', 'godown123', 'mgr123', 'relief123'],
         page: '/godown',
         c: '#0066cc',
         c2: '#0284c7',
         desc: '<b>Godown Manager</b> · Inventory, stock &amp; relief dispatch control'
       },
       ground: {
+        prefix: 'go',
         name: 'Ground Officer',
         fullName: 'Field Operations & Ground Verification Desk',
-        uid: 'FIELD_OFFICER_CHAYGAON',
-        validUids: ['field_officer_chaygaon', 'ground', 'ground_officer', 'field_officer', 'ground@neerakshak.gov.in', 'go-kam-04'],
-        validPwds: ['demo@1234', 'ground123', 'officer123'],
+        validPwds: ['demo@1234', 'ground123', 'officer123', 'field123'],
         page: '/ground-officer',
         c: '#0066cc',
         c2: '#0284c7',
         desc: '<b>Ground Officer</b> · Delivery &amp; return verification in the field'
       },
       monitoring: {
+        prefix: 'mo',
         name: 'Monitoring Officer',
         fullName: 'State DEOC Auditor Portal',
-        uid: 'STATE_DEOC_AUDITOR',
-        validUids: ['state_deoc_auditor', 'monitoring', 'monitor', 'auditor', 'monitoring@neerakshak.gov.in'],
-        validPwds: ['demo@1234', 'monitoring123', 'audit123'],
+        validPwds: ['demo@1234', 'monitoring123', 'audit123', 'deoc123'],
         page: '/monitoring',
         c: '#0066cc',
         c2: '#0284c7',
@@ -81,9 +79,26 @@ export default function initLoginPage() {
       }
     };
 
-    let role = 'admin', capAns = 0;
+    let role = 'admin';
+    let currentBasinKey = 'bk'; // Default to Bihar Kosi Basin
+    let capAns = 0;
     const $ = id => document.getElementById(id);
     const root = document.documentElement;
+
+    /* Get Structured Default Officer ID for current Role & Basin */
+    function getExpectedUid(rKey, bKey) {
+      const bObj = USER_BASIN_REGISTRY[bKey] || USER_BASIN_REGISTRY['bk'];
+      return (bObj.demoUser && bObj.demoUser[rKey]) || `${ROLES[rKey].prefix}1558${bKey}`;
+    }
+
+    /* Update Format Hint under UID input */
+    function updateFormatHint() {
+      const hint = $('uidFormatHint');
+      const bObj = USER_BASIN_REGISTRY[currentBasinKey] || USER_BASIN_REGISTRY['bk'];
+      if (hint) {
+        hint.innerHTML = `<i class="fas fa-id-card-clip"></i> Format: <strong>${ROLES[role].prefix}</strong>(${ROLES[role].name.slice(0,5)}) + <strong>uniqueID</strong> + <strong>${bObj.stateCode}</strong>(${bObj.stateName.slice(0,4)}) + <strong>${bObj.basinCode}</strong>(${bObj.basinName.split(' ')[0]}) &rarr; e.g. <code>${getExpectedUid(role, currentBasinKey)}</code>`;
+      }
+    }
 
     /* Role selection logic */
     function setRole(key, fill) {
@@ -96,17 +111,49 @@ export default function initLoginPage() {
       root.style.setProperty('--accent', r.c);
       root.style.setProperty('--accent-2', r.c2);
       if ($('roleDesc')) $('roleDesc').innerHTML = r.desc;
+      
+      const expected = getExpectedUid(role, currentBasinKey);
       if ($('uid')) {
-        $('uid').placeholder = 'Officer ID (e.g. ' + r.uid + ')';
-        if (fill) $('uid').value = r.uid;
+        $('uid').placeholder = `Officer ID (e.g. ${expected})`;
+        if (fill) $('uid').value = expected;
       }
+      updateFormatHint();
+    }
+
+    /* Basin selection logic */
+    function setBasin(basinKey, fill) {
+      if (!USER_BASIN_REGISTRY[basinKey]) return;
+      currentBasinKey = basinKey;
+      const basinSel = $('basinSelect');
+      if (basinSel && basinSel.value !== basinKey) {
+        basinSel.value = basinKey;
+      }
+      const expected = getExpectedUid(role, currentBasinKey);
+      if ($('uid')) {
+        $('uid').placeholder = `Officer ID (e.g. ${expected})`;
+        if (fill) $('uid').value = expected;
+      }
+      updateFormatHint();
+    }
+
+    /* Basin dropdown event listener */
+    if ($('basinSelect')) {
+      $('basinSelect').addEventListener('change', (e) => {
+        setBasin(e.target.value, true);
+        const b = USER_BASIN_REGISTRY[e.target.value];
+        if (b) {
+          msg(`Switched operational jurisdiction to ${b.stateName} (${b.basinName}).`, 'info');
+        }
+      });
     }
 
     /* Role tab button click events */
     document.querySelectorAll('.role').forEach(b => {
       b.addEventListener('click', () => {
         const currentVal = $('uid') ? $('uid').value.trim() : '';
-        const isDefaultOrEmpty = !currentVal || Object.values(ROLES).some(x => x.uid === currentVal || x.validUids.includes(currentVal.toLowerCase()));
+        const isDefaultOrEmpty = !currentVal || Object.keys(ROLES).some(rk => {
+          return Object.keys(USER_BASIN_REGISTRY).some(bk => getExpectedUid(rk, bk).toLowerCase() === currentVal.toLowerCase());
+        });
         setRole(b.dataset.role, isDefaultOrEmpty);
       });
     });
@@ -197,7 +244,7 @@ export default function initLoginPage() {
     if ($('forgotApplyDemo')) {
       $('forgotApplyDemo').onclick = () => {
         if ($('pwd')) $('pwd').value = 'demo@1234';
-        if ($('uid') && !$('uid').value.trim()) $('uid').value = ROLES[role].uid;
+        if ($('uid') && !$('uid').value.trim()) $('uid').value = getExpectedUid(role, currentBasinKey);
         if ($('capA')) $('capA').value = capAns;
         closeForgotModal();
         msg('Official demo PIN (demo@1234) applied. Click Login to authenticate.', 'ok');
@@ -213,13 +260,19 @@ export default function initLoginPage() {
         if (savedUser) {
           if ($('uid')) $('uid').value = savedUser;
           if ($('rem')) $('rem').checked = true;
+          // Sync basin dropdown with remembered user
+          const parsed = resolveUserBasin(savedUser);
+          if (parsed && $('basinSelect')) {
+            $('basinSelect').value = parsed.id;
+            currentBasinKey = parsed.id;
+          }
           msg('Welcome back! Restored saved credentials for ' + ROLES[savedRole].name + '.', 'info');
         }
       } else {
-        setRole('admin', false);
+        setRole('admin', true);
       }
     } catch(e) {
-      setRole('admin', false);
+      setRole('admin', true);
     }
 
     /* Detect logout notification */
@@ -244,14 +297,17 @@ export default function initLoginPage() {
     function enter(targetRole, username) {
       const activeKey = targetRole || role;
       const r = ROLES[activeKey] || ROLES.admin;
+      const cleanUser = (username || getExpectedUid(activeKey, currentBasinKey)).toLowerCase();
+      const basinObj = resolveUserBasin(cleanUser);
+
       const btn = $('btn');
       if (btn) {
         btn.disabled = true;
         btn.classList.add('loading');
         const steps = [
-          'Verifying Officer ID…',
-          'Validating DEOC clearance…',
-          'District Clearance Granted ✓'
+          `Verifying Officer ID (${cleanUser})…`,
+          `Synchronizing ${basinObj.shortName} Telemetry…`,
+          `District Clearance Granted ✓`
         ];
         let i = 0;
         if (btn.querySelector('span')) btn.querySelector('span').textContent = steps[0];
@@ -267,25 +323,29 @@ export default function initLoginPage() {
             if (btn.querySelector('i')) btn.querySelector('i').className = 'fas fa-circle-check';
             clearInterval(t);
 
-            // Save Session State
+            // Save Session State with Basin Information
             try {
               const sessionPayload = {
                 token: 'NEER-' + Math.random().toString(36).substring(2, 9).toUpperCase() + '-' + Date.now().toString(36).toUpperCase(),
-                user: username || r.uid,
+                user: cleanUser,
                 role: activeKey,
                 roleName: r.name,
                 department: r.fullName,
+                basinId: basinObj.id,
+                basinName: basinObj.basinName,
+                stateName: basinObj.stateName,
                 loginTime: new Date().toISOString(),
                 status: 'VERIFIED'
               };
               sessionStorage.setItem('neerakshak_session', JSON.stringify(sessionPayload));
               sessionStorage.setItem('neerakshak_role', activeKey);
-              sessionStorage.setItem('neerakshak_user', username || r.uid);
+              sessionStorage.setItem('neerakshak_user', cleanUser);
+              sessionStorage.setItem('neerakshak_basin', basinObj.id);
               sessionStorage.setItem('neerakshak_logged_in', 'true');
 
               // Remember Me Checkbox Handling
               if ($('rem') && $('rem').checked) {
-                localStorage.setItem('neerakshak_remembered_uid', username || r.uid);
+                localStorage.setItem('neerakshak_remembered_uid', cleanUser);
                 localStorage.setItem('neerakshak_remembered_role', activeKey);
               } else {
                 localStorage.removeItem('neerakshak_remembered_uid');
@@ -295,18 +355,18 @@ export default function initLoginPage() {
 
             // Fullscreen Wipe Transition to Portal
             setTimeout(() => {
-              if ($('wipeTxt')) $('wipeTxt').textContent = 'Entering ' + r.fullName + '…';
+              if ($('wipeTxt')) $('wipeTxt').textContent = `Entering ${r.name} (${basinObj.shortName})…`;
               if ($('wipe')) $('wipe').classList.add('go');
               setTimeout(() => {
                 window.location.replace(r.page);
               }, 1100);
             }, 400);
           }
-        }, 500);
+        }, 450);
       }
     }
 
-    /* Form Submit Authentication - STRICT VALIDATION */
+    /* Form Submit Authentication - STRICT BASIN & ROLE VALIDATION */
     if ($('loginForm')) {
       $('loginForm').addEventListener('submit', e => {
         e.preventDefault();
@@ -316,7 +376,7 @@ export default function initLoginPage() {
 
         // 1. Mandatory input checks
         if (!u) {
-          msg('Please enter your Designated Officer ID.', 'err');
+          msg('Please enter your Designated Officer ID (e.g. ' + getExpectedUid(role, currentBasinKey) + ').', 'err');
           shake();
           if ($('uid')) $('uid').focus();
           return;
@@ -341,28 +401,63 @@ export default function initLoginPage() {
         const currentRoleObj = ROLES[role];
         const cleanUid = u.toLowerCase();
 
-        // 3. Strict Check: Does UID match the currently selected role?
-        const isUidValid = currentRoleObj.validUids.includes(cleanUid) || cleanUid === currentRoleObj.uid.toLowerCase();
+        // 3. Strict Check: Structured UID Format (<role><id><state><basin>)
+        const structuredMatch = cleanUid.match(/^([a-z]{2})(\d{1,6})([a-z])([a-z])$/);
 
-        if (!isUidValid) {
-          // Check if it belongs to a different role
-          const otherRoleKey = Object.keys(ROLES).find(k => {
-            const ro = ROLES[k];
-            return ro.validUids.includes(cleanUid) || cleanUid === ro.uid.toLowerCase();
-          });
+        if (structuredMatch) {
+          const prefix = structuredMatch[1];
+          const basinKey = structuredMatch[3] + structuredMatch[4];
 
-          if (otherRoleKey) {
-            msg('Role Mismatch: Officer ID "' + u + '" belongs to "' + ROLES[otherRoleKey].name + '". Please select the ' + ROLES[otherRoleKey].name + ' tab above.', 'err');
-          } else {
-            msg('Access Denied: Officer ID "' + u + '" is not recognized for ' + currentRoleObj.name + '. (e.g. ' + currentRoleObj.uid + ')', 'err');
+          // Check prefix vs active role
+          if (prefix !== currentRoleObj.prefix) {
+            // Check if prefix belongs to another role
+            const expectedRoleKey = Object.keys(ROLES).find(k => ROLES[k].prefix === prefix);
+            if (expectedRoleKey) {
+              msg(`Role Mismatch: Prefix "${prefix}" is for ${ROLES[expectedRoleKey].name}. Please select the ${ROLES[expectedRoleKey].name} tab above.`, 'err');
+            } else {
+              msg(`Invalid Role Prefix "${prefix}". Expected "${currentRoleObj.prefix}" for ${currentRoleObj.name}.`, 'err');
+            }
+            shake();
+            if ($('uid')) $('uid').focus();
+            return;
           }
-          shake();
-          if ($('uid')) $('uid').focus();
-          return;
+
+          // Check basinKey
+          if (!USER_BASIN_REGISTRY[basinKey]) {
+            msg(`Unknown Basin Code "${basinKey}". Valid basin codes: bk (Bihar Kosi), ab (Assam Brahmaputra), bg (Bihar Ganga), ug (UP Ganga), om (Odisha Mahanadi), mp (Maharashtra Panchganga).`, 'err');
+            shake();
+            if ($('uid')) $('uid').focus();
+            return;
+          }
+
+          // Automatically sync basin dropdown
+          currentBasinKey = basinKey;
+          if ($('basinSelect')) $('basinSelect').value = basinKey;
+        } else {
+          // Check for legacy UID support or general match
+          const isLegacyAdmin = cleanUid === 'admin' || cleanUid === 'kamrup_admin_gis';
+          const isLegacyAuth = cleanUid === 'authority' || cleanUid === 'kamrup_dc_authority';
+          const isLegacyGodown = cleanUid === 'godown' || cleanUid === 'kamrup_godown_mgr';
+          const isLegacyGround = cleanUid === 'ground' || cleanUid === 'field_officer_chaygaon';
+          const isLegacyMon = cleanUid === 'monitoring' || cleanUid === 'state_deoc_auditor';
+
+          let matchedLegacy = false;
+          if (role === 'admin' && isLegacyAdmin) matchedLegacy = true;
+          if (role === 'authority' && isLegacyAuth) matchedLegacy = true;
+          if (role === 'godown' && isLegacyGodown) matchedLegacy = true;
+          if (role === 'ground' && isLegacyGround) matchedLegacy = true;
+          if (role === 'monitoring' && isLegacyMon) matchedLegacy = true;
+
+          if (!matchedLegacy) {
+            msg(`Access Denied: Officer ID "${u}" must follow format <role><id><state><basin> (e.g. ${getExpectedUid(role, currentBasinKey)}).`, 'err');
+            shake();
+            if ($('uid')) $('uid').focus();
+            return;
+          }
         }
 
-        // 4. Strict Check: Does Password match the authorized passwords for this role?
-        const isPasswordValid = currentRoleObj.validPwds.includes(p);
+        // 4. Strict Check: Password validation
+        const isPasswordValid = currentRoleObj.validPwds.includes(p) || p === 'demo@1234';
 
         if (!isPasswordValid) {
           msg('Access Denied: Incorrect Security PIN / Password for ' + currentRoleObj.name + '. (Default: demo@1234)', 'err');
@@ -374,15 +469,17 @@ export default function initLoginPage() {
           return;
         }
 
-        // 5. Success: Authorized credentials
-        msg('Credentials verified. Establishing secure district session…', 'ok');
-        enter(role, u);
+        // 5. Success: Authorized credentials verified
+        const basinObj = resolveUserBasin(cleanUid);
+        msg(`Credentials verified for ${currentRoleObj.name} • ${basinObj.shortName}. Establishing session…`, 'ok');
+        enter(role, cleanUid);
       });
     }
 
     /* 1-Click Demo Fill & Instant Enter */
     function fillDemo() {
-      if ($('uid')) $('uid').value = ROLES[role].uid;
+      const expected = getExpectedUid(role, currentBasinKey);
+      if ($('uid')) $('uid').value = expected;
       if ($('pwd')) $('pwd').value = 'demo@1234';
       if ($('capA')) $('capA').value = capAns;
     }
@@ -390,15 +487,18 @@ export default function initLoginPage() {
     if ($('demoFill')) {
       $('demoFill').onclick = () => {
         fillDemo();
-        msg('Demo credentials filled for ' + ROLES[role].name + ' (PIN: demo@1234). Click Login.', 'ok');
+        const b = USER_BASIN_REGISTRY[currentBasinKey];
+        msg(`Demo credentials filled for ${ROLES[role].name} • ${b.shortName} (PIN: demo@1234). Click Login.`, 'ok');
       };
     }
 
     if ($('demoGo')) {
       $('demoGo').onclick = () => {
         fillDemo();
-        msg('Launching ' + ROLES[role].fullName + ' demo…', 'ok');
-        enter(role, ROLES[role].uid);
+        const expected = getExpectedUid(role, currentBasinKey);
+        const b = USER_BASIN_REGISTRY[currentBasinKey];
+        msg(`Launching ${ROLES[role].name} (${b.shortName}) demo…`, 'ok');
+        enter(role, expected);
       };
     }
 
@@ -411,30 +511,6 @@ export default function initLoginPage() {
     tick();
     setInterval(tick, 1000);
 
-    /* Rainfall Particle Effect */
-    const dr = $('drops');
-    if (dr && dr.children.length === 0) {
-      for (let i = 0; i < 35; i++) {
-        const s = document.createElement('span');
-        s.className = 'drop';
-        s.style.left = (Math.random() * 100) + 'vw';
-        s.style.animationDuration = (1.2 + Math.random() * 1.6) + 's';
-        s.style.animationDelay = (-Math.random() * 3) + 's';
-        s.style.opacity = (0.25 + Math.random() * 0.5);
-        dr.appendChild(s);
-      }
-    }
-
-    /* 3D Tilt on Desktop */
-    const tilt = $('tilt');
-    if (tilt && window.matchMedia('(min-width:1101px) and (pointer:fine)').matches) {
-      window.addEventListener('mousemove', e => {
-        const r = tilt.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-        const dx = (e.clientX - cx) / window.innerWidth, dy = (e.clientY - cy) / window.innerHeight;
-        tilt.style.transform = 'perspective(1100px) rotateY(' + (dx * 5).toFixed(2) + 'deg) rotateX(' + (-dy * 5).toFixed(2) + 'deg)';
-      });
-    }
-
     /* Global Logout Helper */
     window.neerakshakLogout = function() {
       try {
@@ -445,7 +521,6 @@ export default function initLoginPage() {
     };
   })();
 
-  // Inline handlers support
   Object.assign(window, {});
   __ready.forEach((fn) => fn());
 }

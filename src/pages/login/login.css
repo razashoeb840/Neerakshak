@@ -342,6 +342,77 @@ body::before {
   margin-bottom: 10px;
 }
 
+/* River Basin Jurisdiction Selector */
+.basin-select-container {
+  margin-bottom: 10px;
+  background: #f0f7fe;
+  border: 1.2px solid #bae6fd;
+  border-radius: 9px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.basin-select-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0369a1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.basin-select-dropdown {
+  flex: 1;
+  padding: 4px 6px;
+  font-size: 11px;
+  font-family: inherit;
+  font-weight: 600;
+  color: #0f172a;
+  background: #ffffff;
+  border: 1.2px solid #94a3b8;
+  border-radius: 6px;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.basin-select-dropdown:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+}
+
+.uid-format-hint {
+  margin-top: 3px;
+  margin-bottom: 9px;
+  font-size: 10px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1.25;
+  background: #f8fafc;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px dashed #cbd5e1;
+}
+
+.uid-format-hint strong {
+  color: #0284c7;
+  font-weight: 700;
+}
+
+.uid-format-hint code {
+  color: #0f172a;
+  background: #e2e8f0;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-weight: 800;
+  font-size: 10px;
+}
+
 .input-box {
   position: relative;
   display: flex;

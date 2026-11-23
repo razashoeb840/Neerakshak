@@ -125,14 +125,36 @@ const markup = (
               {/* Role description banner (required for JS logic) */}
               <div className="role-desc" id="roleDesc"></div>
 
+              {/* River Basin Jurisdiction Selector */}
+              <div className="basin-select-container">
+                <div className="basin-select-label">
+                  <i className="fas fa-water" style={{ color: "#0284c7" }}></i>
+                  <span>River Basin:</span>
+                </div>
+                <select className="basin-select-dropdown" id="basinSelect" defaultValue="bk" aria-label="Select River Basin Jurisdiction">
+                  <option value="bk">Bihar • Kosi River Basin (ad1558bk)</option>
+                  <option value="ab">Assam • Brahmaputra Basin (ad2491ab)</option>
+                  <option value="bg">Bihar • Ganga &amp; Son Basin (ad3310bg)</option>
+                  <option value="ug">UP • Ganga &amp; Yamuna Basin (ad4129ug)</option>
+                  <option value="om">Odisha • Mahanadi Basin (ad5912om)</option>
+                  <option value="mp">Maharashtra • Panchganga Basin (ad6481mp)</option>
+                </select>
+              </div>
+
               {/* Form Fields */}
               <form id="loginForm" noValidate autoComplete="off">
                 {/* Username Input with User Icon */}
                 <div className="form-input-group">
                   <div className="input-box">
                     <i className="fas fa-user input-leading-icon"></i>
-                    <input id="uid" type="text" placeholder="Username" spellCheck="false" autoCapitalize="characters" />
+                    <input id="uid" type="text" placeholder="Officer ID (e.g. ad1558bk)" spellCheck="false" autoCapitalize="none" />
                   </div>
+                </div>
+
+                {/* Structured UID Format Explanation */}
+                <div className="uid-format-hint" id="uidFormatHint">
+                  <i className="fas fa-id-card-clip"></i>
+                  <span>Format: <strong>ad</strong>(Admin) + <strong>1558</strong>(id) + <strong>b</strong>(Bihar) + <strong>k</strong>(Kosi)</span>
                 </div>
 
                 {/* Password Input with Lock & Eye Icon */}

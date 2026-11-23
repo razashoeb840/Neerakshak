@@ -23,7 +23,7 @@ const markup = (
                     NEERA
                     <span className="hero-brand-cyan">KSHAK</span>
                   </h1>
-                  <span className="hero-admin-badge">Admin</span>
+                  <span className="hero-admin-badge" id="heroBasinBadge">Admin • Bihar (Kosi Basin)</span>
                 </div>
                 <div className="hero-brand-subtitle">Flood Relief Management System</div>
                 <div className="hero-brand-tagline">
@@ -47,40 +47,16 @@ const markup = (
                 <select
                   className="hero-district-select"
                   id="heroDistrictSelect"
-                  defaultValue="kamrup"
+                  defaultValue="katihar-sadar"
                   onChange={(event) => window.switchMonitoringDistrict && window.switchMonitoringDistrict(event.currentTarget.value)}
                 >
-                  <optgroup label="Assam & Northeast (Brahmaputra & Barak)">
-                    <option value="kamrup">Kamrup, Assam (Brahmaputra Basin)</option>
-                    <option value="majuli">Majuli Island, Assam (Subansiri)</option>
-                    <option value="barpeta">Barpeta, Assam (Manas & Beki)</option>
-                    <option value="dhemaji">Dhemaji, Assam (Jiabharali)</option>
-                    <option value="cachar">Silchar (Cachar), Assam (Barak)</option>
-                  </optgroup>
-                  <optgroup label="Bihar (Ganga & Kosi Basin)">
-                    <option value="patna">Patna, Bihar (Ganga & Son Basin)</option>
-                    <option value="katihar">Katihar / Purnia, Bihar (Kosi Basin)</option>
-                    <option value="muzaffarpur">Muzaffarpur, Bihar (Burhi Gandak)</option>
-                  </optgroup>
-                  <optgroup label="Uttar Pradesh (Ganga & Yamuna)">
-                    <option value="varanasi">Varanasi, UP (Ganga Basin)</option>
-                    <option value="prayagraj">Prayagraj, UP (Ganga-Yamuna Sangam)</option>
-                    <option value="gorakhpur">Gorakhpur, UP (Rapti & Rohini)</option>
-                  </optgroup>
-                  <optgroup label="Odisha & Bengal (Mahanadi Basin)">
-                    <option value="cuttack">Cuttack, Odisha (Mahanadi Delta)</option>
-                    <option value="balasore">Balasore, Odisha (Subarnarekha)</option>
-                    <option value="malda">Malda, West Bengal (Ganga / Padma)</option>
-                  </optgroup>
-                  <optgroup label="South & West India">
-                    <option value="wayanad">Wayanad, Kerala (Kabini Basin)</option>
-                    <option value="kolhapur">Kolhapur, Maharashtra (Panchganga)</option>
-                    <option value="surat">Surat / Bharuch, Gujarat (Tapti / Narmada)</option>
-                    <option value="vijayawada">Vijayawada, AP (Krishna River Basin)</option>
-                    <option value="srinagar">Srinagar, J&K (Jhelum River Basin)</option>
-                  </optgroup>
-                  <optgroup label="Pan-India National Hydrology">
-                    <option value="all-india">🇮🇳 Pan-India Overview (All River Basins)</option>
+                  <optgroup id="heroDistrictOptgroup" label="Bihar — Kosi River Basin (6 Sectors Assigned)">
+                    <option value="katihar-sadar">Katihar Sadar Sector (Kosi River)</option>
+                    <option value="kursela-sangam">Kursela Confluence (Kosi &amp; Ganga)</option>
+                    <option value="purnia-east">Purnia East Lowland (Saura &amp; Kosi)</option>
+                    <option value="birpur-barrage">Birpur Barrage Sector (Kosi Main Barrage)</option>
+                    <option value="saharsa-basin">Saharsa Lowland Belt (Tilyuga &amp; Kosi)</option>
+                    <option value="supaul-embankment">Supaul Embankment Sector (Kosi Western Embankment)</option>
                   </optgroup>
                 </select>
               </div>
