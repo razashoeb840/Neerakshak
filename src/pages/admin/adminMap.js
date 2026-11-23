@@ -165,178 +165,210 @@ export function initAdminFloodMap(containerId = 'leafletMap', initialCoords, ini
 // Render Major Indian River Basin Corridors & CWC Stations with Live Telemetry
 export function renderLiveRiversOnMap(rivers = [], basinKey = null) {
   if (!riverLayerGroup || !mapInstance) return;
-  riverLayerGroup.clearLayers();
+  try {
+    riverLayerGroup.clearLayers();
 
-  // Prefer live telemetry rivers from state, then passed rivers, then basin registry
-  let riversToRender = [];
-  if (rivers && Array.isArray(rivers) && rivers.length > 0) {
-    riversToRender = rivers;
-  } else if (window.adminState && Array.isArray(window.adminState.rivers) && window.adminState.rivers.length > 0) {
-    riversToRender = window.adminState.rivers;
-  } else if (window.activeUserBasin && Array.isArray(window.activeUserBasin.rivers)) {
-    riversToRender = window.activeUserBasin.rivers;
-  } else {
-    riversToRender = INDIA_RIVER_SYSTEMS;
-  }
-
-  riversToRender.forEach(r => {
-    // 1. Locate geometry (path & station center) from INDIA_RIVER_SYSTEMS
-    let geom = INDIA_RIVER_SYSTEMS.find(gr => gr.id === r.id || gr.name.toLowerCase().includes(r.id.toLowerCase()) || (r.name && r.name.toLowerCase().includes(gr.name.toLowerCase())));
-    if (!geom) {
-      geom = INDIA_RIVER_SYSTEMS[0];
+    // Prefer live telemetry rivers from state, then passed rivers, then basin registry
+    let riversToRender = [];
+    if (rivers && Array.isArray(rivers) && rivers.length > 0) {
+      riversToRender = rivers;
+    } else if (window.adminState && Array.isArray(window.adminState.rivers) && window.adminState.rivers.length > 0) {
+      riversToRender = window.adminState.rivers;
+    } else if (window.activeUserBasin && Array.isArray(window.activeUserBasin.rivers) && window.activeUserBasin.rivers.length > 0) {
+      riversToRender = window.activeUserBasin.rivers;
+    } else {
+      riversToRender = INDIA_RIVER_SYSTEMS || [];
     }
 
-    const currentVal = Number(r.current !== undefined ? r.current : (geom.current || 0));
-    const dangerVal = Number(r.danger !== undefined ? r.danger : (geom.danger || 0));
-    const warningVal = Number(r.warning !== undefined ? r.warning : (geom.warning || dangerVal - 0.8));
-    const isDanger = currentVal >= dangerVal;
-    const isWarning = !isDanger && currentVal >= warningVal;
+    riversToRender.forEach(r => {
+      if (!r) return;
+      const rId = String(r.id || '').trim().toLowerCase();
+      const rName = String(r.name || r.station || 'River');
+      const rNameLower = rName.toLowerCase();
 
-    const riverColor = isDanger ? '#dc2626' : (isWarning ? '#f97316' : '#0284c7');
-    const glowColor = isDanger ? 'rgba(220, 38, 38, 0.45)' : (isWarning ? 'rgba(249, 115, 22, 0.4)' : 'rgba(56, 189, 248, 0.4)');
-
-    // 2. Render River Polyline Corridor
-    if (geom && geom.path && geom.path.length >= 2) {
-      // Ambient glow polyline
-      L.polyline(geom.path, {
-        color: glowColor,
-        weight: 14,
-        opacity: 0.55,
-        lineCap: 'round',
-        lineJoin: 'round'
-      }).addTo(riverLayerGroup);
-
-      // River centerline polyline
-      const riverLine = L.polyline(geom.path, {
-        color: riverColor,
-        weight: 5.5,
-        opacity: 0.95,
-        lineCap: 'round',
-        lineJoin: 'round'
-      }).addTo(riverLayerGroup);
-
-      riverLine.bindTooltip(`
-        <div style="font-size:11.5px; font-family:'Poppins',sans-serif; min-width:200px; padding:2px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
-            <strong style="color:${riverColor}; font-size:12.5px;">🌊 ${r.name}</strong>
-            <span style="font-size:9.5px; background:#dcfce7; color:#15803d; padding:1px 5px; border-radius:3px; font-weight:800;">LIVE CWC</span>
-          </div>
-          <div style="font-size:10px; color:#64748b; margin-bottom:4px;">${r.station || geom.name} • ${r.stationCode || 'CWC Station'}</div>
-          <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:2px;">
-            <span>Current: <strong style="color:${isDanger ? '#dc2626' : '#0f172a'};">${currentVal.toFixed(2)} m</strong></span>
-            <span>Danger Mark: <strong>${dangerVal.toFixed(2)} m</strong></span>
-          </div>
-          <div style="font-size:10.5px; color:#334155;">
-            <span>Discharge: <strong style="color:#0284c7;">${r.dischargeFormatted || 'Live Flow'}</strong></span> • Trend: <strong>${r.trend || 'Steady'}</strong>
-          </div>
-          <div style="margin-top:4px; font-weight:800; font-size:10px; color:${isDanger ? '#dc2626' : (isWarning ? '#f97316' : '#16a34a')};">
-            ${isDanger ? '⚠️ CRITICAL BREACH: Exceeded Danger Mark' : (isWarning ? '⚡ WARNING WATCH: Approaching Danger' : '✓ SAFE DISCHARGE: Normal River Flow')}
-          </div>
-        </div>
-      `, { sticky: true, className: 'leaflet-river-tooltip' });
-    }
-
-    // 3. Render Official CWC Gauge Telemetry Station Marker
-    const stationCoords = (r.coords && r.coords.length === 2)
-      ? r.coords
-      : (geom && geom.center ? geom.center : (geom && geom.path ? geom.path[0] : null));
-
-    if (stationCoords) {
-      const [stLat, stLng] = stationCoords;
-      const statusClass = isDanger ? 'crit' : (isWarning ? 'warn' : 'safe');
-      const badgeText = isDanger ? 'CRITICAL BREACH' : (isWarning ? 'WARNING WATCH' : 'SAFE FLOW');
-
-      const stIconHtml = `
-        <div class="cwc-station-pin ${statusClass}">
-          <span class="st-pulse" style="background:${riverColor};"></span>
-          <div class="st-head" style="background:${riverColor};">
-            <i class="fas fa-tower-broadcast"></i>
-          </div>
-          <div class="st-chip">
-            <span class="st-chip-code">${r.stationCode || 'CWC'}</span>
-            <span class="st-chip-val">${currentVal.toFixed(2)}m</span>
-          </div>
-        </div>
-      `;
-
-      const stIcon = L.divIcon({
-        className: 'cwc-marker-div',
-        html: stIconHtml,
-        iconSize: [44, 44],
-        iconAnchor: [22, 22],
-        popupAnchor: [0, -24]
+      // 1. Locate geometry (path & station center) safely from INDIA_RIVER_SYSTEMS
+      let geom = (INDIA_RIVER_SYSTEMS || []).find(gr => {
+        if (!gr) return false;
+        const grId = String(gr.id || '').trim().toLowerCase();
+        const grName = String(gr.name || '').trim().toLowerCase();
+        return (rId && grId && grId === rId) ||
+               (rId && grName && grName.includes(rId)) ||
+               (grId && rNameLower && rNameLower.includes(grId)) ||
+               (grName && rNameLower && (grName.includes(rNameLower) || rNameLower.includes(grName)));
       });
 
-      const stMarker = L.marker([stLat, stLng], { icon: stIcon }).addTo(riverLayerGroup);
+      if (!geom) {
+        geom = (INDIA_RIVER_SYSTEMS && INDIA_RIVER_SYSTEMS[0]) || {};
+      }
 
-      const diff = (currentVal - dangerVal).toFixed(2);
-      const diffText = isDanger
-        ? `<span style="color:#dc2626; font-weight:800;">⚠️ +${diff} m ABOVE CWC DANGER MARK</span>`
-        : `<span style="color:#15803d; font-weight:700;">✓ ${Math.abs(diff)} m below Danger Mark (Safe Discharge)</span>`;
+      const currentVal = Number(r.current !== undefined ? r.current : (geom.current || 0)) || 0;
+      const dangerVal = Number(r.danger !== undefined ? r.danger : (geom.danger || 0)) || 0;
+      const warningVal = Number(r.warning !== undefined ? r.warning : (geom.warning || dangerVal - 0.8)) || 0;
+      const isDanger = currentVal >= dangerVal;
+      const isWarning = !isDanger && currentVal >= warningVal;
 
-      const stPopup = `
-        <div class="map-rich-popup cwc-station-popup">
-          <div class="popup-top">
-            <div>
-              <span style="font-size:9.5px; font-weight:800; background:#dcfce7; color:#15803d; padding:2px 7px; border-radius:4px; border:1px solid #86efac; display:inline-flex; align-items:center; gap:4px; margin-bottom:4px;">
-                <span style="width:6px; height:6px; border-radius:50%; background:#22c55e;"></span>LIVE CWC & GloFAS TELEMETRY
-              </span>
-              <h4 style="margin:2px 0 1px; font-size:13.5px; font-weight:800; color:#0f172a;">${r.station || r.name}</h4>
-              <span style="font-size:10.5px; color:#64748b; font-weight:600;">${r.stationCode || 'Central Water Commission'} • ${r.basin || 'Basin Site'}</span>
+      const riverColor = isDanger ? '#dc2626' : (isWarning ? '#f97316' : '#0284c7');
+      const glowColor = isDanger ? 'rgba(220, 38, 38, 0.45)' : (isWarning ? 'rgba(249, 115, 22, 0.4)' : 'rgba(56, 189, 248, 0.4)');
+
+      // 2. Render River Polyline Corridor safely
+      if (geom && Array.isArray(geom.path) && geom.path.length >= 2) {
+        const validPath = geom.path.filter(pt => Array.isArray(pt) && pt.length === 2 && !isNaN(pt[0]) && !isNaN(pt[1]));
+        if (validPath.length >= 2) {
+          // Ambient glow polyline
+          L.polyline(validPath, {
+            color: glowColor,
+            weight: 14,
+            opacity: 0.55,
+            lineCap: 'round',
+            lineJoin: 'round'
+          }).addTo(riverLayerGroup);
+
+          // River centerline polyline
+          const riverLine = L.polyline(validPath, {
+            color: riverColor,
+            weight: 5.5,
+            opacity: 0.95,
+            lineCap: 'round',
+            lineJoin: 'round'
+          }).addTo(riverLayerGroup);
+
+          riverLine.bindTooltip(`
+            <div style="font-size:11.5px; font-family:'Poppins',sans-serif; min-width:200px; padding:2px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+                <strong style="color:${riverColor}; font-size:12.5px;">🌊 ${rName}</strong>
+                <span style="font-size:9.5px; background:#dcfce7; color:#15803d; padding:1px 5px; border-radius:3px; font-weight:800;">LIVE CWC</span>
+              </div>
+              <div style="font-size:10px; color:#64748b; margin-bottom:4px;">${r.station || geom.name || 'CWC Hydrology Site'} • ${r.stationCode || 'CWC Station'}</div>
+              <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:2px;">
+                <span>Current: <strong style="color:${isDanger ? '#dc2626' : '#0f172a'};">${currentVal.toFixed(2)} m</strong></span>
+                <span>Danger Mark: <strong>${dangerVal.toFixed(2)} m</strong></span>
+              </div>
+              <div style="font-size:10.5px; color:#334155;">
+                <span>Discharge: <strong style="color:#0284c7;">${r.dischargeFormatted || 'Live Flow'}</strong></span> • Trend: <strong>${r.trend || 'Steady'}</strong>
+              </div>
+              <div style="margin-top:4px; font-weight:800; font-size:10px; color:${isDanger ? '#dc2626' : (isWarning ? '#f97316' : '#16a34a')};">
+                ${isDanger ? '⚠️ CRITICAL BREACH: Exceeded Danger Mark' : (isWarning ? '⚡ WARNING WATCH: Approaching Danger' : '✓ SAFE DISCHARGE: Normal River Flow')}
+              </div>
             </div>
-            <span class="sev-pill ${isDanger ? 'sev-critical' : (isWarning ? 'sev-moderate' : 'sev-normal')}" style="font-size:9.5px; padding:2px 7px;">${badgeText}</span>
-          </div>
+          `, { sticky: true, className: 'leaflet-river-tooltip' });
+        }
+      }
 
-          <div style="background:#f0f9ff; border:1.5px solid #bae6fd; border-radius:8px; padding:7px 10px; margin:8px 0;">
-            <div style="display:flex; justify-content:space-between; align-items:baseline;">
-              <span style="font-size:11px; color:#475569; font-weight:600;">Live Water Level:</span>
-              <span style="font-size:16px; font-weight:800; color:${riverColor}; font-family:'Plus Jakarta Sans',sans-serif;">${currentVal.toFixed(2)} m</span>
+      // 3. Render Official CWC Gauge Telemetry Station Marker
+      const stationCoords = (r.coords && Array.isArray(r.coords) && r.coords.length === 2 && !isNaN(r.coords[0]))
+        ? r.coords
+        : (geom && geom.center && Array.isArray(geom.center) && geom.center.length === 2
+            ? geom.center
+            : (geom && geom.path && Array.isArray(geom.path) && geom.path.length > 0 && Array.isArray(geom.path[0])
+                ? geom.path[0]
+                : null));
+
+      if (stationCoords && !isNaN(stationCoords[0]) && !isNaN(stationCoords[1])) {
+        const stLat = Number(stationCoords[0]);
+        const stLng = Number(stationCoords[1]);
+        const statusClass = isDanger ? 'crit' : (isWarning ? 'warn' : 'safe');
+        const badgeText = isDanger ? 'CRITICAL BREACH' : (isWarning ? 'WARNING WATCH' : 'SAFE FLOW');
+
+        const stIconHtml = `
+          <div class="cwc-station-pin ${statusClass}">
+            <span class="st-pulse" style="background:${riverColor};"></span>
+            <div class="st-head" style="background:${riverColor};">
+              <i class="fas fa-tower-broadcast"></i>
             </div>
-            <div style="display:flex; justify-content:space-between; font-size:10px; color:#64748b; margin-top:3px; border-top:1px dashed #cbd5e1; padding-top:4px;">
-              <span>Danger Mark: <strong>${dangerVal.toFixed(2)} m</strong></span>
-              <span>Warning Mark: <strong>${warningVal.toFixed(2)} m</strong></span>
+            <div class="st-chip">
+              <span class="st-chip-code">${r.stationCode || 'CWC'}</span>
+              <span class="st-chip-val">${currentVal.toFixed(2)}m</span>
             </div>
           </div>
+        `;
 
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px; font-size:10.5px;">
-            <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:5px 8px; border-radius:6px;">
-              <span style="color:#64748b; display:block; font-size:9.5px;">River Discharge:</span>
-              <strong style="color:#0284c7; font-size:11.5px;">${r.dischargeFormatted || 'Live Flow'}</strong>
+        const stIcon = L.divIcon({
+          className: 'cwc-marker-div',
+          html: stIconHtml,
+          iconSize: [44, 44],
+          iconAnchor: [22, 22],
+          popupAnchor: [0, -24]
+        });
+
+        const stMarker = L.marker([stLat, stLng], { icon: stIcon }).addTo(riverLayerGroup);
+
+        const diff = (currentVal - dangerVal).toFixed(2);
+        const diffText = isDanger
+          ? `<span style="color:#dc2626; font-weight:800;">⚠️ +${diff} m ABOVE CWC DANGER MARK</span>`
+          : `<span style="color:#15803d; font-weight:700;">✓ ${Math.abs(diff)} m below Danger Mark (Safe Discharge)</span>`;
+
+        const stationRaw = r.station || rName;
+        const cleanStation = String(stationRaw).split(' (')[0].replace(/'/g, "\\'");
+        const cleanRiverName = rName.replace(/'/g, "\\'");
+        const cleanStationCode = String(r.stationCode || 'CWC Telemetry Station').replace(/'/g, "\\'");
+
+        const stPopup = `
+          <div class="map-rich-popup cwc-station-popup">
+            <div class="popup-top">
+              <div>
+                <span style="font-size:9.5px; font-weight:800; background:#dcfce7; color:#15803d; padding:2px 7px; border-radius:4px; border:1px solid #86efac; display:inline-flex; align-items:center; gap:4px; margin-bottom:4px;">
+                  <span style="width:6px; height:6px; border-radius:50%; background:#22c55e;"></span>LIVE CWC & GloFAS TELEMETRY
+                </span>
+                <h4 style="margin:2px 0 1px; font-size:13.5px; font-weight:800; color:#0f172a;">${r.station || rName}</h4>
+                <span style="font-size:10.5px; color:#64748b; font-weight:600;">${r.stationCode || 'Central Water Commission'} • ${r.basin || 'Basin Site'}</span>
+              </div>
+              <span class="sev-pill ${isDanger ? 'sev-critical' : (isWarning ? 'sev-moderate' : 'sev-normal')}" style="font-size:9.5px; padding:2px 7px;">${badgeText}</span>
             </div>
-            <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:5px 8px; border-radius:6px;">
-              <span style="color:#64748b; display:block; font-size:9.5px;">Hydrological Trend:</span>
-              <strong style="color:${r.trend === 'Rising' ? '#dc2626' : '#16a34a'}; font-size:11.5px;">${r.trend === 'Rising' ? '↑ Rising' : (r.trend === 'Falling' ? '↓ Falling' : '→ Steady')}</strong>
+
+            <div style="background:#f0f9ff; border:1.5px solid #bae6fd; border-radius:8px; padding:7px 10px; margin:8px 0;">
+              <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                <span style="font-size:11px; color:#475569; font-weight:600;">Live Water Level:</span>
+                <span style="font-size:16px; font-weight:800; color:${riverColor}; font-family:'Plus Jakarta Sans',sans-serif;">${currentVal.toFixed(2)} m</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:10px; color:#64748b; margin-top:3px; border-top:1px dashed #cbd5e1; padding-top:4px;">
+                <span>Danger Mark: <strong>${dangerVal.toFixed(2)} m</strong></span>
+                <span>Warning Mark: <strong>${warningVal.toFixed(2)} m</strong></span>
+              </div>
             </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px; font-size:10.5px;">
+              <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:5px 8px; border-radius:6px;">
+                <span style="color:#64748b; display:block; font-size:9.5px;">River Discharge:</span>
+                <strong style="color:#0284c7; font-size:11.5px;">${r.dischargeFormatted || 'Live Flow'}</strong>
+              </div>
+              <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:5px 8px; border-radius:6px;">
+                <span style="color:#64748b; display:block; font-size:9.5px;">Hydrological Trend:</span>
+                <strong style="color:${r.trend === 'Rising' ? '#dc2626' : '#16a34a'}; font-size:11.5px;">${r.trend === 'Rising' ? '↑ Rising' : (r.trend === 'Falling' ? '↓ Falling' : '→ Steady')}</strong>
+              </div>
+            </div>
+
+            <div style="font-size:10.5px; margin-bottom:8px; background:#fafafa; border:1px solid #f1f5f9; padding:5px 8px; border-radius:6px;">
+              ${diffText}
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:9.5px; color:#94a3b8; margin-bottom:8px;">
+              <span>Source: ${r.source || 'Open-Meteo GloFAS & CWC'}</span>
+              <span>Synced: ${r.lastUpdated || 'Just now'}</span>
+            </div>
+
+            <button type="button" class="popup-btn-edit" style="width:100%; justify-content:center; padding:7px; font-size:11px;" onclick="window.openAreaModalWithCoords && window.openAreaModalWithCoords(${stLat.toFixed(4)}, ${stLng.toFixed(4)}, '${cleanStation}', '${cleanStationCode}', '${cleanRiverName}', ${currentVal.toFixed(2)}, ${dangerVal.toFixed(2)})">
+              <i class="fas fa-plus-circle"></i> Mark Flood Zone Near Station
+            </button>
           </div>
+        `;
 
-          <div style="font-size:10.5px; margin-bottom:8px; background:#fafafa; border:1px solid #f1f5f9; padding:5px 8px; border-radius:6px;">
-            ${diffText}
-          </div>
-
-          <div style="display:flex; justify-content:space-between; align-items:center; font-size:9.5px; color:#94a3b8; margin-bottom:8px;">
-            <span>Source: ${r.source || 'Open-Meteo GloFAS & CWC'}</span>
-            <span>Synced: ${r.lastUpdated || 'Just now'}</span>
-          </div>
-
-          <button type="button" class="popup-btn-edit" style="width:100%; justify-content:center; padding:7px; font-size:11px;" onclick="window.openAreaModalWithCoords && window.openAreaModalWithCoords(${stLat.toFixed(4)}, ${stLng.toFixed(4)}, '${(r.station ? r.station.split(' (')[0] : r.name).replace(/'/g, "\\'")}', '${r.stationCode || 'CWC Telemetry Station'}', '${r.name.replace(/'/g, "\\'")}', ${currentVal.toFixed(2)}, ${dangerVal.toFixed(2)})">
-            <i class="fas fa-plus-circle"></i> Mark Flood Zone Near Station
-          </button>
-        </div>
-      `;
-
-      stMarker.bindPopup(stPopup, { minWidth: 250 });
-    }
-  });
+        stMarker.bindPopup(stPopup, { minWidth: 250 });
+      }
+    });
+  } catch (err) {
+    console.error('renderLiveRiversOnMap error:', err);
+  }
 }
 
 export function updateMapLayers(areas = [], facilities = [], rivers = []) {
   if (!mapInstance || !zonesLayerGroup || !facilitiesLayerGroup || !riverLayerGroup) return;
 
-  zonesLayerGroup.clearLayers();
-  facilitiesLayerGroup.clearLayers();
+  try {
+    zonesLayerGroup.clearLayers();
+    facilitiesLayerGroup.clearLayers();
 
-  // 1. RENDER LIVE RIVER CORRIDORS & CWC TELEMETRY STATIONS ON MAP
-  renderLiveRiversOnMap(rivers);
+    // 1. RENDER LIVE RIVER CORRIDORS & CWC TELEMETRY STATIONS ON MAP
+    renderLiveRiversOnMap(rivers);
 
   // 1. RENDER FLOOD AFFECTED AREAS ACROSS INDIA
   areas.forEach((area, idx) => {
@@ -466,7 +498,10 @@ export function updateMapLayers(areas = [], facilities = [], rivers = []) {
         </button>
       </div>
     `, { minWidth: 200 });
-  });
+    });
+  } catch (err) {
+    console.error('updateMapLayers error:', err);
+  }
 }
 
 // =========================================================================

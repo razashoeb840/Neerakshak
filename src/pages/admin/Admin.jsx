@@ -756,10 +756,21 @@ const markup = (
 
 export default function Admin() {
   useEffect(() => {
-    const cleanup = setupRouteGuard('admin');
+    let cleanup = () => {};
+    try {
+      cleanup = setupRouteGuard('admin') || (() => {});
+    } catch (e) {
+      console.warn('setupRouteGuard notice:', e);
+    }
     document.title = "NEERAKSHAK – Admin Portal | River & Flood Ecological Command";
-    initAdminPage();
-    return cleanup;
+    try {
+      initAdminPage();
+    } catch (err) {
+      console.error('initAdminPage error:', err);
+    }
+    return () => {
+      try { cleanup(); } catch (e) {}
+    };
   }, []);
 
   return (

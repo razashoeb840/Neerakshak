@@ -1,5 +1,42 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, Component } from 'react';
 import { isAuthenticated, PROTECTED_ROUTES, ROLE_PAGES } from './auth';
+
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('NEERAKSHAK Portal Error:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#07182e', color: '#f8fafc', padding: 24, fontFamily: "'Poppins', sans-serif", textAlign: 'center' }}>
+          <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, marginBottom: 16, border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+            <i className="fas fa-triangle-exclamation"></i>
+          </div>
+          <h2 style={{ margin: '0 0 8px', fontSize: 20, color: '#ffffff' }}>Portal Display Notice</h2>
+          <p style={{ margin: '0 0 20px', color: '#94a3b8', maxWidth: 440, fontSize: 13, lineHeight: 1.5 }}>
+            {this.state.error?.message || 'A temporary display issue occurred while loading this view.'}
+          </p>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button onClick={() => window.location.reload()} style={{ background: '#0284c7', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>
+              Reload Portal
+            </button>
+            <button onClick={() => window.location.href = '/login'} style={{ background: '#1e293b', color: '#94a3b8', border: '1px solid #334155', padding: '10px 20px', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>
+              Go to Login
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // One route per original HTML page. Each page is loaded only when it is opened.
 const routes = {
@@ -31,7 +68,12 @@ export default function App() {
   if (PROTECTED_ROUTES[path]) {
     if (!isAuthenticated()) {
       window.location.replace('/login?auth_required=1');
-      return null;
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#07182e', color: '#38bdf8', fontFamily: "'Poppins', sans-serif" }}>
+          <div style={{ width: 40, height: 40, border: '3px solid rgba(56, 189, 248, 0.2)', borderTopColor: '#38bdf8', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: 16 }}></div>
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Securing session • Redirecting to Login…</p>
+        </div>
+      );
     }
 
     const currentRole = sessionStorage.getItem('neerakshak_role');
@@ -39,7 +81,11 @@ export default function App() {
     if (currentRole !== requiredRole) {
       const authorizedPage = ROLE_PAGES[currentRole] || '/login?auth_required=1';
       window.location.replace(authorizedPage);
-      return null;
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#07182e', color: '#38bdf8', fontFamily: "'Poppins', sans-serif" }}>
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Redirecting to authorized dashboard…</p>
+        </div>
+      );
     }
   }
 
@@ -50,7 +96,11 @@ export default function App() {
       const currentRole = sessionStorage.getItem('neerakshak_role');
       const authorizedPage = ROLE_PAGES[currentRole] || '/admin';
       window.location.replace(authorizedPage);
-      return null;
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#07182e', color: '#38bdf8', fontFamily: "'Poppins', sans-serif" }}>
+          <p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Session active • Redirecting to command center…</p>
+        </div>
+      );
     }
   }
 
@@ -60,9 +110,19 @@ export default function App() {
     return null;
   }
 
+  const loadingFallback = (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#07182e', color: '#38bdf8', fontFamily: "'Poppins', sans-serif" }}>
+      <div style={{ width: 44, height: 44, border: '3px solid rgba(56, 189, 248, 0.2)', borderTopColor: '#38bdf8', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: 16 }}></div>
+      <h3 style={{ margin: '0 0 6px', color: '#f8fafc', fontSize: 16, fontWeight: 700 }}>NEERAKSHAK Flood Control</h3>
+      <span style={{ fontSize: 12, color: '#94a3b8' }}>Synchronizing GIS Telemetry & Command Center…</span>
+    </div>
+  );
+
   return (
-    <Suspense fallback={null}>
-      <Page />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={loadingFallback}>
+        <Page />
+      </Suspense>
+    </ErrorBoundary>
   );
 }

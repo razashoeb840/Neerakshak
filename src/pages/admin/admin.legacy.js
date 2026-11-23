@@ -660,80 +660,91 @@ export default function initAdminPage() {
 
   // INITIALIZE ON DOM READY
   __onReady(() => {
-    // 1. Resolve logged-in officer's jurisdiction & river basin
-    let loggedUser = '';
     try {
-      loggedUser = sessionStorage.getItem('neerakshak_user') || 'ad1558bk';
-    } catch (e) {
-      loggedUser = 'ad1558bk';
-    }
-    const userBasin = resolveUserBasin(loggedUser);
-    window.activeUserBasin = userBasin;
+      // 1. Resolve logged-in officer's jurisdiction & river basin
+      let loggedUser = '';
+      try {
+        loggedUser = sessionStorage.getItem('neerakshak_user') || 'ad1558bk';
+      } catch (e) {
+        loggedUser = 'ad1558bk';
+      }
+      const userBasin = resolveUserBasin(loggedUser);
+      window.activeUserBasin = userBasin;
 
-    // 2. Strict Sector Isolation: Populate Dropdown with EXACT 5-6 sectors belonging to this basin
-    const sel = document.getElementById('heroDistrictSelect');
-    if (sel) {
-      sel.innerHTML = `
-        <optgroup label="${userBasin.stateName} — ${userBasin.basinName} (${userBasin.sectors.length} Sectors Assigned)">
-          ${userBasin.sectors.map(sec => `
-            <option value="${sec.id}">${sec.name} (${sec.river})</option>
-          `).join('')}
-        </optgroup>
-      `;
-      sel.value = userBasin.sectors[0].id;
-    }
+      // 2. Strict Sector Isolation: Populate Dropdown with EXACT 5-6 sectors belonging to this basin
+      const sel = document.getElementById('heroDistrictSelect');
+      if (sel && userBasin && Array.isArray(userBasin.sectors)) {
+        sel.innerHTML = `
+          <optgroup label="${userBasin.stateName} — ${userBasin.basinName} (${userBasin.sectors.length} Sectors Assigned)">
+            ${userBasin.sectors.map(sec => `
+              <option value="${sec.id}">${sec.name} (${sec.river})</option>
+            `).join('')}
+          </optgroup>
+        `;
+        if (userBasin.sectors[0]) sel.value = userBasin.sectors[0].id;
+      }
 
-    // 3. Update Hero Badge & Window title
-    const basinBadge = document.getElementById('heroBasinBadge');
-    if (basinBadge) {
-      basinBadge.textContent = `Admin • ${userBasin.shortName}`;
-      basinBadge.title = `Officer ID: ${loggedUser} | Division: ${userBasin.tagline}`;
-    }
+      // 3. Update Hero Badge & Window title
+      const basinBadge = document.getElementById('heroBasinBadge');
+      if (basinBadge && userBasin) {
+        basinBadge.textContent = `Admin • ${userBasin.shortName}`;
+        basinBadge.title = `Officer ID: ${loggedUser} | Division: ${userBasin.tagline}`;
+      }
 
-    // 4. Initialize Leaflet Map centered on user's primary assigned sector
-    const initialSector = userBasin.sectors[0];
-    const map = initAdminFloodMap('leafletMap', initialSector.coords, initialSector.zoom, userBasin.id);
-    window.leafletMapInstance = map;
+      // 4. Initialize Leaflet Map centered on user's primary assigned sector
+      const initialSector = (userBasin && userBasin.sectors && userBasin.sectors[0]) || { coords: [26.15, 91.60], zoom: 11, id: 'default' };
+      const map = initAdminFloodMap('leafletMap', initialSector.coords, initialSector.zoom, userBasin ? userBasin.id : 'bk');
+      window.leafletMapInstance = map;
 
-    // 5. Initialize state with user's real river telemetry
-    state.rivers = userBasin.rivers;
-    window.adminState = state;
+      // 5. Initialize state with user's real river telemetry
+      if (userBasin && userBasin.rivers) {
+        state.rivers = userBasin.rivers;
+      }
+      window.adminState = state;
+      renderAllCards();
 
-    // 6. Fetch full state from Next.js backend & render
-    fetchFullAdminState().then(data => {
-      if (data) {
+      // 6. Fetch full state from Next.js backend & render
+      fetchFullAdminState().then(data => {
+        if (data) {
+          state = {
+            ...data,
+            rivers: (userBasin && userBasin.rivers) || state.rivers // Preserve real basin river gauges
+          };
+          window.adminState = state;
+          renderAllCards();
+        }
+      }).catch(err => console.warn('Backend state fetch notice:', err));
+
+      // 7. Start real-time sync with backend
+      startRealtimeSync();
+      onSync((newState) => {
         state = {
-          ...data,
-          rivers: userBasin.rivers // Preserve real basin river gauges
+          ...newState,
+          rivers: state.rivers && state.rivers.length > 0 ? state.rivers : ((userBasin && userBasin.rivers) || [])
         };
         window.adminState = state;
         renderAllCards();
+      });
+
+      // 8. Start Live River Telemetry Polling (every 35 seconds)
+      if (userBasin && userBasin.id) {
+        startLiveRiverPolling(userBasin.id, 35000);
+        fetchLiveRiverTelemetry(userBasin.id).then(live => {
+          if (live && live.length > 0) {
+            state.rivers = live;
+            window.adminState = state;
+            renderAllCards();
+          }
+        }).catch(err => console.warn('Telemetry poll notice:', err));
       }
-    });
 
-    // 7. Start real-time sync with backend
-    startRealtimeSync();
-    onSync((newState) => {
-      state = {
-        ...newState,
-        rivers: state.rivers && state.rivers.length > 0 ? state.rivers : userBasin.rivers
-      };
-      window.adminState = state;
-      renderAllCards();
-    });
-
-    // 8. Start Live River Telemetry Polling (every 35 seconds)
-    startLiveRiverPolling(userBasin.id, 35000);
-    fetchLiveRiverTelemetry(userBasin.id).then(live => {
-      if (live && live.length > 0) {
-        state.rivers = live;
-        window.adminState = state;
-        renderAllCards();
+      // 9. Focus on the primary sector
+      if (initialSector && initialSector.id) {
+        switchMonitoringDistrict(initialSector.id);
       }
-    });
-
-    // 9. Focus on the primary sector
-    switchMonitoringDistrict(initialSector.id);
+    } catch (initErr) {
+      console.error('Fatal admin initialization caught:', initErr);
+    }
   });
 
   // Attach all handlers to window for inline HTML & React calls

@@ -953,8 +953,18 @@ export function detectNearestRiver(lat, lng, basinKey) {
 
   // Check if we have live telemetry for this river in liveRivers
   let liveMatch = null;
-  if (liveRivers) {
-    liveMatch = liveRivers.find(lr => lr.id === nearest.id || lr.name.toLowerCase().includes(nearest.id.toLowerCase()) || nearest.name.toLowerCase().includes(lr.name.toLowerCase()));
+  if (liveRivers && Array.isArray(liveRivers)) {
+    const nearId = String(nearest?.id || '').trim().toLowerCase();
+    const nearName = String(nearest?.name || '').trim().toLowerCase();
+    liveMatch = liveRivers.find(lr => {
+      if (!lr) return false;
+      const lrId = String(lr.id || '').trim().toLowerCase();
+      const lrName = String(lr.name || '').trim().toLowerCase();
+      return (nearId && lrId && lrId === nearId) ||
+             (nearId && lrName && lrName.includes(nearId)) ||
+             (nearName && lrId && nearName.includes(lrId)) ||
+             (nearName && lrName && (nearName.includes(lrName) || lrName.includes(nearName)));
+    });
   }
 
   const currentVal = liveMatch ? Number(liveMatch.current) : Number(nearest.current);
