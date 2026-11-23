@@ -144,6 +144,22 @@ function adminBackendPlugin() {
             }
           }
 
+          // Live River Telemetry (Open-Meteo GloFAS & CWC)
+          if (pathname === '/api/admin/rivers/live') {
+            const basin = parsedUrl.searchParams.get('basin') || 'bk';
+            try {
+              const { riverTelemetryService } = await import('./server/admin/riverTelemetryService.js');
+              const liveData = await riverTelemetryService.getLiveBasinRivers(basin);
+              res.statusCode = 200;
+              res.end(JSON.stringify(liveData));
+              return;
+            } catch (err) {
+              res.statusCode = 500;
+              res.end(JSON.stringify({ success: false, error: err.message }));
+              return;
+            }
+          }
+
           // Rivers update
           if (pathname === '/api/admin/rivers') {
             if (method === 'GET') {

@@ -372,14 +372,31 @@ const markup = (
               </button>
             </div>
           </div>
-          {/* RIVER ACTIVITY CARDS */}
+          {/* RIVER ACTIVITY CARDS WITH REAL-TIME GloFAS & CWC TELEMETRY */}
           <div className="aqua-card anim-card">
             <div className="card-head">
               <h2>
                 <i className="fas fa-water" style={{ color: "var(--river-blue)" }}></i>
                 {" River Activity"}
               </h2>
-              <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--river-blue)", cursor: "pointer" }} onClick={(event) => window.switchTab('rivers-weather', document.querySelectorAll('.rail-btn')[2])}>All Gauges →</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span className="live-telemetry-badge" id="liveRiverSourceBadge" title="Live Copernicus GloFAS & Central Water Commission Gauge Station Telemetry">
+                  <span className="live-telemetry-dot"></span>
+                  {" LIVE CWC"}
+                </span>
+                {" "}
+                <button
+                  type="button"
+                  className="card-icon-action-btn"
+                  id="btnRefreshRivers"
+                  onClick={() => window.refreshLiveRiverTelemetry && window.refreshLiveRiverTelemetry()}
+                  title="Sync Real-Time Gauge Telemetry (Open-Meteo & CWC)"
+                >
+                  <i className="fas fa-arrows-rotate" id="riverRefreshIcon"></i>
+                </button>
+                {" "}
+                <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--river-blue)", cursor: "pointer" }} onClick={(event) => window.switchTab('rivers-weather', document.querySelectorAll('.rail-btn')[2])}>Gauges →</span>
+              </div>
             </div>
             <div className="right-cards-grid" id="rightRiverCards"></div>
           </div>

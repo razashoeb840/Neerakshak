@@ -12,7 +12,10 @@ import {
   updateWeather as updateWeatherApi,
   startRealtimeSync,
   stopRealtimeSync,
-  onSync
+  onSync,
+  fetchLiveRiverTelemetry,
+  startLiveRiverPolling,
+  stopLiveRiverPolling
 } from './adminApi.js';
 
 import {
@@ -188,22 +191,33 @@ export default function initAdminPage() {
       if (rightRiverBox) {
         rightRiverBox.innerHTML = state.rivers.map(r => {
           const isDanger = r.current >= r.danger;
-          const sev = isDanger ? 'Danger' : (r.current >= r.danger - 0.8 ? 'Warning' : 'Normal');
-          const badgeCls = isDanger ? 'sev-critical' : (sev === 'Warning' ? 'sev-moderate' : 'sev-normal');
+          const sev = isDanger ? 'Critical Breach' : (r.current >= r.danger - 0.8 ? 'Warning Watch' : 'Normal Flow');
+          const badgeCls = isDanger ? 'sev-critical' : (sev === 'Warning Watch' ? 'sev-moderate' : 'sev-normal');
           const arrow = r.trend === 'Rising' ? '↑' : (r.trend === 'Falling' ? '↓' : '→');
+          const dischargeTag = r.dischargeFormatted ? `<span style="font-size:9px; background:#e0f2fe; color:#0369a1; padding:1px 5px; border-radius:4px; font-weight:700; margin-left:4px; border:1px solid #bae6fd;" title="Real-time River Discharge (GloFAS)"><i class="fas fa-water"></i> ${r.dischargeFormatted}</span>` : '';
+          const stationTag = r.stationCode ? `<span style="font-size:9.5px; color:#64748b; display:block; margin-top:1px;">${r.stationCode} • ${r.lastUpdated || 'Live'}</span>` : '';
+
           return `
-            <div class="river-stat-tile">
-              <div style="display:flex; align-items:center; gap:7px;">
-                <span style="width:4px; height:22px; border-radius:3px; background:${r.barColor || '#0284c7'};"></span>
+            <div class="river-stat-tile" title="${r.station || r.name} | CWC Danger Level: ${Number(r.danger).toFixed(2)}m">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="width:4px; height:28px; border-radius:3px; background:${r.barColor || '#0284c7'};"></span>
                 <div>
-                  <strong style="display:block; font-size:12px; color:var(--navy-deep);">${r.name}</strong>
-                  <span style="font-size:10.5px; color:var(--text-muted);">${arrow} ${Number(r.current).toFixed(1)} m</span>
+                  <div style="display:flex; align-items:center;">
+                    <strong style="font-size:11.5px; color:var(--navy-deep);">${(r.name || '').split(' (')[0]}</strong>
+                    ${dischargeTag}
+                  </div>
+                  <div style="font-size:10px; color:var(--text-muted); margin-top:1px;">
+                    <strong style="color:${isDanger ? '#dc2626' : 'var(--navy-deep)'}; font-size:11px;">${arrow} ${Number(r.current).toFixed(2)} m</strong> / Danger: ${Number(r.danger).toFixed(2)} m
+                  </div>
+                  ${stationTag}
                 </div>
               </div>
-              <span class="sev-pill ${badgeCls}">${sev}</span>
-              <svg width="50" height="18" viewBox="0 0 54 20" fill="none">
-                <path d="${r.spark || 'M2 10 L52 10'}" stroke="${r.barColor || '#0284c7'}" stroke-width="2.2" stroke-linecap="round" />
-              </svg>
+              <div style="display:flex; flex-direction:column; align-items:flex-end; gap:3px;">
+                <span class="sev-pill ${badgeCls}" style="font-size:9px; padding:2px 5px;">${sev}</span>
+                <svg width="48" height="16" viewBox="0 0 54 20" fill="none">
+                  <path d="${r.spark || 'M2 10 L52 10'}" stroke="${r.barColor || '#0284c7'}" stroke-width="2.2" stroke-linecap="round" />
+                </svg>
+              </div>
             </div>
           `;
         }).join('');
@@ -216,12 +230,17 @@ export default function initAdminPage() {
           return `
             <div class="eco-data-card">
               <div class="eco-card-top">
-                <h4>${r.name}</h4>
+                <div>
+                  <h4>${r.name}</h4>
+                  <span style="font-size:10.5px; color:var(--text-muted); font-weight:600;">${r.station || r.basin} • ${r.stationCode || 'CWC Hydrology Site'}</span>
+                </div>
                 <span class="sev-pill ${getSevClass(sev)}">${r.trend}</span>
               </div>
               <div class="eco-meta-grid">
-                <span>Current: <strong>${Number(r.current).toFixed(1)} m</strong></span>
-                <span>Danger: <strong>${Number(r.danger).toFixed(1)} m</strong></span>
+                <span>Current Level: <strong>${Number(r.current).toFixed(2)} m</strong></span>
+                <span>Danger Mark: <strong>${Number(r.danger).toFixed(2)} m</strong></span>
+                <span>River Discharge: <strong>${r.dischargeFormatted || 'Live Flow'}</strong></span>
+                <span>Telemetry Feed: <strong>${r.source || 'Open-Meteo GloFAS & CWC'}</strong></span>
               </div>
             </div>
           `;
@@ -371,10 +390,39 @@ export default function initAdminPage() {
     state.rivers = userBasin.rivers;
     renderAllCards();
 
+    // Fetch latest live gauge readings asynchronously
+    fetchLiveRiverTelemetry(userBasin.id).then(live => {
+      if (live && live.length > 0) {
+        state.rivers = live;
+        renderAllCards();
+      }
+    });
+
     const statusText = document.getElementById('telemetryStatusText');
     if (statusText) statusText.textContent = `${sector.name.split(' ')[0]} Active`;
 
     showToast(`🛰️ Telemetry loaded for ${sector.name} (${userBasin.basinName})`);
+  }
+
+  // --- MANUAL TELEMETRY REFRESH ---
+  async function refreshLiveRiverTelemetry() {
+    const userBasin = window.activeUserBasin || resolveUserBasin(sessionStorage.getItem('neerakshak_user') || 'ad1558bk');
+    const icon = document.getElementById('riverRefreshIcon');
+    if (icon) icon.classList.add('fa-spin');
+
+    try {
+      const liveRivers = await fetchLiveRiverTelemetry(userBasin.id);
+      if (liveRivers && liveRivers.length > 0) {
+        state.rivers = liveRivers;
+        window.adminState = state;
+        renderAllCards();
+        showToast(`🟢 Telemetry refreshed for ${userBasin.shortName} via Open-Meteo GloFAS & CWC`);
+      }
+    } catch (e) {}
+
+    if (icon) {
+      setTimeout(() => icon.classList.remove('fa-spin'), 650);
+    }
   }
 
   // --- AREA MODAL & CRUD ---
@@ -668,13 +716,23 @@ export default function initAdminPage() {
     onSync((newState) => {
       state = {
         ...newState,
-        rivers: userBasin.rivers
+        rivers: state.rivers && state.rivers.length > 0 ? state.rivers : userBasin.rivers
       };
       window.adminState = state;
       renderAllCards();
     });
 
-    // 8. Focus on the primary sector
+    // 8. Start Live River Telemetry Polling (every 35 seconds)
+    startLiveRiverPolling(userBasin.id, 35000);
+    fetchLiveRiverTelemetry(userBasin.id).then(live => {
+      if (live && live.length > 0) {
+        state.rivers = live;
+        window.adminState = state;
+        renderAllCards();
+      }
+    });
+
+    // 9. Focus on the primary sector
     switchMonitoringDistrict(initialSector.id);
   });
 
@@ -701,6 +759,7 @@ export default function initAdminPage() {
     showToast,
     switchTab,
     toggleDataMode,
+    refreshLiveRiverTelemetry,
     // GIS Map Controls
     mapZoomIn,
     mapZoomOut,

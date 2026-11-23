@@ -290,6 +290,47 @@ export async function updateWeather(weatherData) {
   return cachedState;
 }
 
+// --- REAL-TIME RIVER TELEMETRY (Open-Meteo GloFAS & CWC) ---
+export async function fetchLiveRiverTelemetry(basinId = 'bk') {
+  try {
+    const res = await fetch(`${API_BASE}/rivers/live?basin=${basinId}`, { cache: 'no-store' });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.success && Array.isArray(json.rivers) && json.rivers.length > 0) {
+        if (!cachedState) cachedState = getDefaultSeed();
+        cachedState.rivers = json.rivers;
+        cachedState.riverTelemetryMeta = {
+          source: json.source,
+          basinId: json.basinId,
+          timestamp: json.timestamp
+        };
+        updatePulseIndicator(true);
+        notifySync(cachedState);
+        return json.rivers;
+      }
+    }
+  } catch (err) {
+    // Offline or fallback to cached
+  }
+  return (cachedState && cachedState.rivers) || [];
+}
+
+let riverPollTimer = null;
+export function startLiveRiverPolling(basinId = 'bk', intervalMs = 35000) {
+  if (riverPollTimer) clearInterval(riverPollTimer);
+  fetchLiveRiverTelemetry(basinId);
+  riverPollTimer = setInterval(() => {
+    fetchLiveRiverTelemetry(basinId);
+  }, intervalMs);
+}
+
+export function stopLiveRiverPolling() {
+  if (riverPollTimer) {
+    clearInterval(riverPollTimer);
+    riverPollTimer = null;
+  }
+}
+
 // Background auto-refresh / real-time synchronization every 8 seconds
 let pollInterval = null;
 export function startRealtimeSync() {
