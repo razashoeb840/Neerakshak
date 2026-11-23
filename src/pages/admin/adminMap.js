@@ -6,9 +6,9 @@ let mapInstance = null;
 let zonesLayerGroup = null;
 let facilitiesLayerGroup = null;
 let riverLayerGroup = null;
+let tempPickLayer = null;
 let activeSeverityFilter = 'ALL';
-let pinFloodZoneMode = false;
-let pinFacilityMode = false;
+let isMapPickActive = false;
 
 // Fix Leaflet's default icon path issue with bundlers
 delete L.Icon.Default.prototype._getIconUrl;
@@ -80,14 +80,14 @@ export function initAdminFloodMap(containerId = 'leafletMap') {
     center: KAMRUP_CENTER,
     zoom: DEFAULT_ZOOM,
     minZoom: 9,
-    maxZoom: 17,
-    zoomControl: false // Using our custom HUD zoom controls
+    maxZoom: 18,
+    zoomControl: false // Using custom HUD zoom controls
   });
 
-  // High-clarity Voyager tile layer (clean riparian rendering with clear water bodies)
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: 'abcd',
+  // Standard OpenStreetMap Tile Layer (100% Free, NO API Key Required, Clean Geographic Details)
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    subdomains: ['a', 'b', 'c'],
     maxZoom: 19
   }).addTo(mapInstance);
 
@@ -95,37 +95,58 @@ export function initAdminFloodMap(containerId = 'leafletMap') {
   riverLayerGroup = L.layerGroup().addTo(mapInstance);
   zonesLayerGroup = L.layerGroup().addTo(mapInstance);
   facilitiesLayerGroup = L.layerGroup().addTo(mapInstance);
+  tempPickLayer = L.layerGroup().addTo(mapInstance);
 
   // Render River Corridors
   renderRiverCorridors();
 
-  // Map Click Handler for Interactive Pinning
+  // Map Click Handler
   mapInstance.on('click', (e) => {
     const { lat, lng } = e.latlng;
-    if (pinFloodZoneMode) {
-      pinFloodZoneMode = false;
-      document.body.style.cursor = 'default';
-      if (window.openAreaModal) {
-        window.openAreaModal();
-        const latInput = document.getElementById('inpAreaLat');
-        const lngInput = document.getElementById('inpAreaLng');
-        if (latInput) latInput.value = lat.toFixed(4);
-        if (lngInput) lngInput.value = lng.toFixed(4);
-        if (window.showToast) window.showToast(`Pinned GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-      }
-    } else if (pinFacilityMode) {
-      pinFacilityMode = false;
-      document.body.style.cursor = 'default';
-      if (window.openFacilityModal) {
-        window.openFacilityModal();
-        const distInput = document.getElementById('inpFacDist');
-        if (distInput) distInput.value = `GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-        if (window.showToast) window.showToast(`Pinned facility location on map.`);
-      }
+
+    if (isMapPickActive) {
+      // Complete location picking mode
+      completeMapPick(lat, lng);
+    } else {
+      // General map click: offer quick action to mark this point
+      tempPickLayer.clearLayers();
+
+      const pulsePinIcon = L.divIcon({
+        className: 'temp-pin-div',
+        html: `
+          <div style="position:relative; display:flex; align-items:center; justify-content:center;">
+            <span style="position:absolute; width:34px; height:34px; border-radius:50%; background:#0284c7; animation:pinPulseAnim 1.8s infinite; opacity:0.5;"></span>
+            <div style="width:24px; height:24px; border-radius:50%; background:#0284c7; color:#fff; display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.3); font-size:11px;">
+              <i class="fas fa-location-crosshairs"></i>
+            </div>
+          </div>
+        `,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+        popupAnchor: [0, -16]
+      });
+
+      const tempMarker = L.marker([lat, lng], { icon: pulsePinIcon }).addTo(tempPickLayer);
+
+      const clickPopup = `
+        <div style="text-align:center; padding:6px 4px; min-width:190px;">
+          <div style="font-size:11px; font-weight:800; color:#0f172a; margin-bottom:2px;">
+            <i class="fas fa-location-dot" style="color:#0284c7;"></i> Pinned GPS Point
+          </div>
+          <div style="font-size:11.5px; font-weight:700; color:#0369a1; background:#f0f9ff; padding:3px 6px; border-radius:4px; margin-bottom:8px; border:1px solid #bae6fd;">
+            ${lat.toFixed(4)}, ${lng.toFixed(4)}
+          </div>
+          <button type="button" class="popup-btn-edit" style="width:100%; justify-content:center; padding:6px;" onclick="window.openAreaModalWithCoords && window.openAreaModalWithCoords(${lat.toFixed(4)}, ${lng.toFixed(4)})">
+            <i class="fas fa-plus-circle"></i> Mark Flood Zone Here
+          </button>
+        </div>
+      `;
+
+      tempMarker.bindPopup(clickPopup).openPopup();
     }
   });
 
-  // Invalidate size once rendered
+  // Ensure Leaflet tiles render completely on mount
   setTimeout(() => {
     if (mapInstance) mapInstance.invalidateSize();
   }, 250);
@@ -250,7 +271,6 @@ export function updateMapLayers(areas = [], facilities = []) {
 
   // 2. RENDER EMERGENCY FACILITIES
   facilities.forEach((fac, idx) => {
-    // Generate approximate nearby GPS offsets if not stored explicitly
     let fLat = 26.125 + (idx * 0.02 - 0.03);
     let fLng = 91.46 + (idx * 0.025 - 0.03);
 
@@ -294,6 +314,123 @@ export function updateMapLayers(areas = [], facilities = []) {
   });
 }
 
+// =========================================================================
+// INTERACTIVE MAP LOCATION PICKING MODE
+// =========================================================================
+
+export function startMapPickMode() {
+  isMapPickActive = true;
+  document.body.style.cursor = 'crosshair';
+
+  // Show top banner inside map viewport
+  const banner = document.getElementById('mapPickBanner');
+  if (banner) banner.style.display = 'flex';
+
+  // Ensure map is visible (switch to map-hub tab if on another tab)
+  if (window.switchTab) {
+    const mapBtn = document.querySelectorAll('.rail-btn')[0];
+    window.switchTab('map-hub', mapBtn);
+  }
+
+  // Close the modal so user can see the map clearly
+  if (window.closeModal) {
+    window.closeModal('areaModal');
+  }
+
+  if (window.showToast) {
+    window.showToast('🎯 Map Pinning Active: Click anywhere on the map to place the flood zone marker.');
+  }
+}
+
+export function cancelMapPick() {
+  isMapPickActive = false;
+  document.body.style.cursor = 'default';
+
+  const banner = document.getElementById('mapPickBanner');
+  if (banner) banner.style.display = 'none';
+
+  if (window.showToast) {
+    window.showToast('Map location picking cancelled.');
+  }
+
+  // Re-open area modal
+  const modal = document.getElementById('areaModal');
+  if (modal) modal.classList.add('open');
+}
+
+function completeMapPick(lat, lng) {
+  isMapPickActive = false;
+  document.body.style.cursor = 'default';
+
+  const banner = document.getElementById('mapPickBanner');
+  if (banner) banner.style.display = 'none';
+
+  // Drop temporary highlight marker
+  if (tempPickLayer) {
+    tempPickLayer.clearLayers();
+    const tempIcon = L.divIcon({
+      className: 'temp-pin-div',
+      html: `
+        <div style="position:relative; display:flex; align-items:center; justify-content:center;">
+          <span style="position:absolute; width:40px; height:40px; border-radius:50%; background:#dc2626; animation:pinPulseAnim 1.8s infinite; opacity:0.6;"></span>
+          <div style="width:26px; height:26px; border-radius:50%; background:#dc2626; color:#fff; display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 2px 8px rgba(0,0,0,0.4); font-size:12px;">
+            <i class="fas fa-map-pin"></i>
+          </div>
+        </div>
+      `,
+      iconSize: [30, 30],
+      iconAnchor: [15, 15]
+    });
+    L.marker([lat, lng], { icon: tempIcon }).addTo(tempPickLayer);
+  }
+
+  // Update input fields in areaModal
+  const latInp = document.getElementById('inpAreaLat');
+  const lngInp = document.getElementById('inpAreaLng');
+  const statusLbl = document.getElementById('lblMapPickStatus');
+
+  if (latInp) {
+    latInp.value = lat.toFixed(4);
+    latInp.style.borderColor = '#16a34a';
+    latInp.style.boxShadow = '0 0 0 3px rgba(22, 163, 74, 0.2)';
+  }
+  if (lngInp) {
+    lngInp.value = lng.toFixed(4);
+    lngInp.style.borderColor = '#16a34a';
+    lngInp.style.boxShadow = '0 0 0 3px rgba(22, 163, 74, 0.2)';
+  }
+  if (statusLbl) {
+    statusLbl.innerHTML = `<span style="color:#16a34a; font-weight:700;"><i class="fas fa-circle-check"></i> GPS Captured: ${lat.toFixed(4)}, ${lng.toFixed(4)}</span>`;
+  }
+
+  // Re-open area modal
+  const modal = document.getElementById('areaModal');
+  if (modal) modal.classList.add('open');
+
+  if (window.showToast) {
+    window.showToast(`✓ Coordinates captured: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+  }
+}
+
+// Quick action from general map click
+export function openAreaModalWithCoords(lat, lng) {
+  if (tempPickLayer) tempPickLayer.closePopup();
+
+  if (window.openAreaModal) {
+    window.openAreaModal();
+  }
+
+  const latInp = document.getElementById('inpAreaLat');
+  const lngInp = document.getElementById('inpAreaLng');
+  const statusLbl = document.getElementById('lblMapPickStatus');
+
+  if (latInp) latInp.value = Number(lat).toFixed(4);
+  if (lngInp) lngInp.value = Number(lng).toFixed(4);
+  if (statusLbl) {
+    statusLbl.innerHTML = `<span style="color:#16a34a; font-weight:700;"><i class="fas fa-circle-check"></i> GPS Captured: ${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}</span>`;
+  }
+}
+
 // Map Action Helpers for Window Interface
 export function mapZoomIn() {
   if (mapInstance) mapInstance.zoomIn();
@@ -318,7 +455,6 @@ export function zoomToCoords(lat, lng) {
 
 export function setSeverityFilter(sev) {
   activeSeverityFilter = sev;
-  // Visual active pill state
   document.querySelectorAll('.map-legend-pill span').forEach(el => {
     if (el.textContent.trim() === sev || (sev === 'ALL' && el.textContent.includes('All'))) {
       el.style.opacity = '1';
@@ -328,27 +464,24 @@ export function setSeverityFilter(sev) {
       el.style.fontWeight = '600';
     }
   });
+
+  const areas = (window.adminState && window.adminState.areas) || [];
+  const facilities = (window.adminState && window.adminState.facilities) || [];
+  updateMapLayers(areas, facilities);
 }
 
 export function triggerPinZoneMode() {
-  pinFloodZoneMode = true;
-  pinFacilityMode = false;
-  document.body.style.cursor = 'crosshair';
-  if (window.showToast) window.showToast('Click anywhere on the map to pin Flood Zone GPS coordinates.');
+  startMapPickMode();
 }
 
 export function triggerPinFacilityMode() {
-  pinFacilityMode = true;
-  pinFloodZoneMode = false;
-  document.body.style.cursor = 'crosshair';
-  if (window.showToast) window.showToast('Click anywhere on the map to pin Emergency Facility.');
+  startMapPickMode();
 }
 
 export function searchMapLocation(query) {
   if (!query || !query.trim() || !mapInstance) return;
   const q = query.trim().toLowerCase();
 
-  // Check seed areas
   const areas = (window.adminState && window.adminState.areas) || [];
   const found = areas.find(a => a.name.toLowerCase().includes(q) || (a.block || '').toLowerCase().includes(q));
   if (found && found.lat && found.lng) {
@@ -357,11 +490,10 @@ export function searchMapLocation(query) {
     return;
   }
 
-  // Check river names
   if (q.includes('brahmaputra')) {
     mapInstance.setView([26.18, 91.68], 12, { animate: true });
     if (window.showToast) window.showToast('Focused on Brahmaputra River Basin');
   } else {
-    if (window.showToast) window.showToast(`No exact match for "${query}". Try searching "Palashbari" or "Chaygaon"`);
+    if (window.showToast) window.showToast(`No exact match for "${query}". Try "Palashbari" or "Chaygaon"`);
   }
 }

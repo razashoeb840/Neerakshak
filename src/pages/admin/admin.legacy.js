@@ -25,7 +25,10 @@ import {
   setSeverityFilter,
   triggerPinZoneMode,
   triggerPinFacilityMode,
-  searchMapLocation
+  searchMapLocation,
+  startMapPickMode,
+  cancelMapPick,
+  openAreaModalWithCoords
 } from './adminMap.js';
 
 export default function initAdminPage() {
@@ -64,15 +67,30 @@ export default function initAdminPage() {
     renderAllCards();
   }
 
+  const TAB_MAP = {
+    'map-hub': 'tab-map-hub',
+    'zones-hub': 'tab-areas-grid',
+    'areas-grid': 'tab-areas-grid',
+    'flood-zones': 'tab-areas-grid',
+    'gauges-hub': 'tab-rivers-weather',
+    'rivers-weather': 'tab-rivers-weather',
+    'rivers-rain': 'tab-rivers-weather',
+    'alerts-hub': 'tab-alerts-grid',
+    'alerts-grid': 'tab-alerts-grid',
+    'facilities-hub': 'tab-facilities-grid',
+    'facilities-grid': 'tab-facilities-grid'
+  };
+
   function switchTab(tabId, btnEl) {
     document.querySelectorAll('.rail-btn').forEach(b => b.classList.remove('active'));
     if (btnEl) btnEl.classList.add('active');
     document.querySelectorAll('.tab-view-pane').forEach(v => v.classList.remove('active'));
-    const targetPane = document.getElementById(`tab-${tabId}`);
+    const resolvedId = TAB_MAP[tabId] || (tabId.startsWith('tab-') ? tabId : `tab-${tabId}`);
+    const targetPane = document.getElementById(resolvedId);
     if (targetPane) targetPane.classList.add('active');
 
     // Trigger map resize if switching to map tab
-    if (tabId === 'map-hub') {
+    if (tabId === 'map-hub' || resolvedId === 'tab-map-hub') {
       setTimeout(() => {
         const mapContainer = document.getElementById('leafletMap');
         if (mapContainer && window.leafletMapInstance) {
@@ -531,7 +549,10 @@ export default function initAdminPage() {
     setSeverityFilter,
     triggerPinZoneMode,
     triggerPinFacilityMode,
-    searchMapLocation
+    searchMapLocation,
+    startMapPickMode,
+    cancelMapPick,
+    openAreaModalWithCoords
   });
 
   __ready.forEach((fn) => fn());

@@ -80,25 +80,25 @@ const markup = (
             <span>{"Map & GIS"}</span>
           </button>
           {" "}
-          <button className="rail-btn" onClick={(event) => window.switchTab('zones-hub', event.currentTarget)} title={"Marked Flood Zones & Villages"}>
+          <button className="rail-btn" onClick={(event) => window.switchTab('areas-grid', event.currentTarget)} title={"Marked Flood Zones & Villages"}>
             <i className="fas fa-draw-polygon"></i>
             {" "}
             <span>Flood Zones</span>
           </button>
           {" "}
-          <button className="rail-btn" onClick={(event) => window.switchTab('gauges-hub', event.currentTarget)} title={"River Gauges & Rain Radar"}>
+          <button className="rail-btn" onClick={(event) => window.switchTab('rivers-weather', event.currentTarget)} title={"River Gauges & Rain Radar"}>
             <i className="fas fa-water"></i>
             {" "}
             <span>Rivers/Rain</span>
           </button>
           {" "}
-          <button className="rail-btn" onClick={(event) => window.switchTab('alerts-hub', event.currentTarget)} title="Public Alert Broadcasts">
+          <button className="rail-btn" onClick={(event) => window.switchTab('alerts-grid', event.currentTarget)} title="Public Alert Broadcasts">
             <i className="fas fa-bell"></i>
             {" "}
             <span>Alerts</span>
           </button>
           {" "}
-          <button className="rail-btn" onClick={(event) => window.switchTab('facilities-hub', event.currentTarget)} title={"Emergency Camps & Facilities"}>
+          <button className="rail-btn" onClick={(event) => window.switchTab('facilities-grid', event.currentTarget)} title={"Emergency Camps & Facilities"}>
             <i className="fas fa-hospital-user"></i>
             {" "}
             <span>Facilities</span>
@@ -115,7 +115,7 @@ const markup = (
             <div className="rail-pulse-wrap" title="GIS Socket Online">
               <span className="rail-online-dot"></span>
               {" "}
-              <span className="rail-online-text">SYS OK</span>
+              <span className="rail-online-text">API LIVE</span>
             </div>
           </div>
         </aside>
@@ -146,6 +146,13 @@ const markup = (
               {/* LIVE LEAFLET GIS FLOOD MAP VIEWPORT */}
               <div id="mapViewportSlot">
                 <div id="leafletMap" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 1 }}></div>
+
+                {/* Interactive Map Location Pick Banner */}
+                <div id="mapPickBanner" className="map-pick-banner" style={{ display: "none" }}>
+                  <i className="fas fa-crosshairs fa-spin" style={{ color: "#ef4444", fontSize: "16px" }}></i>
+                  <span><strong>Pinning Mode Active:</strong> Click anywhere on the map to set zone GPS coordinates</span>
+                  <button type="button" className="btn-cancel-pick" onClick={() => window.cancelMapPick && window.cancelMapPick()}>Cancel</button>
+                </div>
 
                 <div className="map-float-search" style={{ zIndex: 500 }}>
                   <i className="fas fa-search" style={{ color: "#64748b" }}></i>
@@ -492,6 +499,20 @@ const markup = (
                 <label>Est. Affected Population</label>
                 {" "}
                 <input type="number" id="inpAreaPop" className="form-control" defaultValue="2200" required />
+              </div>
+            </div>
+            <div className="form-group" style={{ marginBottom: "14px", marginTop: "4px" }}>
+              <button
+                type="button"
+                className="btn-pick-map-coords"
+                id="btnPickOnMap"
+                onClick={() => window.startMapPickMode && window.startMapPickMode()}
+              >
+                <i className="fas fa-location-crosshairs" style={{ color: "#0284c7", fontSize: "14px" }}></i>
+                {" 📍 Pick Location on GIS Map"}
+              </button>
+              <div id="lblMapPickStatus" style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px", fontWeight: "600" }}>
+                Click above to place marker pin directly on the map, or enter coordinates below:
               </div>
             </div>
             <div className="form-grid-2">
