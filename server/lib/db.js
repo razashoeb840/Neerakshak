@@ -339,10 +339,46 @@ export const authorityDb = {
     };
 
     cache.authority.allocations.unshift(newAlloc);
+
+    // Also auto-sync/log in NDRF & SDRF Multi-Agency Coordination records so it shows in NDRF/SDRF tab!
+    const coordRec = {
+      recordNumber: `COR-${Date.now().toString(36).toUpperCase()}`,
+      agency: leadAgency,
+      unitDesignation: `${leadAgency} Tactical Response Team`,
+      contactOfficer: `${leadOfficerName} (ID: ${leadOfficerId})`,
+      contactPhone: leadOfficerContact,
+      officialChannel: 'Official Encrypted Wireless Net / DEOC Hotline',
+      operationLocation: newAlloc.village,
+      assistanceRequested: `Lead Handover & Field Rescue (Allocated: ${newAlloc.summary})`,
+      teamStrength: 'Designated Field Handover Escort',
+      operationalStatus: 'Assigned & Deployed',
+      evacuatedCitizensCount: 'In Progress',
+      latestCoordinationBrief: `Assigned as Lead Response Officer for ${newAlloc.village}. Supplies: ${newAlloc.summary}. Badge: ${leadOfficerId}. Contact: ${leadOfficerContact}.`,
+      recordedByAuthority: 'District Disaster Management Authority (DDMA)',
+      updatedAt: new Date().toISOString()
+    };
+    if (!cache.authority.coordinations) cache.authority.coordinations = [];
+    const exIdx = cache.authority.coordinations.findIndex(c => 
+      (c.operationLocation && c.operationLocation.toLowerCase() === newAlloc.village.toLowerCase()) ||
+      (c.sector && c.sector.toLowerCase() === newAlloc.village.toLowerCase())
+    );
+    if (exIdx >= 0) {
+      cache.authority.coordinations[exIdx] = { ...cache.authority.coordinations[exIdx], ...coordRec };
+    } else {
+      cache.authority.coordinations.unshift(coordRec);
+    }
+
     const db = await getDatabase();
     if (db) {
       try {
-        await db.collection('resourceallocations').insertOne({ ...newAlloc });
+        await Promise.all([
+          db.collection('resourceallocations').insertOne({ ...newAlloc }),
+          db.collection('coordinationrecords').updateOne(
+            { operationLocation: newAlloc.village },
+            { $set: coordRec },
+            { upsert: true }
+          )
+        ]);
       } catch (e) {}
     }
     return newAlloc;

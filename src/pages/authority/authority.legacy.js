@@ -119,6 +119,21 @@ export default function initAuthorityPage() {
     selectedVillageId = villageId;
     renderAllAuthorityViews();
 
+    const v = (state.villages || []).find(item => item.id === villageId || item.name === villageId);
+    const targetLat = v && v.lat ? Number(v.lat) : 26.15;
+    const targetLng = v && v.lng ? Number(v.lng) : 91.60;
+
+    if (openDetailsTab) {
+      switchAuthTab('dashboard');
+      setTimeout(() => {
+        if (window.authorityLeafletMapInstance) {
+          window.authorityLeafletMapInstance.invalidateSize();
+          window.authorityLeafletMapInstance.flyTo([targetLat, targetLng], 14, { duration: 1.2 });
+        }
+      }, 120);
+      return;
+    }
+
     const panel = document.getElementById('areaDetailsPanel');
     if (panel) {
       panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -126,9 +141,9 @@ export default function initAuthorityPage() {
       setTimeout(() => { panel.style.boxShadow = ''; }, 1400);
     }
 
-    const v = (state.villages || []).find(item => item.id === villageId);
-    if (v && v.lat && v.lng && window.authorityLeafletMapInstance) {
-      window.authorityLeafletMapInstance.setView([Number(v.lat), Number(v.lng)], 13, { animate: true });
+    if (window.authorityLeafletMapInstance) {
+      window.authorityLeafletMapInstance.invalidateSize();
+      window.authorityLeafletMapInstance.flyTo([targetLat, targetLng], 13, { duration: 1 });
     }
   }
 
@@ -495,31 +510,41 @@ export default function initAuthorityPage() {
       if (coordGrid) {
         coordGrid.innerHTML = (!coordinations || coordinations.length === 0)
           ? `<div style="grid-column:1/-1; text-align:center; padding:18px; color:var(--text-muted);">No NDRF/SDRF coordination updates recorded.</div>`
-          : coordinations.map(c => `
-            <div class="decision-card">
-              <div class="dc-top">
-                <div>
-                  <h4>${c.agency}</h4>
-                  <span style="font-size:11px; color:var(--text-muted); font-weight:600;"><i class="fas fa-location-dot" style="color:#ef4444;"></i> Sector: ${c.sector}</span>
+          : coordinations.map(c => {
+            const sectorName = c.sector || c.operationLocation || 'District Sector';
+            const cmdName = c.commander || c.contactOfficer || 'Incident Commander';
+            const phone = c.contact || c.contactPhone || 'VHF Ch-07 / DEOC Hotline';
+            const assets = c.strength || c.teamStrength || 'Rescue Column & Flood Evacuation Team';
+            const statusLabel = c.status || c.operationalStatus || 'Assigned & Deployed';
+            const sitrep = c.callLog || c.update || c.latestCoordinationBrief || c.assistanceRequested || 'Field rescue underway.';
+            const timeLabel = c.timestamp || (c.updatedAt ? new Date(c.updatedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : 'Live');
+
+            return `
+              <div class="decision-card">
+                <div class="dc-top">
+                  <div>
+                    <h4><i class="fas fa-shield-halved" style="color:#0284c7; margin-right:4px;"></i>${c.agency || 'NDRF / SDRF'}</h4>
+                    <span style="font-size:11px; color:var(--text-muted); font-weight:600;"><i class="fas fa-location-dot" style="color:#ef4444;"></i> Sector: <strong>${sectorName}</strong></span>
+                  </div>
+                  <span class="status-pill ${statusLabel === 'Mission Successful' ? 'st-normal' : (statusLabel === 'On Standby at Staging Area' ? 'st-moderate' : 'st-approved')}">${statusLabel}</span>
                 </div>
-                <span class="status-pill ${c.status === 'Mission Successful' ? 'st-normal' : (c.status === 'On Standby at Staging Area' ? 'st-moderate' : 'st-approved')}">${c.status || 'Active Deployment'}</span>
-              </div>
-              <div class="dc-meta-box">
-                <span>Commander: <strong>${c.commander || 'Incident Commander'}</strong> (${c.designation || 'Lead'})</span>
-                <span>Contact: <strong>${c.contact || 'VHF Ch-07'}</strong></span>
-              </div>
-              <div style="font-size:11px; color:var(--text-body); margin-top:4px;">
-                Tactical Assets: <strong>${c.strength || 'Rescue Boats & Deep-Water Personnel'}</strong>
-              </div>
-              <div class="officer-call-box">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
-                  <strong style="color:var(--navy-deep); font-size:11px;"><i class="fas fa-headset" style="color:var(--river-blue);"></i> Official Radio / SITREP Log:</strong>
-                  <span style="font-size:10px; color:#64748b; font-weight:700;">${c.timestamp || 'Live'}</span>
+                <div class="dc-meta-box">
+                  <span>Lead Officer: <strong>${cmdName}</strong></span>
+                  <span>Radio / Contact: <strong>${phone}</strong></span>
                 </div>
-                <p style="margin:0; font-size:11.5px; color:var(--text-body); line-height:1.45;">${c.callLog || c.update}</p>
+                <div style="font-size:11px; color:var(--text-body); margin-top:4px;">
+                  Deployment Strength: <strong>${assets}</strong>
+                </div>
+                <div class="officer-call-box">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                    <strong style="color:var(--navy-deep); font-size:11px;"><i class="fas fa-headset" style="color:var(--river-blue);"></i> Official Radio / SITREP Log:</strong>
+                    <span style="font-size:10px; color:#64748b; font-weight:700;">${timeLabel}</span>
+                  </div>
+                  <p style="margin:0; font-size:11.5px; color:var(--text-body); line-height:1.45;">${sitrep}</p>
+                </div>
               </div>
-            </div>
-          `).join('');
+            `;
+          }).join('');
       }
 
       // 7. Operation Management
@@ -614,14 +639,26 @@ export default function initAuthorityPage() {
      ACTIONS & BACKEND SYNCHRONIZATION
      ===================================================================== */
   function openTrackingDetail(allocId) {
-    const a = (state.allocations || []).find(item => item.id === allocId);
-    if (!a) return;
+    const allocations = state.allocations || [];
+    const a = allocations.find(item => 
+      item.id === allocId || 
+      (item.village && item.village.trim().toLowerCase() === String(allocId).trim().toLowerCase()) ||
+      (item.destination && item.destination.trim().toLowerCase() === String(allocId).trim().toLowerCase())
+    ) || (selectedVillageId ? allocations.find(item => 
+      (item.village && item.village.trim().toLowerCase() === String(selectedVillageId).trim().toLowerCase()) ||
+      (item.destination && item.destination.trim().toLowerCase() === String(selectedVillageId).trim().toLowerCase())
+    ) : null) || allocations[0];
+
+    if (!a) {
+      showToast('No active allocation tracking dossier found yet.');
+      return;
+    }
 
     const heading = document.getElementById('trackModalHeading');
-    if (heading) heading.innerHTML = `<i class="fas fa-truck-moving" style="color:var(--river-blue); margin-right:6px;"></i> ${a.id} • ${a.village}`;
+    if (heading) heading.innerHTML = `<i class="fas fa-truck-moving" style="color:var(--river-blue); margin-right:6px;"></i> ${a.id} • ${a.village || a.destination}`;
 
     const sub = document.getElementById('trackModalSub');
-    if (sub) sub.textContent = `Assigned Depot: ${a.assignedGodown || 'Central Relief Godown – Mirza'} | Status: ${a.godownStatus}`;
+    if (sub) sub.textContent = `Assigned Depot: ${a.assignedGodown || 'Central Relief Godown – Mirza'} | Status: ${a.godownStatus || a.status}`;
 
     const body = document.getElementById('trackModalBody');
     if (body) {
@@ -743,12 +780,16 @@ export default function initAuthorityPage() {
       leadOfficerId,
       leadOfficerContact
     });
+
+    // Re-sync local state from API cache
+    state = getCurrentAuthorityState();
+    window.authorityState = state;
     renderAllAuthorityViews();
 
     if (existing) {
-      showToast(`Allocation ${existing.id} updated with Lead Officer ${leadOfficerName} (${leadAgency}).`);
+      showToast(`Allocation ${existing.id} updated! Officer ${leadOfficerName} (${leadAgency}) logged in NDRF/SDRF tab.`);
     } else {
-      showToast(`Allocation for ${villageName} sent to Godown Manager with escort officer ${leadOfficerName}.`);
+      showToast(`Allocation for ${villageName} sent to Godown! Logged in NDRF/SDRF tab.`);
     }
   }
 

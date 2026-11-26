@@ -64,6 +64,10 @@ export function initAuthorityFloodMap(containerId = 'authorityLeafletMap', initi
   riverLayerGroup = L.layerGroup().addTo(mapInstance);
   villageLayerGroup = L.layerGroup().addTo(mapInstance);
 
+  // Set global reference for legacy view focusing
+  window.authorityLeafletMapInstance = mapInstance;
+  window.focusAuthorityMap = focusAuthorityMap;
+
   // Render basin river corridors & CWC stations
   renderAuthorityRivers(basinKey);
 
@@ -72,6 +76,12 @@ export function initAuthorityFloodMap(containerId = 'authorityLeafletMap', initi
   }, 250);
 
   return mapInstance;
+}
+
+export function focusAuthorityMap(lat, lng, zoom = 13) {
+  if (mapInstance && lat && lng) {
+    mapInstance.flyTo([Number(lat), Number(lng)], zoom, { duration: 1.2 });
+  }
 }
 
 // Render River Basin Polylines & Live CWC Gauges (Reused from Admin)
@@ -291,4 +301,13 @@ export const flyToAuthoritySector = flyToSector;
 export const zoomInAuthorityMap = authMapZoomIn;
 export const zoomOutAuthorityMap = authMapZoomOut;
 export const recenterAuthorityMap = authMapRecenter;
+
+Object.assign(window, {
+  focusAuthorityMap,
+  authMapZoomIn,
+  authMapZoomOut,
+  authMapRecenter,
+  filterAuthorityMapSeverity,
+  searchAuthorityMap
+});
 

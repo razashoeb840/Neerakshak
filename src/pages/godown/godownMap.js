@@ -90,6 +90,8 @@ export function initGodownLogisticsMap(containerId = 'godownLeafletMap', initial
   // Render Warehouses
   renderWarehouses();
 
+  window.godownLeafletMapInstance = mapInstance;
+
   setTimeout(() => {
     if (mapInstance) mapInstance.invalidateSize();
   }, 250);
@@ -412,7 +414,7 @@ export function searchGodownMap(query = '') {
  */
 export function centerOnMap(lat, lng, zoom = 13) {
   if (mapInstance && lat && lng) {
-    mapInstance.flyTo([lat, lng], zoom, { duration: 1.2 });
+    mapInstance.flyTo([Number(lat), Number(lng)], zoom, { duration: 1.2 });
   }
 }
 
@@ -440,6 +442,9 @@ if (typeof window !== 'undefined') {
   window.godownMapRecenter = godownMapRecenter;
   window.filterGodownMap = filterGodownMap;
   window.searchGodownMap = searchGodownMap;
+  window.centerOnMap = centerOnMap;
+  window.godownMapCenterOn = centerOnMap;
+  window.godownLeafletMapInstance = mapInstance;
 }
 
 /**

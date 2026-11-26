@@ -409,6 +409,8 @@ const markup = (
                 </button>
               </div>
               <div className="grid-3" id="reportSummaryCards" style={{ marginBottom: "14px" }}></div>
+              {/* AREA-WISE RELIEF INVENTORY & RECONCILIATION REPORT */}
+              <div id="areaWiseInventoryReportContainer" style={{ marginBottom: "20px" }}></div>
               <div className="grid-3 switchable-collection" id="movementLogsCardGrid"></div>
             </div>
           </div>

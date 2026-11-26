@@ -256,14 +256,44 @@ export async function allocateDirectResourcesApi(village, summary, officerDetail
       note: `Updated allocation (${summary}) for ${existing.village} (${existing.id}) with lead officer ${leadOfficerName}; notified Godown Manager.`
     });
 
+    // Auto-update NDRF / SDRF Multi-Agency Coordination tab
+    if (!cachedState.coordinations) cachedState.coordinations = [];
+    const coordRec = {
+      id: `CORD-${Date.now().toString(36).toUpperCase()}`,
+      agency: leadAgency,
+      sector: existing.village,
+      commander: `${leadOfficerName} (ID: ${leadOfficerId})`,
+      contact: leadOfficerContact || 'VHF Ch-07 / DEOC Hotline',
+      strength: 'Lead Handover & Escort Column',
+      status: 'Assigned & Deployed',
+      update: `Allocated Relief Handover for ${existing.village}: ${summary}`,
+      timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    };
+    const cIdx = cachedState.coordinations.findIndex(c => 
+      (c.sector && c.sector.toLowerCase() === villageClean) ||
+      (c.commander && c.commander.toLowerCase().includes(leadOfficerName.toLowerCase()))
+    );
+    if (cIdx >= 0) {
+      cachedState.coordinations[cIdx] = { ...cachedState.coordinations[cIdx], ...coordRec };
+    } else {
+      cachedState.coordinations.unshift(coordRec);
+    }
+
     notifySync(cachedState);
 
     try {
-      await fetch(`${API_BASE}/allocations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(existing)
-      });
+      await Promise.all([
+        fetch(`${API_BASE}/allocations`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(existing)
+        }),
+        fetch(`${API_BASE}/coordinations`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(coordRec)
+        })
+      ]);
     } catch (e) {
       console.warn('Backend allocation sync notice:', e);
     }
@@ -297,6 +327,21 @@ export async function allocateDirectResourcesApi(village, summary, officerDetail
 
   cachedState.allocations.unshift(newAlloc);
 
+  // Auto-log in NDRF & SDRF Coordination tab
+  if (!cachedState.coordinations) cachedState.coordinations = [];
+  const coordRec = {
+    id: `CORD-${Math.floor(105 + Math.random() * 90)}`,
+    agency: leadAgency,
+    sector: village,
+    commander: `${leadOfficerName} (ID: ${leadOfficerId})`,
+    contact: leadOfficerContact || 'VHF Ch-07 / DEOC Hotline',
+    strength: 'Designated Field Handover Escort',
+    status: 'Assigned & Deployed',
+    update: `Direct DDMA Allocation for ${village}: ${summary}. Lead Handover Officer assigned.`,
+    timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+  };
+  cachedState.coordinations.unshift(coordRec);
+
   if (!cachedState.logs) cachedState.logs = [];
   cachedState.logs.unshift({
     id: `LOG-${Date.now().toString(36).toUpperCase()}`,
@@ -308,11 +353,18 @@ export async function allocateDirectResourcesApi(village, summary, officerDetail
   notifySync(cachedState);
 
   try {
-    await fetch(`${API_BASE}/allocations`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newAlloc)
-    });
+    await Promise.all([
+      fetch(`${API_BASE}/allocations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newAlloc)
+      }),
+      fetch(`${API_BASE}/coordinations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(coordRec)
+      })
+    ]);
   } catch (e) {
     console.warn('Backend allocation sync error:', e);
   }

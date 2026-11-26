@@ -205,7 +205,11 @@ export default function initGodownPage() {
         return `<div style="grid-column:1/-1; text-align:center; padding:18px; border:1.5px dashed #9cc3e6; border-radius:12px; color:var(--text-muted);">No Authority-approved allocations in this view.</div>`;
       }
       return filtered.map((a, idx) => {
-        const isDispatched = a.status === 'Dispatched';
+        const isDispatched = a.status === 'Dispatched' ||
+          String(a.godownStatus || '').toLowerCase().includes('dispatched') ||
+          String(a.godownStatus || '').toLowerCase().includes('en-route') ||
+          Boolean(a.dispatchedDate) ||
+          (Boolean(a.refNo) && a.refNo !== '—' && a.refNo.startsWith('DSP-'));
         const isShortage = String(a.status || '').toLowerCase().includes('shortage');
         const tone = isDispatched ? 'tone-good' : (isShortage ? 'tone-critical' : (a.severity === 'Critical' ? 'tone-critical' : 'tone-amber'));
         const isSel = selectedAllocId === a.id;
@@ -250,7 +254,7 @@ export default function initGodownPage() {
 
             <div class="sub-card-footer" style="flex-wrap:wrap; gap:6px; justify-content:space-between;">
               <span class="pill ${getStatusPill(a.status)}">${a.status}</span>
-              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
                 <button class="btn-gd" onclick="window.selectAllocationForDispatch('${a.id}')" title="Inspect on Map & Details">
                   <i class="fas fa-crosshairs"></i> Map Focus
                 </button>
@@ -262,6 +266,9 @@ export default function initGodownPage() {
                     <i class="fas fa-truck-fast"></i> Dispatch Convoy
                   </button>
                 ` : `
+                  <span style="display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; color:#15803d; background:#dcfce7; padding:4px 8px; border-radius:6px; border:1px solid #bbf7d0;">
+                    <i class="fas fa-lock"></i> Dispatched & Locked (${a.refNo && a.refNo !== '—' ? a.refNo : 'DSP'})
+                  </span>
                   <button class="btn-gd" style="color:#15803d; border-color:#86efac;" onclick="window.centerOnMap(${a.lat}, ${a.lng})">
                     <i class="fas fa-route"></i> Track Convoy
                   </button>
@@ -388,7 +395,11 @@ export default function initGodownPage() {
       stockVer.innerHTML = allocations.length === 0
         ? `<div style="grid-column:1/-1; text-align:center; padding:18px; color:var(--text-muted);">No allocations pending verification.</div>`
         : allocations.map((a, idx) => {
-          const isDispatched = a.status === 'Dispatched';
+          const isDispatched = a.status === 'Dispatched' ||
+            String(a.godownStatus || '').toLowerCase().includes('dispatched') ||
+            String(a.godownStatus || '').toLowerCase().includes('en-route') ||
+            Boolean(a.dispatchedDate) ||
+            (Boolean(a.refNo) && a.refNo !== '—' && a.refNo.startsWith('DSP-'));
           return `
             <div class="sub-card ${isDispatched ? 'tone-good' : 'tone-critical'}">
               <div class="sub-card-top">
@@ -399,11 +410,12 @@ export default function initGodownPage() {
                 <div>Allocated Need: <strong>${a.summary}</strong></div>
                 <div>Vehicle: <strong>${a.vehicle}</strong></div>
               </div>
-              <div class="sub-card-footer">
+              <div class="sub-card-footer" style="align-items:center;">
                 ${!isDispatched
-                  ? `<button class="btn-gd primary" onclick="window.openDispatchModal('${a.id}')">Reserve & Dispatch</button>`
-                  : `<span style="font-weight:700; color:#15803d; font-size:11px;"><i class="fas fa-check"></i> Dispatched (${a.refNo})</span>`}
-                <button class="btn-gd warn" onclick="window.reportShortageToAuthority('${a.id}')">Report Shortage</button>
+                  ? `<button class="btn-gd primary" onclick="window.openDispatchModal('${a.id}')">Reserve & Dispatch</button>
+                     <button class="btn-gd warn" onclick="window.reportShortageToAuthority('${a.id}')">Report Shortage</button>`
+                  : `<span style="font-weight:700; color:#15803d; font-size:11px;"><i class="fas fa-lock"></i> Dispatched & Locked (${a.refNo})</span>
+                     <button class="btn-gd" style="color:#15803d; border-color:#86efac; font-size:11px;" onclick="window.centerOnMap(${a.lat}, ${a.lng})"><i class="fas fa-route"></i> Track</button>`}
               </div>
             </div>
           `;
@@ -457,14 +469,11 @@ export default function initGodownPage() {
 
                   <div style="display:flex; justify-content:space-between; align-items:center; font-size:10.5px; color:#475569; gap:6px; flex-wrap:wrap;">
                     <span><i class="fas fa-user-shield" style="color:#0284c7;"></i> ${a.leadOfficerName ? `${a.leadAgency || 'NDRF'} ${a.leadOfficerName}` : (a.driver || 'Field Convoy')}</span>
-                    <div style="display:flex; gap:6px;">
+                    <div style="display:flex; gap:6px; align-items:center;">
                       ${!isCleared ? `
-                        <button class="btn-gd outline" style="padding:4px 8px; font-size:10px; color:#b45309; border-color:#f59e0b; background:#fffbeb;" onclick="window.confirmGroundOfficerClearance('${a.id}', '${a.destination.replace(/'/g, "\\'")}')" title="Confirm that situation is now under control">
-                          <i class="fas fa-check-circle"></i> Ground Officer: Confirm Controlled
-                        </button>
-                        <button class="btn-gd outline" style="padding:4px 8px; font-size:10.5px; opacity:0.6; cursor:not-allowed;" onclick="window.selectAreaForReturn('${a.destination.replace(/'/g, "\\'")}', '${a.id}', '${a.refNo || 'DSP-2026'}')">
-                          <i class="fas fa-lock"></i> Return Locked
-                        </button>
+                        <span style="display:inline-flex; align-items:center; gap:5px; padding:4px 9px; font-size:10.5px; background:#fff7ed; color:#c2410c; border:1px solid #ffedd5; border-radius:6px; font-weight:600;" title="Return is locked. Ground Officer must confirm situation is under control from Ground Officer portal.">
+                          <i class="fas fa-lock"></i> Return Locked (Awaiting Ground Officer)
+                        </span>
                       ` : `
                         <button class="btn-gd primary" style="padding:4px 9px; font-size:10.5px;" onclick="window.selectAreaForReturn('${a.destination.replace(/'/g, "\\'")}', '${a.id}', '${a.refNo || 'DSP-2026'}')">
                           <i class="fas fa-rotate-left"></i> Log Return
@@ -514,6 +523,163 @@ export default function initGodownPage() {
         <div class="sub-card tone-amber"><span>Damaged / Missing Returns</span><strong>${returns.reduce((s, r) => s + r.damaged + r.missing, 0)} Units Flagged</strong></div>
       `;
     }
+
+    // 9. Area-Wise Relief Consignment & Field Inventory Reconciliation Report
+    const areaReportContainer = document.getElementById('areaWiseInventoryReportContainer');
+    if (areaReportContainer) {
+      const allReportAllocations = allocations || [];
+      if (allReportAllocations.length === 0) {
+        areaReportContainer.innerHTML = `
+          <div style="text-align:center; padding:18px; border:1px dashed #cbd5e1; border-radius:10px; color:#64748b; font-size:12px;">
+            No area allocations recorded yet. When allocations and dispatches are created, their area-wise inventory reconciliation report will be rendered here.
+          </div>
+        `;
+      } else {
+        const areaRows = allReportAllocations.map(a => {
+          const summaryText = a.summary || '';
+          const bMatch = summaryText.match(/(\d+)\s*Boats?/i);
+          const jMatch = summaryText.match(/(\d+)\s*Jackets?/i);
+          const fMatch = summaryText.match(/(\d+)\s*Food/i);
+          const mMatch = summaryText.match(/(\d+)\s*Meds?/i);
+
+          const boatsSent = a.boats !== undefined ? Number(a.boats) : (a.dispatchedBoats !== undefined ? Number(a.dispatchedBoats) : (bMatch ? Number(bMatch[1]) : 0));
+          const jacketsSent = a.jackets !== undefined ? Number(a.jackets) : (a.dispatchedJackets !== undefined ? Number(a.dispatchedJackets) : (jMatch ? Number(jMatch[1]) : 0));
+          const foodSent = a.food !== undefined ? Number(a.food) : (a.dispatchedFood !== undefined ? Number(a.dispatchedFood) : (fMatch ? Number(fMatch[1]) : 0));
+          const medsSent = a.meds !== undefined ? Number(a.meds) : (a.dispatchedMeds !== undefined ? Number(a.dispatchedMeds) : (mMatch ? Number(mMatch[1]) : 0));
+
+          // Matched returns for this area
+          const matchedReturns = (returns || []).filter(r => 
+            (r.area && r.area.trim().toLowerCase() === String(a.destination || '').trim().toLowerCase()) ||
+            (r.dispatchId && r.dispatchId === a.id)
+          );
+
+          const boatsGood = matchedReturns.reduce((acc, r) => acc + (Number(r.boatsGood) || 0), 0);
+          const boatsDamaged = matchedReturns.reduce((acc, r) => acc + (Number(r.boatsDamaged) || 0), 0);
+          const jacketsGood = matchedReturns.reduce((acc, r) => acc + (Number(r.jacketsGood) || 0), 0);
+          const jacketsDamaged = matchedReturns.reduce((acc, r) => acc + (Number(r.jacketsDamaged) || 0), 0);
+          const foodConsumed = matchedReturns.reduce((acc, r) => acc + (Number(r.foodConsumed) || 0), 0);
+          const foodReturned = matchedReturns.reduce((acc, r) => acc + (Number(r.foodReturned) || 0), 0);
+          const medsConsumed = matchedReturns.reduce((acc, r) => acc + (Number(r.medsConsumed) || 0), 0);
+          const medsReturned = matchedReturns.reduce((acc, r) => acc + (Number(r.medsReturned) || 0), 0);
+
+          const boatsOnGround = Math.max(0, boatsSent - (boatsGood + boatsDamaged));
+          const jacketsOnGround = Math.max(0, jacketsSent - (jacketsGood + jacketsDamaged));
+          const foodOnGround = Math.max(0, foodSent - (foodConsumed + foodReturned));
+          const medsOnGround = Math.max(0, medsSent - (medsConsumed + medsReturned));
+
+          const isCleared = Boolean(a.groundOfficerCleared || a.reliefClearedForReturn);
+          const isDispatched = a.status === 'Dispatched' ||
+            String(a.godownStatus || '').toLowerCase().includes('dispatched') ||
+            String(a.godownStatus || '').toLowerCase().includes('en-route') ||
+            Boolean(a.dispatchedDate) ||
+            (Boolean(a.refNo) && a.refNo !== '—' && a.refNo.startsWith('DSP-'));
+
+          const escortLead = a.leadOfficerName
+            ? `<strong>${a.leadAgency || 'NDRF'}</strong>: ${a.leadOfficerName}<br><span style="font-size:10px; color:#64748b;">ID: ${a.leadOfficerId || 'Verified'}</span>`
+            : `<span style="color:#64748b;">${a.driver || 'Field Convoy'}</span>`;
+
+          return `
+            <tr style="border-bottom:1px solid #e2e8f0; transition:background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+              <td style="padding:10px 8px; vertical-align:top;">
+                <div style="font-weight:700; color:#0f172a; font-size:12px;">
+                  <i class="fas fa-location-dot" style="color:#0284c7; margin-right:4px;"></i>${a.destination}
+                </div>
+                <div style="font-size:10.5px; color:#64748b; margin-top:2px;">
+                  Gate-Pass: <strong style="color:#0369a1;">${a.refNo && a.refNo !== '—' ? a.refNo : (isDispatched ? 'DSP-2026' : 'Awaiting Dispatch')}</strong>
+                </div>
+                <div style="font-size:10px; color:#94a3b8;">Alloc ID: ${a.id}</div>
+              </td>
+              <td style="padding:10px 8px; vertical-align:top; font-size:11px;">
+                ${escortLead}
+              </td>
+              <td style="padding:10px 8px; vertical-align:top;">
+                <div style="display:flex; flex-direction:column; gap:2px; font-size:11px;">
+                  <span>🚤 <strong>${boatsSent}</strong> Boats</span>
+                  <span>🦺 <strong>${jacketsSent}</strong> Jackets</span>
+                  <span>🍱 <strong>${foodSent}</strong> Food</span>
+                  <span>💊 <strong>${medsSent}</strong> Meds</span>
+                </div>
+              </td>
+              <td style="padding:10px 8px; vertical-align:top;">
+                ${(boatsGood + jacketsGood + foodReturned + medsReturned) > 0 ? `
+                  <div style="display:flex; flex-direction:column; gap:2px; font-size:11px; color:#15803d;">
+                    ${boatsGood > 0 ? `<span>✓ ${boatsGood} Boats</span>` : ''}
+                    ${jacketsGood > 0 ? `<span>✓ ${jacketsGood} Jackets</span>` : ''}
+                    ${foodReturned > 0 ? `<span>✓ ${foodReturned} Food</span>` : ''}
+                    ${medsReturned > 0 ? `<span>✓ ${medsReturned} Meds</span>` : ''}
+                  </div>
+                ` : `<span style="font-size:10.5px; color:#94a3b8;">None yet</span>`}
+              </td>
+              <td style="padding:10px 8px; vertical-align:top;">
+                ${(boatsDamaged + jacketsDamaged + foodConsumed + medsConsumed) > 0 ? `
+                  <div style="display:flex; flex-direction:column; gap:2px; font-size:10.5px;">
+                    ${foodConsumed > 0 ? `<span style="color:#475569;">🍽️ ${foodConsumed} Food Consumed</span>` : ''}
+                    ${medsConsumed > 0 ? `<span style="color:#475569;">💉 ${medsConsumed} Meds Used</span>` : ''}
+                    ${boatsDamaged > 0 ? `<span style="color:#dc2626; font-weight:700;">⚠️ ${boatsDamaged} Boat Dmg/Loss</span>` : ''}
+                    ${jacketsDamaged > 0 ? `<span style="color:#dc2626; font-weight:700;">⚠️ ${jacketsDamaged} Jacket Dmg</span>` : ''}
+                  </div>
+                ` : `<span style="font-size:10.5px; color:#94a3b8;">0 flagged</span>`}
+              </td>
+              <td style="padding:10px 8px; vertical-align:top;">
+                <div style="display:flex; flex-direction:column; gap:2px; font-size:11px; font-weight:600; color:#1e40af;">
+                  <span>${boatsOnGround} Boats</span>
+                  <span>${jacketsOnGround} Jackets</span>
+                  <span>${foodOnGround} Food</span>
+                  <span>${medsOnGround} Meds</span>
+                </div>
+              </td>
+              <td style="padding:10px 8px; vertical-align:top;">
+                <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
+                  <span class="pill ${isDispatched ? 'p-good' : 'p-amber'}" style="font-size:9.5px; padding:2px 6px;">
+                    ${isDispatched ? 'Dispatched' : 'Pending Staging'}
+                  </span>
+                  <span class="pill ${isCleared ? 'p-good' : 'p-amber'}" style="font-size:9.5px; padding:2px 6px;">
+                    ${isCleared ? '✓ Controlled (Ground)' : '⏳ Rescue Active'}
+                  </span>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        areaReportContainer.innerHTML = `
+          <div style="background:#ffffff; border:1px solid #bfdbfe; border-radius:12px; padding:14px; box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1.5px solid #e2e8f0; padding-bottom:8px;">
+              <div>
+                <h3 style="margin:0; font-size:14.5px; color:#0f172a; display:flex; align-items:center; gap:6px;">
+                  <i class="fas fa-boxes-packing" style="color:#0284c7;"></i> Area-Wise Relief Consignment & Field Inventory Reconciliation Report
+                </h3>
+                <span style="font-size:11px; color:#64748b;">
+                  Live reconciliation of relief stock dispatched, returned to warehouse, consumed, and remaining on ground per sector.
+                </span>
+              </div>
+              <span class="pill p-good" style="font-size:10px;">
+                <i class="fas fa-satellite-dish"></i> Real-time Sync
+              </span>
+            </div>
+
+            <div style="overflow-x:auto;">
+              <table style="width:100%; border-collapse:collapse; text-align:left; font-size:11.5px;">
+                <thead>
+                  <tr style="background:#f1f5f9; color:#334155; font-size:10.5px; text-transform:uppercase; letter-spacing:0.4px;">
+                    <th style="padding:8px 8px; border-bottom:1.5px solid #cbd5e1; border-top-left-radius:6px;">Sector / Gate-Pass</th>
+                    <th style="padding:8px 8px; border-bottom:1.5px solid #cbd5e1;">Escort Lead (NDRF/SDRF)</th>
+                    <th style="padding:8px 8px; border-bottom:1.5px solid #cbd5e1;">Dispatched Quota</th>
+                    <th style="padding:8px 8px; border-bottom:1.5px solid #cbd5e1;">Restocked (Good)</th>
+                    <th style="padding:8px 8px; border-bottom:1.5px solid #cbd5e1;">Consumed / Flagged</th>
+                    <th style="padding:8px 8px; border-bottom:1.5px solid #cbd5e1;">Active Field Balance</th>
+                    <th style="padding:8px 8px; border-bottom:1.5px solid #cbd5e1; border-top-right-radius:6px;">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${areaRows}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+    }
   }
 
   /**
@@ -532,7 +698,11 @@ export default function initGodownPage() {
       return;
     }
 
-    const isDispatched = alloc.status === 'Dispatched';
+    const isDispatched = alloc.status === 'Dispatched' ||
+      String(alloc.godownStatus || '').toLowerCase().includes('dispatched') ||
+      String(alloc.godownStatus || '').toLowerCase().includes('en-route') ||
+      Boolean(alloc.dispatchedDate) ||
+      (Boolean(alloc.refNo) && alloc.refNo !== '—' && alloc.refNo.startsWith('DSP-'));
 
     box.innerHTML = `
       <div style="background:#ffffff; border:1px solid #d5e8f8; border-radius:10px; padding:10px; font-size:11.5px;">
@@ -572,7 +742,7 @@ export default function initGodownPage() {
             </button>
           ` : `
             <span style="flex:1.5; text-align:center; background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; border-radius:6px; padding:6px; font-size:11px; font-weight:700;">
-              <i class="fas fa-check"></i> In Transit (${alloc.refNo})
+              <i class="fas fa-lock"></i> In Transit (${alloc.refNo})
             </span>
           `}
         </div>
@@ -583,18 +753,32 @@ export default function initGodownPage() {
   function selectAllocationForDispatch(allocId) {
     selectedAllocId = allocId;
     const alloc = (state.allocations || []).find(a => a.id === allocId);
-    if (alloc && alloc.lat && alloc.lng) {
-      centerOnMap(alloc.lat, alloc.lng);
+    if (typeof window.switchGodownTab === 'function') {
+      window.switchGodownTab('dashboard');
     }
+    setTimeout(() => {
+      if (window.godownLeafletMapInstance) {
+        window.godownLeafletMapInstance.invalidateSize();
+      }
+      if (alloc && alloc.lat && alloc.lng) {
+        centerOnMap(alloc.lat, alloc.lng);
+      }
+    }, 120);
     renderSelectedAllocBox(allocId);
   }
 
   function openFirstPendingDispatch() {
-    const pending = (state.allocations || []).find(a => a.status !== 'Dispatched');
+    const pending = (state.allocations || []).find(a => !(
+      a.status === 'Dispatched' ||
+      String(a.godownStatus || '').toLowerCase().includes('dispatched') ||
+      String(a.godownStatus || '').toLowerCase().includes('en-route') ||
+      Boolean(a.dispatchedDate) ||
+      (Boolean(a.refNo) && a.refNo !== '—' && a.refNo.startsWith('DSP-'))
+    ));
     if (pending) {
       openDispatchModal(pending.id);
     } else {
-      showToast('All Authority allocations are currently dispatched!');
+      showToast('All Authority allocations are currently dispatched & locked!');
     }
   }
 
@@ -615,6 +799,17 @@ export default function initGodownPage() {
     }
 
     if (!alloc) return;
+
+    const isAlreadyDispatched = alloc.status === 'Dispatched' ||
+      String(alloc.godownStatus || '').toLowerCase().includes('dispatched') ||
+      String(alloc.godownStatus || '').toLowerCase().includes('en-route') ||
+      Boolean(alloc.dispatchedDate) ||
+      (Boolean(alloc.refNo) && alloc.refNo !== '—' && alloc.refNo.startsWith('DSP-'));
+
+    if (isAlreadyDispatched) {
+      showToast(`⚠️ Allocation ${alloc.id} is already dispatched with Gate Pass (${alloc.refNo || 'Locked'}). Modifications locked.`);
+      return;
+    }
 
     document.getElementById('dispAllocIndex').value = idx;
     document.getElementById('dispAllocId').value = alloc.id;

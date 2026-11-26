@@ -164,7 +164,7 @@ export default function initAdminPage() {
           </div>
           <p style="margin:0; font-size:11.5px; color:var(--text-body); line-height:1.4;">${a.notes || ''}</p>
           <div class="eco-card-footer">
-            <button class="card-action-btn" onclick="window.zoomToCoords && window.zoomToCoords(${Number(a.lat)}, ${Number(a.lng)})"><i class="fas fa-crosshairs"></i> View Map</button>
+            <button class="card-action-btn" onclick="window.focusAdminMapOnCoords && window.focusAdminMapOnCoords(${Number(a.lat)}, ${Number(a.lng)})"><i class="fas fa-crosshairs"></i> View Map</button>
             <button class="card-action-btn" onclick="window.editAreaRecord(${a.idx})"><i class="fas fa-edit"></i> Edit</button>
             <button class="card-action-btn del" onclick="window.deleteAreaRecord(${a.idx})"><i class="fas fa-trash"></i></button>
           </div>
@@ -747,8 +747,23 @@ export default function initAdminPage() {
     }
   });
 
+  function focusAdminMapOnCoords(lat, lng) {
+    if (typeof switchTab === 'function') {
+      switchTab('overview');
+    }
+    setTimeout(() => {
+      if (window.adminLeafletMapInstance) {
+        window.adminLeafletMapInstance.invalidateSize();
+      }
+      if (typeof window.zoomToCoords === 'function') {
+        window.zoomToCoords(lat, lng);
+      }
+    }, 120);
+  }
+
   // Attach all handlers to window for inline HTML & React calls
   Object.assign(window, {
+    focusAdminMapOnCoords,
     closeModal,
     copyHelpline,
     deleteAlertRecord,

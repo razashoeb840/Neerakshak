@@ -87,6 +87,12 @@ export function initAdminFloodMap(containerId = 'leafletMap', initialCoords, ini
   facilitiesLayerGroup = L.layerGroup().addTo(mapInstance);
   tempPickLayer = L.layerGroup().addTo(mapInstance);
 
+  // Global window handles for admin map focusing and zoom actions
+  window.adminLeafletMapInstance = mapInstance;
+  window.zoomToCoords = zoomToCoords;
+  window.focusAdminMap = zoomToCoords;
+  window.flyToDistrictSector = flyToDistrictSector;
+
   // Render Live Indian River Corridors & CWC Stations on Map
   renderLiveRiversOnMap(null, basinKey);
 
@@ -708,9 +714,9 @@ export function mapRecenter() {
   }
 }
 
-export function zoomToCoords(lat, lng) {
-  if (mapInstance) {
-    mapInstance.setView([lat, lng], 14, { animate: true });
+export function zoomToCoords(lat, lng, zoom = 14) {
+  if (mapInstance && lat && lng) {
+    mapInstance.flyTo([Number(lat), Number(lng)], zoom, { duration: 1.2 });
   }
 }
 
