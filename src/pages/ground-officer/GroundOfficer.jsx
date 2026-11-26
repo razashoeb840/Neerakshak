@@ -198,12 +198,12 @@ const markup = (
           {/* COLORFUL 6-KPI FIELD SUMMARY STRIP */}
           <div className="kpi-grid-6 anim-card" id="groundKpiGrid"></div>
           {/* ===============================================================
-                 TAB 1: DASHBOARD (REAL LEAFLET GIS MAP HUB + TASKS + DELIVERIES)
+                 TAB 1: DASHBOARD (REAL LEAFLET GIS MAP HUB)
                  =============================================================== */}
           <div className="go-tab-pane active" id="tab-dashboard">
             {/* REAL LEAFLET GIS FLOOD MAP VIEWPORT */}
-            <div className="aqua-card anim-card" style={{ marginBottom: "14px" }}>
-              <div className="card-head">
+            <div className="aqua-card anim-card" style={{ marginBottom: "0", padding: "14px 14px 12px" }}>
+              <div className="card-head" style={{ marginBottom: "10px" }}>
                 <h2>
                   <i className="fas fa-map-location-dot" style={{ color: "var(--river-blue)" }}></i>
                   {" Ground Flood Command GIS Map – Live Sector Surveillance"}
@@ -214,50 +214,25 @@ const markup = (
                   <button type="button" className="btn-card-action" style={{ color: "#c2410c" }} onClick={() => window.filterGroundMapSeverity && window.filterGroundMapSeverity('High')}>High Only</button>
                 </div>
               </div>
-              <div id="groundMapSlot" style={{ position: "relative", height: "460px" }}>
-                <div id="groundLeafletMap" style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0, zIndex: 1, borderRadius: "12px" }}></div>
-                <div className="map-float-search" style={{ zIndex: 10 }}>
+              <div id="groundMapSlot" style={{ position: "relative", width: "100%", height: "540px", minHeight: "480px", borderRadius: "14px", overflow: "hidden", border: "1.5px solid #93c5fd", background: "#e2e8f0", boxShadow: "0 4px 18px rgba(2, 132, 199, 0.08)" }}>
+                <div id="groundLeafletMap" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 1 }}></div>
+                <div className="map-float-search" style={{ zIndex: 500 }}>
                   <i className="fas fa-search" style={{ color: "#64748b" }}></i>
                   <input type="text" placeholder="Search assigned village, sector, river basin..." onKeyUp={(event) => { if(event.key==='Enter') window.searchGroundMap && window.searchGroundMap(event.currentTarget.value); }} />
                 </div>
-                <div className="map-legend-overlay" style={{ zIndex: 10 }}>
+                <div className="map-legend-overlay" style={{ zIndex: 500 }}>
                   <span><i className="l-dot" style={{ background: "#dc2626" }}></i> Critical / Submerged</span>
                   <span><i className="l-dot" style={{ background: "#ea580c" }}></i> High Risk</span>
                   <span><i className="l-dot" style={{ background: "#eab308" }}></i> Moderate</span>
                   <span><i className="l-dot" style={{ background: "#16a34a" }}></i> Normal Access</span>
                 </div>
-                <div className="map-zoom-controls" style={{ zIndex: 10 }}>
+                <div className="map-zoom-controls" style={{ zIndex: 500 }}>
                   <button type="button" className="map-z-btn" onClick={() => window.groundMapZoomIn && window.groundMapZoomIn()} title="Zoom In">+</button>
                   <button type="button" className="map-z-btn" onClick={() => window.groundMapZoomOut && window.groundMapZoomOut()} title="Zoom Out">−</button>
                   <button type="button" className="map-z-btn" onClick={() => window.groundMapRecenter && window.groundMapRecenter()} title="Recenter">
                     <i className="fas fa-crosshairs"></i>
                   </button>
                 </div>
-              </div>
-            </div>
-
-            {/* MY ACTIVE TASKS & PENDING CONVOYS */}
-            <div className="grid-2">
-              <div className="aqua-card anim-card">
-                <div className="card-head">
-                  <h2>
-                    <i className="fas fa-list-check" style={{ color: "var(--teal-field)" }}></i>
-                    {" My Active Field Tasks & Directives"}
-                  </h2>
-                  <button type="button" className="btn-go primary" onClick={() => window.switchGroundTab('field-reports', document.querySelector('[data-tab=field-reports]'))}>+ Submit Field Report</button>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "9px" }} id="dashActiveTasksList"></div>
-              </div>
-
-              <div className="aqua-card anim-card">
-                <div className="card-head">
-                  <h2>
-                    <i className="fas fa-truck-ramp-box" style={{ color: "var(--river-blue)" }}></i>
-                    {" Central Godown Dispatches Awaiting Ground Intake"}
-                  </h2>
-                  <button type="button" className="btn-go" onClick={() => window.switchGroundTab('delivery-verify', document.querySelector('[data-tab=delivery-verify]'))}>All Deliveries →</button>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "9px" }} id="dashDeliveryCards"></div>
               </div>
             </div>
           </div>

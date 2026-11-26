@@ -22,8 +22,13 @@ import {
   searchGroundMap,
   groundMapZoomIn,
   groundMapZoomOut,
-  groundMapRecenter
+  groundMapRecenter,
+  parseAreaCoordinates
 } from './groundOfficerMap.js';
+
+import {
+  resolveUserBasin
+} from '../admin/indiaGisData.js';
 
 export default function initGroundOfficerPage() {
   const __ready = [];
@@ -726,12 +731,34 @@ export default function initGroundOfficerPage() {
     // 1. Initial render from cached state
     renderAllGroundViews();
 
-    // 2. Initialize Real Leaflet GIS Map
-    const initialArea = (state.areas && state.areas[0]) || { lat: 26.132, lng: 91.515 };
-    const map = initGroundFloodMap('groundLeafletMap', [initialArea.lat, initialArea.lng], 11, 'bk');
+    // 2. Identify logged user and basin
+    let loggedUser = 'go5142bk';
+    try {
+      const u = sessionStorage.getItem('neerakshak_user');
+      if (u) loggedUser = u.toLowerCase().trim();
+    } catch (e) {}
+
+    const userBasin = resolveUserBasin(loggedUser);
+    const basinId = (userBasin && userBasin.id) || 'bk';
+
+    // 3. Initialize Real Leaflet GIS Map with valid coordinates
+    let initialCoords = [26.15, 91.55];
+    if (state.areas && state.areas.length > 0) {
+      initialCoords = parseAreaCoordinates(state.areas[0]);
+    } else if (userBasin && userBasin.sectors && userBasin.sectors[0]) {
+      initialCoords = userBasin.sectors[0].coords;
+    }
+    const initialZoom = 11;
+
+    const map = initGroundFloodMap('groundLeafletMap', initialCoords, initialZoom, basinId);
     window.groundLeafletMapInstance = map;
 
-    // 3. Fetch fresh live state from backend and sync map markers
+    // 4. Initial markers update
+    if (state.areas && state.areas.length > 0) {
+      updateGroundAreaMarkers(state.areas);
+    }
+
+    // 5. Fetch fresh live state from backend and sync map markers
     try {
       await fetchFullGroundState();
       renderAllGroundViews();

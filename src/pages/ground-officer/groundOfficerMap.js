@@ -35,6 +35,26 @@ function getSeverityColor(sev) {
   }
 }
 
+export function parseAreaCoordinates(area) {
+  if (!area) return [26.15, 91.55];
+  if (area.lat !== undefined && area.lng !== undefined) {
+    const lat = Number(area.lat);
+    const lng = Number(area.lng);
+    if (!isNaN(lat) && !isNaN(lng) && isFinite(lat) && isFinite(lng)) return [lat, lng];
+  }
+  if (typeof area.coords === 'string') {
+    // Matches "26.1320° N, 91.5150° E" or "26.132, 91.515"
+    const cleaned = area.coords.replace(/[^\d.,-]/g, ' ').trim();
+    const parts = cleaned.split(/[\s,]+/).filter(Boolean);
+    if (parts.length >= 2) {
+      const lat = parseFloat(parts[0]);
+      const lng = parseFloat(parts[1]);
+      if (!isNaN(lat) && !isNaN(lng) && isFinite(lat) && isFinite(lng)) return [lat, lng];
+    }
+  }
+  return [26.15, 91.55];
+}
+
 export function initGroundFloodMap(containerId = 'groundLeafletMap', initialCoords = null, initialZoom = null, basinKey = 'bk') {
   const container = document.getElementById(containerId);
   if (!container) return null;
@@ -44,8 +64,17 @@ export function initGroundFloodMap(containerId = 'groundLeafletMap', initialCoor
     mapInstance = null;
   }
 
-  currentCenter = initialCoords || [26.15, 91.55];
-  currentZoom = initialZoom || 11;
+  // Ensure initial coordinates are strictly valid finite numbers
+  let safeCoords = [26.15, 91.55];
+  if (Array.isArray(initialCoords) && initialCoords.length >= 2) {
+    const lat = Number(initialCoords[0]);
+    const lng = Number(initialCoords[1]);
+    if (!isNaN(lat) && !isNaN(lng) && isFinite(lat) && isFinite(lng)) {
+      safeCoords = [lat, lng];
+    }
+  }
+  currentCenter = safeCoords;
+  currentZoom = (initialZoom && !isNaN(Number(initialZoom))) ? Number(initialZoom) : 11;
 
   mapInstance = L.map(containerId, {
     center: currentCenter,
@@ -56,7 +85,7 @@ export function initGroundFloodMap(containerId = 'groundLeafletMap', initialCoor
   });
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     subdomains: ['a', 'b', 'c'],
     maxZoom: 18
   }).addTo(mapInstance);
@@ -70,9 +99,19 @@ export function initGroundFloodMap(containerId = 'groundLeafletMap', initialCoor
   // Render basin river corridors & CWC stations
   renderGroundRivers(basinKey);
 
+  // Invalidate size immediately and after layout paint
+  requestAnimationFrame(() => {
+    if (mapInstance) mapInstance.invalidateSize();
+  });
   setTimeout(() => {
     if (mapInstance) mapInstance.invalidateSize();
-  }, 250);
+  }, 120);
+  setTimeout(() => {
+    if (mapInstance) mapInstance.invalidateSize();
+  }, 400);
+  setTimeout(() => {
+    if (mapInstance) mapInstance.invalidateSize();
+  }, 900);
 
   return mapInstance;
 }
@@ -169,8 +208,7 @@ export function updateGroundAreaMarkers(areas = []) {
         return;
       }
 
-      const lat = Number(a.lat) || 26.132;
-      const lng = Number(a.lng) || 91.515;
+      const [lat, lng] = parseAreaCoordinates(a);
       const isCrit = a.severity === 'Critical';
       const color = getSeverityColor(a.severity);
 
@@ -254,8 +292,9 @@ export function searchGroundMap(query) {
   const found = areas.find(a => 
     a.village.toLowerCase().includes(qClean) || (a.block && a.block.toLowerCase().includes(qClean))
   );
-  if (found && found.lat && found.lng) {
-    focusGroundMap(found.lat, found.lng, 14);
+  if (found) {
+    const [fLat, fLng] = parseAreaCoordinates(found);
+    focusGroundMap(fLat, fLng, 14);
     if (window.showToast) window.showToast(`Found sector: ${found.village}`);
   } else {
     if (window.showToast) window.showToast(`No sector matching "${query}"`);
