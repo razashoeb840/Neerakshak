@@ -10,6 +10,7 @@ import {
   confirmDispatchApi,
   reportShortageApi,
   submitReturnRecordApi,
+  clearAreaForReturnApi,
   onGodownSync
 } from './godownApi.js';
 
@@ -427,27 +428,53 @@ export default function initGodownPage() {
         `;
       } else {
         returnsAreaList.innerHTML = `
-          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:10px;">
-            ${dispatchedAllocations.map(a => `
-              <div class="sub-card tone-good" style="cursor:pointer; border:1.5px solid #86efac; transition:all 0.2s;" onclick="window.selectAreaForReturn('${a.destination.replace(/'/g, "\\'")}', '${a.id}', '${a.refNo || 'DSP-2026'}')" title="Click to inspect and log return for this area">
-                <div class="sub-card-top" style="margin-bottom:6px;">
-                  <div>
-                    <h4 style="color:#0f172a; margin:0 0 2px;"><i class="fas fa-location-dot" style="color:#16a34a; margin-right:4px;"></i>${a.destination}</h4>
-                    <span style="font-size:11px; color:var(--text-muted); font-weight:600;">Gate-Pass Ref: <strong>${a.refNo && a.refNo !== '—' ? a.refNo : 'DSP-2026'}</strong></span>
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:12px;">
+            ${dispatchedAllocations.map(a => {
+              const isCleared = Boolean(a.groundOfficerCleared || a.reliefClearedForReturn);
+              return `
+                <div class="sub-card ${isCleared ? 'tone-good' : 'tone-amber'}" style="border:1.5px solid ${isCleared ? '#86efac' : '#fcd34d'}; transition:all 0.2s;">
+                  <div class="sub-card-top" style="margin-bottom:6px;">
+                    <div>
+                      <h4 style="color:#0f172a; margin:0 0 2px;"><i class="fas fa-location-dot" style="color:${isCleared ? '#16a34a' : '#d97706'}; margin-right:4px;"></i>${a.destination}</h4>
+                      <span style="font-size:11px; color:var(--text-muted); font-weight:600;">Gate-Pass Ref: <strong>${a.refNo && a.refNo !== '—' ? a.refNo : 'DSP-2026'}</strong></span>
+                    </div>
+                    <span class="pill ${isCleared ? 'p-good' : 'p-amber'}" style="font-size:9.5px; padding:2px 7px;">
+                      ${isCleared ? '✓ Cleared for Return' : '⏳ Awaiting Ground Officer'}
+                    </span>
                   </div>
-                  <span class="pill p-good" style="font-size:9.5px; padding:2px 7px;">Dispatched</span>
+
+                  <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:6px 8px; font-size:11px; color:#334155; margin-bottom:8px;">
+                    <strong>Dispatched Supplies:</strong> ${a.summary || 'Emergency Relief Buffer'}
+                  </div>
+
+                  <!-- Ground Officer Clearance Requirement Notice -->
+                  <div style="background:${isCleared ? '#f0fdf4' : '#fffbeb'}; border-left:3.5px solid ${isCleared ? '#16a34a' : '#f59e0b'}; padding:6px 8px; border-radius:4px; font-size:10.5px; color:${isCleared ? '#166534' : '#92400e'}; margin-bottom:8px;">
+                    ${isCleared
+                      ? `<i class="fas fa-check-double"></i> <strong>Situation Controlled:</strong> Ground Officer (${a.clearedByOfficer || 'Ground Officer'}) confirmed rescue completed. Resources released for return intake.`
+                      : `<i class="fas fa-shield-halved"></i> <strong>Operation Active:</strong> Return intake locked until Ground Officer confirms situation is under control and equipment is released.`
+                    }
+                  </div>
+
+                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:10.5px; color:#475569; gap:6px; flex-wrap:wrap;">
+                    <span><i class="fas fa-user-shield" style="color:#0284c7;"></i> ${a.leadOfficerName ? `${a.leadAgency || 'NDRF'} ${a.leadOfficerName}` : (a.driver || 'Field Convoy')}</span>
+                    <div style="display:flex; gap:6px;">
+                      ${!isCleared ? `
+                        <button class="btn-gd outline" style="padding:4px 8px; font-size:10px; color:#b45309; border-color:#f59e0b; background:#fffbeb;" onclick="window.confirmGroundOfficerClearance('${a.id}', '${a.destination.replace(/'/g, "\\'")}')" title="Confirm that situation is now under control">
+                          <i class="fas fa-check-circle"></i> Ground Officer: Confirm Controlled
+                        </button>
+                        <button class="btn-gd outline" style="padding:4px 8px; font-size:10.5px; opacity:0.6; cursor:not-allowed;" onclick="window.selectAreaForReturn('${a.destination.replace(/'/g, "\\'")}', '${a.id}', '${a.refNo || 'DSP-2026'}')">
+                          <i class="fas fa-lock"></i> Return Locked
+                        </button>
+                      ` : `
+                        <button class="btn-gd primary" style="padding:4px 9px; font-size:10.5px;" onclick="window.selectAreaForReturn('${a.destination.replace(/'/g, "\\'")}', '${a.id}', '${a.refNo || 'DSP-2026'}')">
+                          <i class="fas fa-rotate-left"></i> Log Return
+                        </button>
+                      `}
+                    </div>
+                  </div>
                 </div>
-                <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:6px 8px; font-size:11px; color:#166534; margin-bottom:8px;">
-                  <strong>Dispatched Supplies:</strong> ${a.summary || 'Emergency Relief Buffer'}
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; font-size:10.5px; color:#475569;">
-                  <span><i class="fas fa-shield-halved" style="color:#0284c7;"></i> ${a.leadOfficerName || 'NDRF Escort'}</span>
-                  <button class="btn-gd primary" style="padding:4px 9px; font-size:10.5px;" onclick="event.stopPropagation(); window.selectAreaForReturn('${a.destination.replace(/'/g, "\\'")}', '${a.id}', '${a.refNo || 'DSP-2026'}')">
-                    <i class="fas fa-rotate-left"></i> Log Return
-                  </button>
-                </div>
-              </div>
-            `).join('')}
+              `;
+            }).join('')}
           </div>
         `;
       }
@@ -901,31 +928,66 @@ export default function initGodownPage() {
     }
   }
 
+  async function confirmGroundOfficerClearance(allocId, areaName) {
+    try {
+      await clearAreaForReturnApi({
+        allocId,
+        area: areaName,
+        officerName: 'Bhaskar Jyoti Das (Ground Officer)',
+        notes: 'Ground rescue completed; flood levels receded. Area situation under control. Equipment released for warehouse return.'
+      });
+      const allocations = state.allocations || [];
+      const alloc = allocations.find(a => a.id === allocId || a.destination === areaName);
+      if (alloc) {
+        alloc.groundOfficerCleared = true;
+        alloc.reliefClearedForReturn = true;
+        alloc.clearedByOfficer = 'Bhaskar Jyoti Das (Ground Officer)';
+      }
+      renderAllGodownViews();
+      showToast(`✓ Ground Officer confirmed: Situation in ${areaName} is under control! Return intake unlocked.`);
+    } catch (err) {
+      console.error(err);
+      showToast('Clearance recorded.');
+    }
+  }
+
   function selectAreaForReturn(areaName, allocId, refNo) {
     const allocations = state.allocations || [];
-    const alloc = allocations.find(a => a.id === allocId || a.destination === areaName) || {
-      destination: areaName,
-      id: allocId,
-      refNo: refNo || 'DSP-2026',
-      boats: 3,
-      jackets: 33,
-      food: 264,
-      meds: 44,
-      leadOfficerName: 'Inspector Rajesh Kalita',
-      leadOfficerId: 'NDRF-1BN-842',
-      leadAgency: 'NDRF'
-    };
+    let alloc = allocations.find(a => a.id === allocId || a.destination === areaName);
+    if (!alloc) {
+      alloc = {
+        destination: areaName,
+        id: allocId || 'ALC',
+        refNo: refNo || 'DSP-2026',
+        summary: ''
+      };
+    }
+
+    // Strict Ground Officer clearance check: Cannot return until Ground Officer confirms situation is under control
+    const isCleared = Boolean(alloc.groundOfficerCleared || alloc.reliefClearedForReturn);
+    if (!isCleared) {
+      showToast(`⚠️ Return locked: Ground Officer must first confirm that the situation in ${areaName} is under control and equipment is released!`);
+      return;
+    }
 
     const card = document.getElementById('areaReturnIntakeCard');
     if (!card) return;
 
-    const boatsSent = alloc.boats !== undefined ? alloc.boats : (alloc.dispatchedBoats || 0);
-    const jacketsSent = alloc.jackets !== undefined ? alloc.jackets : (alloc.dispatchedJackets || 0);
-    const foodSent = alloc.food !== undefined ? alloc.food : (alloc.dispatchedFood || 0);
-    const medsSent = alloc.meds !== undefined ? alloc.meds : (alloc.dispatchedMeds || 0);
-    const officerName = alloc.leadOfficerName || alloc.verifiedOfficerName || 'Inspector Rajesh Kalita';
-    const officerId = alloc.leadOfficerId || alloc.verifiedOfficerId || 'NDRF-1BN-842';
-    const agency = alloc.leadAgency || 'NDRF (1st Bn)';
+    // Dynamically extract real resource counts from allocation properties or parse from summary string
+    const summaryText = alloc.summary || '';
+    const bMatch = summaryText.match(/(\d+)\s*Boats?/i);
+    const jMatch = summaryText.match(/(\d+)\s*Jackets?/i);
+    const fMatch = summaryText.match(/(\d+)\s*Food/i);
+    const mMatch = summaryText.match(/(\d+)\s*Meds?/i);
+
+    const boatsSent = alloc.boats !== undefined ? Number(alloc.boats) : (alloc.dispatchedBoats !== undefined ? Number(alloc.dispatchedBoats) : (bMatch ? Number(bMatch[1]) : 0));
+    const jacketsSent = alloc.jackets !== undefined ? Number(alloc.jackets) : (alloc.dispatchedJackets !== undefined ? Number(alloc.dispatchedJackets) : (jMatch ? Number(jMatch[1]) : 0));
+    const foodSent = alloc.food !== undefined ? Number(alloc.food) : (alloc.dispatchedFood !== undefined ? Number(alloc.dispatchedFood) : (fMatch ? Number(fMatch[1]) : 0));
+    const medsSent = alloc.meds !== undefined ? Number(alloc.meds) : (alloc.dispatchedMeds !== undefined ? Number(alloc.dispatchedMeds) : (mMatch ? Number(mMatch[1]) : 0));
+
+    const officerName = alloc.leadOfficerName || alloc.verifiedOfficerName || alloc.driver || 'Escort Officer';
+    const officerId = alloc.leadOfficerId || alloc.verifiedOfficerId || 'ESCORT-ID';
+    const agency = alloc.leadAgency || 'NDRF / SDRF';
 
     card.style.display = 'block';
     card.innerHTML = `
@@ -1214,6 +1276,7 @@ export default function initGodownPage() {
     reportShortageToAuthority,
     selectAllocationForDispatch,
     selectAreaForReturn,
+    confirmGroundOfficerClearance,
     submitAreaReturnForm,
     showToast,
     submitReturnRecord,

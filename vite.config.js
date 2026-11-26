@@ -409,8 +409,77 @@ function godownBackendPlugin() {
   };
 }
 
+function groundBackendPlugin() {
+  return {
+    name: 'ground-backend-fallback',
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        if (req.url && req.url.startsWith('/api/ground')) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 120);
+            const check = await fetch('http://localhost:5000/api/ground', { method: 'OPTIONS', signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (check.ok || check.status === 200) {
+              return next();
+            }
+          } catch (e) {}
+
+          const parsedUrl = new URL(req.url, 'http://localhost:5173');
+          const pathname = parsedUrl.pathname;
+          const method = req.method;
+
+          res.setHeader('Content-Type', 'application/json');
+
+          const { groundDb } = await import('./server/lib/db.js');
+
+          let body = {};
+          if (method === 'POST') {
+            try {
+              const buffers = [];
+              for await (const chunk of req) buffers.push(chunk);
+              const raw = Buffer.concat(buffers).toString();
+              if (raw) body = JSON.parse(raw);
+            } catch (e) {
+              body = {};
+            }
+          }
+
+          if (pathname === '/api/ground/clear-return' && method === 'POST') {
+            const result = await groundDb.clearAreaForReturn(body);
+            res.statusCode = 200;
+            res.end(JSON.stringify({ success: true, data: result }));
+            return;
+          }
+
+          if (pathname === '/api/ground/reports') {
+            if (method === 'POST') {
+              const rep = await groundDb.submitReport(body);
+              res.statusCode = 200;
+              res.end(JSON.stringify({ success: true, data: rep }));
+              return;
+            }
+            const data = await groundDb.getState();
+            res.statusCode = 200;
+            res.end(JSON.stringify({ success: true, data: data.fieldReports || [] }));
+            return;
+          }
+
+          if (pathname === '/api/ground' || pathname === '/api/ground/state') {
+            const data = await groundDb.getState();
+            res.statusCode = 200;
+            res.end(JSON.stringify({ success: true, data }));
+            return;
+          }
+        }
+        next();
+      });
+    }
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), adminBackendPlugin(), authorityBackendPlugin(), godownBackendPlugin()],
+  plugins: [react(), adminBackendPlugin(), authorityBackendPlugin(), godownBackendPlugin(), groundBackendPlugin()],
   server: {
     proxy: {
       '/api': {

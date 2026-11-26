@@ -196,6 +196,11 @@ export default function initAuthorityPage() {
         const rankB = severityRank[b.severity] || 0;
         if (rankA !== rankB) return rankB - rankA;
 
+        // Priority preference by Higher Estimated Affected Population!
+        const popA = Number(a.pop) || 0;
+        const popB = Number(b.pop) || 0;
+        if (popA !== popB) return popB - popA;
+
         // Numeric timestamp in ID if created via Admin (area-1795...)
         const timeA = String(a.id || '').startsWith('area-') ? Number(a.id.replace('area-', '')) : 0;
         const timeB = String(b.id || '').startsWith('area-') ? Number(b.id.replace('area-', '')) : 0;
@@ -235,13 +240,16 @@ export default function initAuthorityPage() {
                   <span style="font-size:11px; color:var(--text-muted); font-weight:600;">${v.block || 'Revenue Circle'}</span>
                 </div>
                 <div style="display:flex; gap:5px; align-items:center;">
+                  ${Number(v.pop) >= 3000 ? `<span class="status-pill" style="font-size:9px; padding:2px 6px; background:#fef2f2; color:#b91c1c; border:1px solid #fca5a5;"><i class="fas fa-users-viewfinder"></i> High Pop Priority</span>` : ''}
                   ${isVOver ? `<span class="status-pill st-critical" style="font-size:9.5px; padding:2px 7px;"><i class="fas fa-triangle-exclamation"></i> ABOVE DANGER</span>` : ''}
                   ${isAllocated ? `<span class="status-pill st-normal" style="font-size:9.5px; padding:2px 7px;"><i class="fas fa-check"></i> ${existingAlloc.id} Allocated</span>` : ''}
                   <span class="status-pill ${getSevPill(v.severity)}">${v.severity}</span>
                 </div>
               </div>
               <div class="dc-meta-box">
-                <span>Affected Pop: <strong>${(v.pop || 0).toLocaleString()}</strong></span>
+                <span style="background:#eff6ff; padding:3px 7px; border-radius:4px; border:1px solid #bfdbfe;">
+                  <i class="fas fa-users" style="color:#2563eb;"></i> Affected Pop: <strong style="color:#1d4ed8;">${(v.pop || 0).toLocaleString()}</strong>
+                </span>
                 <span>Hydrology: <strong style="${isVOver ? 'color:#dc2626; font-weight:800;' : ''}">${v.waterStatus ? v.waterStatus.split(' (')[0] : 'Monitoring'}</strong></span>
                 ${isAllocated ? `<span>Allocated: <strong style="color:#0369a1;">${existingAlloc.summary || 'Emergency Relief'}</strong></span>` : ''}
               </div>

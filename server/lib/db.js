@@ -495,26 +495,55 @@ export const godownDb = {
                            String(authAlloc.godownStatus || '').toLowerCase().includes('en-route');
       const isShortage = String(authAlloc.godownStatus || '').toLowerCase().includes('shortage');
 
+      // Dynamically extract resource counts from properties or parse from summary string
+      const summaryText = authAlloc.summary || '';
+      const bMatch = summaryText.match(/(\d+)\s*Boats?/i);
+      const jMatch = summaryText.match(/(\d+)\s*Jackets?/i);
+      const fMatch = summaryText.match(/(\d+)\s*Food/i);
+      const mMatch = summaryText.match(/(\d+)\s*Meds?/i);
+
+      const boats = authAlloc.boats !== undefined ? Number(authAlloc.boats) : (bMatch ? Number(bMatch[1]) : 0);
+      const jackets = authAlloc.jackets !== undefined ? Number(authAlloc.jackets) : (jMatch ? Number(jMatch[1]) : 0);
+      const food = authAlloc.food !== undefined ? Number(authAlloc.food) : (fMatch ? Number(fMatch[1]) : 0);
+      const meds = authAlloc.meds !== undefined ? Number(authAlloc.meds) : (mMatch ? Number(mMatch[1]) : 0);
+
       return {
         id: authAlloc.id,
         destination: destName,
-        block: areaMatch?.block || 'Assigned Sector',
-        severity: areaMatch?.severity || 'Critical',
+        block: areaMatch?.block || authAlloc.block || 'Assigned Sector',
+        severity: areaMatch?.severity || authAlloc.severity || 'Critical',
         lat: areaMatch ? Number(areaMatch.lat) : 26.132,
         lng: areaMatch ? Number(areaMatch.lng) : 91.515,
-        summary: authAlloc.summary || 'Emergency Relief Buffer',
+        summary: summaryText || `${boats} Boats, ${jackets} Jackets, ${food} Food, ${meds} Meds`,
+        boats,
+        jackets,
+        food,
+        meds,
+        reqBoats: authAlloc.reqBoats !== undefined ? authAlloc.reqBoats : boats,
+        reqJackets: authAlloc.reqJackets !== undefined ? authAlloc.reqJackets : jackets,
+        reqFood: authAlloc.reqFood !== undefined ? authAlloc.reqFood : food,
+        reqMeds: authAlloc.reqMeds !== undefined ? authAlloc.reqMeds : meds,
+        dispatchedBoats: authAlloc.dispatchedBoats !== undefined ? authAlloc.dispatchedBoats : boats,
+        dispatchedJackets: authAlloc.dispatchedJackets !== undefined ? authAlloc.dispatchedJackets : jackets,
+        dispatchedFood: authAlloc.dispatchedFood !== undefined ? authAlloc.dispatchedFood : food,
+        dispatchedMeds: authAlloc.dispatchedMeds !== undefined ? authAlloc.dispatchedMeds : meds,
         assignedGodown: authAlloc.assignedGodown || 'Central Relief Godown',
         status: isDispatched ? 'Dispatched' : (isShortage ? 'Shortage Flagged' : 'Pending Dispatch'),
         vehicle: authAlloc.vehicle || 'Heavy Truck AS-01-EC-4210',
         driver: authAlloc.driver || 'Rajesh Das (+91 98640-21943)',
-        escortOfficer: authAlloc.escortOfficer || 'District Police Escort',
-        leadAgency: authAlloc.leadAgency || 'NDRF (1st Bn)',
-        leadOfficerName: authAlloc.leadOfficerName || 'Inspector Rajesh Kalita',
-        leadOfficerId: authAlloc.leadOfficerId || 'NDRF-1BN-842',
-        leadOfficerContact: authAlloc.leadOfficerContact || '+91 94350-12345',
-        refNo: authAlloc.refNo || (isDispatched ? 'DSP-2026-884' : '—'),
+        escortOfficer: authAlloc.escortOfficer || (authAlloc.leadOfficerName ? `${authAlloc.leadAgency || 'NDRF'} ${authAlloc.leadOfficerName}` : 'District Police Escort'),
+        leadAgency: authAlloc.leadAgency || 'NDRF',
+        leadOfficerName: authAlloc.leadOfficerName || '',
+        leadOfficerId: authAlloc.leadOfficerId || '',
+        leadOfficerContact: authAlloc.leadOfficerContact || '',
+        refNo: authAlloc.refNo || (isDispatched ? 'DSP-2026' : '—'),
         dispatchTime: isDispatched ? (authAlloc.dispatchTime || 'Today, 09:40 AM') : '—',
-        deliveryProgress: authAlloc.deliveryProgress || (isDispatched ? 75 : 20)
+        deliveryProgress: authAlloc.deliveryProgress || (isDispatched ? 75 : 20),
+        groundOfficerCleared: Boolean(authAlloc.groundOfficerCleared || authAlloc.reliefClearedForReturn),
+        reliefClearedForReturn: Boolean(authAlloc.reliefClearedForReturn || authAlloc.groundOfficerCleared),
+        clearedAt: authAlloc.clearedAt || null,
+        clearedByOfficer: authAlloc.clearedByOfficer || null,
+        clearedNotes: authAlloc.clearedNotes || null
       };
     });
 
@@ -803,6 +832,54 @@ export const groundDb = {
       } catch (e) {}
     }
     return report;
+  },
+
+  async clearAreaForReturn(clearData) {
+    const allocId = clearData.allocId;
+    const area = (clearData.area || clearData.destination || '').trim();
+    const officer = clearData.officerName || 'Bhaskar Jyoti Das (Ground Officer)';
+    const notes = clearData.notes || 'Rescue completed, waters receded to safe mark; area situation under control. Equipment released for warehouse return.';
+    const clearedTime = new Date().toLocaleDateString('en-IN') + ', ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+    const authState = await authorityDb.getState();
+    const targetAuth = (authState.allocations || []).find(a => 
+      (allocId && a.id === allocId) ||
+      (area && (a.village || a.destination || '').toLowerCase() === area.toLowerCase())
+    );
+
+    if (targetAuth) {
+      targetAuth.groundOfficerCleared = true;
+      targetAuth.reliefClearedForReturn = true;
+      targetAuth.clearedAt = clearedTime;
+      targetAuth.clearedByOfficer = officer;
+      targetAuth.clearedNotes = notes;
+
+      if (!targetAuth.timeline) targetAuth.timeline = [];
+      targetAuth.timeline.unshift({
+        step: 'Ground Officer Clearance: Situation Under Control',
+        time: 'Just now',
+        status: 'active',
+        detail: `${officer} confirmed rescue completed; resources released for return intake: "${notes}"`
+      });
+
+      const db = await getDatabase();
+      if (db) {
+        try {
+          await db.collection('resourceallocations').updateOne(
+            { id: targetAuth.id },
+            { $set: {
+              groundOfficerCleared: true,
+              reliefClearedForReturn: true,
+              clearedAt: clearedTime,
+              clearedByOfficer: officer,
+              clearedNotes: notes,
+              timeline: targetAuth.timeline
+            }}
+          );
+        } catch (e) {}
+      }
+    }
+    return { success: true, targetAuth };
   }
 };
 

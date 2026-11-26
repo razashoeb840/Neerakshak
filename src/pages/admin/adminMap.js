@@ -139,12 +139,18 @@ export function initAdminFloodMap(containerId = 'leafletMap', initialCoords, ini
           </div>
           <div style="font-size:11px; background:#f0f9ff; padding:5px 8px; border-radius:6px; margin-bottom:8px; border:1px solid #bae6fd; text-align:left;">
             <div style="font-weight:700; color:#0369a1; margin-bottom:2px;">🌊 ${detected.river.name}</div>
-            <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
               <span style="font-size:10px; color:#475569;">Danger: ${detected.river.danger}m</span>
               ${statusBadge}
             </div>
+            <div style="border-top:1px dashed #bae6fd; padding-top:4px;">
+              <label style="font-size:10px; font-weight:700; color:#0369a1; display:block; margin-bottom:2px;">
+                <i class="fas fa-users"></i> Est. Affected Pop:
+              </label>
+              <input type="number" id="popupQuickPop" value="2500" style="width:100%; padding:3px 6px; font-size:11px; border:1px solid #93c5fd; border-radius:4px; box-sizing:border-box;" />
+            </div>
           </div>
-          <button type="button" class="popup-btn-edit" style="width:100%; justify-content:center; padding:7px; font-size:11.5px;" onclick="window.openAreaModalWithCoords && window.openAreaModalWithCoords(${lat.toFixed(4)}, ${lng.toFixed(4)}, '${detected.name.replace(/'/g, "\\'")}', '${detected.block.replace(/'/g, "\\'")}', '${detected.river.name}', ${detected.river.current}, ${detected.river.danger})">
+          <button type="button" class="popup-btn-edit" style="width:100%; justify-content:center; padding:7px; font-size:11.5px;" onclick="const p = document.getElementById('popupQuickPop')?.value || 2500; window.openAreaModalWithCoords && window.openAreaModalWithCoords(${lat.toFixed(4)}, ${lng.toFixed(4)}, '${detected.name.replace(/'/g, "\\'")}', '${detected.block.replace(/'/g, "\\'")}', '${detected.river.name}', ${detected.river.current}, ${detected.river.danger}, p)">
             <i class="fas fa-plus-circle"></i> Mark Flood Zone Here
           </button>
         </div>
@@ -646,7 +652,7 @@ async function completeMapPick(lat, lng) {
 }
 
 // Quick action from general map click
-export function openAreaModalWithCoords(lat, lng, name = '', block = '', river = '', cur = '', danger = '') {
+export function openAreaModalWithCoords(lat, lng, name = '', block = '', river = '', cur = '', danger = '', pop = '') {
   if (tempPickLayer) tempPickLayer.closePopup();
 
   if (window.openAreaModal) {
@@ -657,6 +663,7 @@ export function openAreaModalWithCoords(lat, lng, name = '', block = '', river =
   const blockInp = document.getElementById('inpAreaBlock');
   const latInp = document.getElementById('inpAreaLat');
   const lngInp = document.getElementById('inpAreaLng');
+  const popInp = document.getElementById('inpAreaPop');
   const riverInp = document.getElementById('inpAreaRiver');
   const curInp = document.getElementById('inpRiverCur');
   const dangInp = document.getElementById('inpRiverDanger');
@@ -666,6 +673,7 @@ export function openAreaModalWithCoords(lat, lng, name = '', block = '', river =
   if (block && blockInp) blockInp.value = block;
   if (latInp) latInp.value = Number(lat).toFixed(4);
   if (lngInp) lngInp.value = Number(lng).toFixed(4);
+  if (pop && popInp) popInp.value = pop;
 
   if (river && riverInp) riverInp.value = river;
   if (cur && curInp) curInp.value = cur;

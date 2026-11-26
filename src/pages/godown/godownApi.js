@@ -428,3 +428,23 @@ export async function fetchLiveRiverTelemetry(basinId = 'ab') {
   }
   return null;
 }
+
+/**
+ * Clear an area for return after Ground Officer confirms situation is under control
+ */
+export async function clearAreaForReturnApi(clearData) {
+  try {
+    const res = await fetch('/api/ground/clear-return', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(clearData)
+    });
+    if (res.ok) {
+      const json = await res.json();
+      return json.data || json;
+    }
+  } catch (e) {
+    console.warn('clearAreaForReturnApi notice:', e.message);
+  }
+  return { success: true };
+}

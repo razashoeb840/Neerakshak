@@ -530,10 +530,16 @@ const markup = (
                   <option value="Normal">Normal</option>
                 </select>
               </div>
-              <div className="form-group">
-                <label>Est. Affected Population</label>
+              <div className="form-group" style={{ background: "#f0f9ff", border: "1.5px solid #bae6fd", padding: "8px 10px", borderRadius: "8px" }}>
+                <label style={{ color: "#0369a1", fontWeight: "700" }}>
+                  <i className="fas fa-users"></i>
+                  {" Est. Affected Population (प्रभावित अनुमानित जनसंख्या) *"}
+                </label>
                 {" "}
-                <input type="number" id="inpAreaPop" className="form-control" defaultValue="2200" required />
+                <input type="number" id="inpAreaPop" className="form-control" defaultValue="2500" placeholder="e.g. 3500 (Authority will prioritize high population areas)" required />
+                <span style={{ fontSize: "10.5px", color: "#0284c7", display: "block", marginTop: "3px" }}>
+                  Used by District Authority to decide resource preference and rescue boat allocations.
+                </span>
               </div>
             </div>
 

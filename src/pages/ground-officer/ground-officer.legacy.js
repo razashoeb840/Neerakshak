@@ -171,11 +171,29 @@ const __onReady = (fn) => __ready.push(fn);
                                 <div><span>Shortage / Dmg</span><strong style="color:${(d.shortage + d.damaged) > 0 ? '#dc2626' : '#072247'};">${d.shortage + d.damaged}</strong></div>
                             </div>
                             <p style="margin:0; font-size:11px; color:var(--text-body);">${d.remarks}</p>
-                            <div class="sub-card-footer">
+                            ${Boolean(d.groundOfficerCleared || d.reliefClearedForReturn) ? `
+                                <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:6px 8px; font-size:10.5px; color:#15803d; margin-top:6px;">
+                                    <i class="fas fa-check-double"></i> <strong>Situation Controlled:</strong> You have cleared this area. Equipment is unlocked for warehouse return intake.
+                                </div>
+                            ` : `
+                                <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:6px 8px; font-size:10.5px; color:#92400e; margin-top:6px;">
+                                    <i class="fas fa-hourglass-half"></i> <strong>Operation Active:</strong> Godown return is locked until you confirm that the situation is under control and equipment is released.
+                                </div>
+                            `}
+                            <div class="sub-card-footer" style="flex-wrap:wrap; gap:6px;">
                                 <span style="font-size:10.5px; color:var(--text-muted);">Linked to Godown Dispatch</span>
-                                ${d.status === 'Pending Verification'
-                                    ? `<button class="btn-go primary" onclick="openVerifyDeliveryModal(${origIdx})"><i class="fas fa-check-double"></i> Verify Physical Delivery</button>`
-                                    : `<span style="font-size:11px; font-weight:700; color:#15803d;"><i class="fas fa-lock"></i> Verified & Locked</span>`}
+                                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                    ${d.status === 'Pending Verification'
+                                        ? `<button class="btn-go primary" onclick="openVerifyDeliveryModal(${origIdx})"><i class="fas fa-check-double"></i> Verify Physical Delivery</button>`
+                                        : `<span style="font-size:10.5px; font-weight:700; color:#15803d; padding:2px 6px; background:#f0fdf4; border-radius:4px;"><i class="fas fa-lock"></i> Verified</span>`}
+                                    ${!Boolean(d.groundOfficerCleared || d.reliefClearedForReturn) ? `
+                                        <button class="btn-go primary" style="background:#15803d; border-color:#16a34a; font-size:10.5px; padding:4px 9px;" onclick="window.confirmSituationControlledOnGround('${d.dispatchId}', '${d.destination ? d.destination.replace(/'/g, "\\'") : ''}')">
+                                            <i class="fas fa-shield-check"></i> Confirm Situation Controlled & Release for Return
+                                        </button>
+                                    ` : `
+                                        <span style="font-size:10.5px; font-weight:700; color:#15803d;"><i class="fas fa-check-circle"></i> Cleared for Return</span>
+                                    `}
+                                </div>
                             </div>
                         </div>
                     `;
@@ -465,6 +483,32 @@ const __onReady = (fn) => __ready.push(fn);
             showToast('Return condition verification submitted to Godown Manager.');
         }
 
+        async function confirmSituationControlledOnGround(allocId, area) {
+            try {
+                await fetch('/api/ground/clear-return', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        allocId,
+                        area,
+                        officerName: 'Bhaskar Jyoti Das (Ground Officer)',
+                        notes: 'Ground rescue operations completed. Area flood waters receded and situation under control. Resources released for warehouse return intake.'
+                    })
+                });
+
+                const d = state.deliveries.find(item => item.dispatchId === allocId || item.destination === area);
+                if (d) {
+                    d.groundOfficerCleared = true;
+                    d.reliefClearedForReturn = true;
+                }
+                renderAllGroundViews();
+                showToast(`✓ Confirmed: Situation in ${area || 'area'} is under control! Equipment released for Godown return intake.`);
+            } catch (e) {
+                console.warn('Clearance error:', e);
+                showToast('Clearance recorded.');
+            }
+        }
+
         function closeModal(id) {
             document.getElementById(id).classList.remove('open');
         }
@@ -476,10 +520,41 @@ const __onReady = (fn) => __ready.push(fn);
             setTimeout(() => { t.style.right = '-380px'; }, 3200);
         }
 
-        __onReady( renderAllGroundViews);
+        __onReady(() => {
+            renderAllGroundViews();
+
+            // Fetch live Godown dispatches so Ground Officer can manage real dispatched consignments
+            fetch('/api/godown').then(r => r.json()).then(res => {
+                if (res && res.data && res.data.allocations) {
+                    const realDispatches = res.data.allocations.filter(a => 
+                        a.status === 'Dispatched' || String(a.godownStatus || '').toLowerCase().includes('dispatched')
+                    );
+                    realDispatches.forEach(a => {
+                        const exists = state.deliveries.find(d => d.dispatchId === a.id || d.destination === a.destination);
+                        if (!exists) {
+                            state.deliveries.unshift({
+                                dispatchId: a.id,
+                                resource: a.summary || 'Emergency Relief Consignment',
+                                destination: a.destination,
+                                dispatched: a.summary || 'Consignment Dispatched',
+                                received: 'Received on Ground',
+                                shortage: 0,
+                                damaged: 0,
+                                remarks: `Escort: ${a.leadOfficerName || 'NDRF Escort'} (${a.leadOfficerId || 'ID'}). Gate Ref: ${a.refNo || 'DSP-2026'}.`,
+                                status: 'Received on Site',
+                                groundOfficerCleared: Boolean(a.groundOfficerCleared || a.reliefClearedForReturn)
+                            });
+                        } else {
+                            exists.groundOfficerCleared = Boolean(a.groundOfficerCleared || a.reliefClearedForReturn);
+                        }
+                    });
+                    renderAllGroundViews();
+                }
+            }).catch(() => {});
+        });
     
 
 // Inline handlers (onClick=...) and generated HTML call these on window, exactly like a classic script.
-Object.assign(window, { closeModal, getPillClass, getSeedGroundOfficerData, getToneClass, openRescueUpdateModal, openReturnVerifyModal, openVerifyDeliveryModal, previewShortageCalc, renderAllGroundViews, showToast, submitDeliveryVerification, submitFieldSituationReport, submitRescueProgress, submitReturnVerification, switchGroundTab, toggleDataMode, toggleGridListView });
+Object.assign(window, { closeModal, confirmSituationControlledOnGround, getPillClass, getSeedGroundOfficerData, getToneClass, openRescueUpdateModal, openReturnVerifyModal, openVerifyDeliveryModal, previewShortageCalc, renderAllGroundViews, showToast, submitDeliveryVerification, submitFieldSituationReport, submitRescueProgress, submitReturnVerification, switchGroundTab, toggleDataMode, toggleGridListView });
 __ready.forEach((fn) => fn());
 }
