@@ -14,6 +14,6 @@ export async function OPTIONS() {
 }
 
 export async function GET() {
-  const state = authorityService.getFullState();
+  const state = await authorityService.getFullState();
   return NextResponse.json({ success: true, data: state }, { headers: corsHeaders() });
 }

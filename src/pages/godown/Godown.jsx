@@ -201,12 +201,12 @@ const markup = (
                     Admin/Authority Area
                   </span>
                 </div>
-                <div className="map-zoom-controls" style={{ zIndex: 10 }}>
-                  <button className="map-z-btn" onClick={() => window.godownMapZoomIn && window.godownMapZoomIn()} title="Zoom In">+</button>
+                <div className="map-zoom-controls" style={{ zIndex: 1000, pointerEvents: "auto" }}>
+                  <button type="button" className="map-z-btn" onClick={() => window.godownMapZoomIn && window.godownMapZoomIn()} title="Zoom In">+</button>
                   {" "}
-                  <button className="map-z-btn" onClick={() => window.godownMapZoomOut && window.godownMapZoomOut()} title="Zoom Out">−</button>
+                  <button type="button" className="map-z-btn" onClick={() => window.godownMapZoomOut && window.godownMapZoomOut()} title="Zoom Out">−</button>
                   {" "}
-                  <button className="map-z-btn" onClick={() => window.godownMapRecenter && window.godownMapRecenter()} title="Recenter">
+                  <button type="button" className="map-z-btn" onClick={() => window.godownMapRecenter && window.godownMapRecenter()} title="Recenter">
                     <i className="fas fa-crosshairs"></i>
                   </button>
                 </div>

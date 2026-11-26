@@ -509,9 +509,10 @@
             position: absolute;
             bottom: 10px;
             right: 10px;
-            z-index: 5;
+            z-index: 1000;
             display: flex;
             gap: 4px;
+            pointer-events: auto;
         }
 
         .map-z-btn {

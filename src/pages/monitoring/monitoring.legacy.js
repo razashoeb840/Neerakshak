@@ -102,15 +102,18 @@ const __onReady = (fn) => __ready.push(fn);
                 { val: isDrillMode ? visDisc.length : '0', lbl: 'Active Discrepancies', icon: 'fa-triangle-exclamation', cls: 'kpi-red' }
             ];
 
-            document.getElementById('monitorKpiGrid').innerHTML = kpis.map(k => `
-                <div class="kpi-tile ${k.cls}">
-                    <div class="kpi-ic"><i class="fas ${k.icon}"></i></div>
-                    <div>
-                        <div class="kpi-val">${k.val}</div>
-                        <div class="kpi-lbl">${k.lbl}</div>
+            const kpiGrid = document.getElementById('monitorKpiGrid');
+            if (kpiGrid) {
+                kpiGrid.innerHTML = kpis.map(k => `
+                    <div class="kpi-tile ${k.cls}">
+                        <div class="kpi-ic"><i class="fas ${k.icon}"></i></div>
+                        <div>
+                            <div class="kpi-val">${k.val}</div>
+                            <div class="kpi-lbl">${k.lbl}</div>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `).join('');
+            }
 
             // 2. Reconciliation Table (Dashboard & Lifecycle Tab)
             const buildReconcileRows = (showAction) => {
@@ -136,8 +139,10 @@ const __onReady = (fn) => __ready.push(fn);
                 }).join('');
             };
 
-            document.getElementById('dashReconcileBody').innerHTML = buildReconcileRows(false);
-            document.getElementById('fullLifecycleBody').innerHTML = buildReconcileRows(true);
+            const dashRec = document.getElementById('dashReconcileBody');
+            if (dashRec) dashRec.innerHTML = buildReconcileRows(false);
+            const fullLife = document.getElementById('fullLifecycleBody');
+            if (fullLife) fullLife.innerHTML = buildReconcileRows(true);
 
             // 3. Discrepancy Cards (Dashboard + Tab 5)
             const discHtml = visDisc.length === 0
@@ -161,8 +166,10 @@ const __onReady = (fn) => __ready.push(fn);
                     </div>
                 `).join('');
 
-            document.getElementById('dashDiscrepancyCards').innerHTML = discHtml;
-            document.getElementById('fullDiscrepancyGrid').innerHTML = discHtml;
+            const dashDisc = document.getElementById('dashDiscrepancyCards');
+            if (dashDisc) dashDisc.innerHTML = discHtml;
+            const fullDisc = document.getElementById('fullDiscrepancyGrid');
+            if (fullDisc) fullDisc.innerHTML = discHtml;
 
             // 4. Allocation & Dispatch Cards + Delivery Audit Cards
             const lifecycleCardsHtml = visRec.map(r => `
@@ -180,36 +187,44 @@ const __onReady = (fn) => __ready.push(fn);
                 </div>
             `).join('') || `<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-muted);">No records found.</div>`;
 
-            document.getElementById('allocDispatchGrid').innerHTML = lifecycleCardsHtml;
-            document.getElementById('deliveryAuditGrid').innerHTML = lifecycleCardsHtml;
+            const allocGrid = document.getElementById('allocDispatchGrid');
+            if (allocGrid) allocGrid.innerHTML = lifecycleCardsHtml;
+            const delivAudit = document.getElementById('deliveryAuditGrid');
+            if (delivAudit) delivAudit.innerHTML = lifecycleCardsHtml;
 
             // 5. Return & Utilization Audit Table
-            document.getElementById('returnAuditBody').innerHTML = state.returns.length === 0
-                ? `<tr><td colspan="6" style="text-align:center; padding:16px; color:var(--text-muted);">No return records synced.</td></tr>`
-                : state.returns.map(ret => `
-                    <tr>
-                        <td><strong>${ret.resource}</strong></td>
-                        <td>${ret.dispatched}</td>
-                        <td><strong style="color:#15803d;">${ret.returnedGood}</strong></td>
-                        <td><strong style="color:#d97706;">${ret.damaged}</strong></td>
-                        <td><strong style="color:#dc2626;">${ret.missing}</strong></td>
-                        <td><span class="pill p-blue">${ret.syncStatus}</span></td>
-                    </tr>
-                `).join('');
+            const retBody = document.getElementById('returnAuditBody');
+            if (retBody) {
+                retBody.innerHTML = state.returns.length === 0
+                    ? `<tr><td colspan="6" style="text-align:center; padding:16px; color:var(--text-muted);">No return records synced.</td></tr>`
+                    : state.returns.map(ret => `
+                        <tr>
+                            <td><strong>${ret.resource}</strong></td>
+                            <td>${ret.dispatched}</td>
+                            <td><strong style="color:#15803d;">${ret.returnedGood}</strong></td>
+                            <td><strong style="color:#d97706;">${ret.damaged}</strong></td>
+                            <td><strong style="color:#dc2626;">${ret.missing}</strong></td>
+                            <td><span class="pill p-blue">${ret.syncStatus}</span></td>
+                        </tr>
+                    `).join('');
+            }
 
             // 6. Operation Monitoring Cards
-            document.getElementById('opsMonitorGrid').innerHTML = state.operations.length === 0
-                ? `<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-muted);">No active operations under monitoring.</div>`
-                : state.operations.map(op => `
-                    <div class="audit-card tone-indigo">
-                        <div class="ac-top">
-                            <h4>${op.opId} • ${op.location}</h4>
-                            <span class="pill p-indigo">${op.status}</span>
+            const opsGrid = document.getElementById('opsMonitorGrid');
+            if (opsGrid) {
+                opsGrid.innerHTML = state.operations.length === 0
+                    ? `<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-muted);">No active operations under monitoring.</div>`
+                    : state.operations.map(op => `
+                        <div class="audit-card tone-indigo">
+                            <div class="ac-top">
+                                <h4>${op.opId} • ${op.location}</h4>
+                                <span class="pill p-indigo">${op.status}</span>
+                            </div>
+                            <div style="font-size:11px; color:var(--text-muted);">Field Officer: <strong>${op.officer}</strong></div>
+                            <p style="margin:0; font-size:11.5px; color:var(--text-body);">${op.notes}</p>
                         </div>
-                        <div style="font-size:11px; color:var(--text-muted);">Field Officer: <strong>${op.officer}</strong></div>
-                        <p style="margin:0; font-size:11.5px; color:var(--text-body);">${op.notes}</p>
-                    </div>
-                `).join('');
+                    `).join('');
+            }
 
             // 7. User Activity Logs
             const logsHtml = state.logs.length === 0
@@ -224,26 +239,34 @@ const __onReady = (fn) => __ready.push(fn);
                     </div>
                 `).join('');
 
-            document.getElementById('dashRecentLogsGrid').innerHTML = logsHtml;
-            document.getElementById('fullActivityLogsGrid').innerHTML = logsHtml;
+            const dashLogs = document.getElementById('dashRecentLogsGrid');
+            if (dashLogs) dashLogs.innerHTML = logsHtml;
+            const fullLogs = document.getElementById('fullActivityLogsGrid');
+            if (fullLogs) fullLogs.innerHTML = logsHtml;
 
             // 8. Reports Summary Cards & Escalations
-            document.getElementById('auditReportCards').innerHTML = `
-                <div class="audit-card tone-ok"><h4>Reconciliation Accuracy</h4><strong style="font-size:20px; color:#15803d;">${isDrillMode ? '97.7%' : '0%'}</strong><span style="font-size:11px; color:var(--text-muted);">Matched across Approved → Dispatched → Received</span></div>
-                <div class="audit-card tone-crit"><h4>Total Shortage / Missing</h4><strong style="font-size:20px; color:#dc2626;">${isDrillMode ? '41 Units' : '0 Units'}</strong><span style="font-size:11px; color:var(--text-muted);">Flagged for clarification & Authority review</span></div>
-            `;
+            const repCards = document.getElementById('auditReportCards');
+            if (repCards) {
+                repCards.innerHTML = `
+                    <div class="audit-card tone-ok"><h4>Reconciliation Accuracy</h4><strong style="font-size:20px; color:#15803d;">${isDrillMode ? '97.7%' : '0%'}</strong><span style="font-size:11px; color:var(--text-muted);">Matched across Approved → Dispatched → Received</span></div>
+                    <div class="audit-card tone-crit"><h4>Total Shortage / Missing</h4><strong style="font-size:20px; color:#dc2626;">${isDrillMode ? '41 Units' : '0 Units'}</strong><span style="font-size:11px; color:var(--text-muted);">Flagged for clarification & Authority review</span></div>
+                `;
+            }
 
-            document.getElementById('escalationsGrid').innerHTML = state.escalations.length === 0
-                ? `<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-muted);">No escalations raised yet.</div>`
-                : state.escalations.map(e => `
-                    <div class="audit-card tone-crit">
-                        <div class="ac-top">
-                            <h4>${e.id} • ${e.title}</h4>
-                            <span class="pill p-red">${e.status}</span>
+            const escGrid = document.getElementById('escalationsGrid');
+            if (escGrid) {
+                escGrid.innerHTML = state.escalations.length === 0
+                    ? `<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-muted);">No escalations raised yet.</div>`
+                    : state.escalations.map(e => `
+                        <div class="audit-card tone-crit">
+                            <div class="ac-top">
+                                <h4>${e.id} • ${e.title}</h4>
+                                <span class="pill p-red">${e.status}</span>
+                            </div>
+                            <p style="margin:0; font-size:11.5px; color:var(--text-body);">${e.detail}</p>
                         </div>
-                        <p style="margin:0; font-size:11.5px; color:var(--text-body);">${e.detail}</p>
-                    </div>
-                `).join('');
+                    `).join('');
+            }
         }
 
         /* =====================================================================

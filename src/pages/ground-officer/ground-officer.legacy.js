@@ -117,31 +117,37 @@ const __onReady = (fn) => __ready.push(fn);
                 { val: isDrillMode ? state.notifications.length : '0', lbl: 'Critical Field Alerts', icon: 'fa-triangle-exclamation', grad: 'kpi-grad-red' }
             ];
 
-            document.getElementById('groundKpiGrid').innerHTML = kpis.map(k => `
-                <div class="kpi-tile ${k.grad}">
-                    <div class="kpi-ic"><i class="fas ${k.icon}"></i></div>
-                    <div>
-                        <div class="kpi-val">${k.val}</div>
-                        <div class="kpi-lbl">${k.lbl}</div>
-                    </div>
-                </div>
-            `).join('');
-
-            // 2. Dashboard Active Tasks
-            document.getElementById('dashActiveTasksList').innerHTML = visAreas.length === 0
-                ? `<div style="text-align:center; padding:16px; color:var(--text-muted);">No active field assignments loaded.</div>`
-                : visAreas.map(a => `
-                    <div class="sub-card ${getToneClass(a.severity)}" style="padding:10px 12px;">
-                        <div class="sub-card-top">
-                            <div>
-                                <h4>${a.village}</h4>
-                                <span style="font-size:10.5px; color:var(--text-muted);">${a.block} • Deadline: <strong>${a.deadline}</strong></span>
-                            </div>
-                            <span class="pill ${getPillClass(a.severity)}">${a.severity}</span>
+            const kpiGrid = document.getElementById('groundKpiGrid');
+            if (kpiGrid) {
+                kpiGrid.innerHTML = kpis.map(k => `
+                    <div class="kpi-tile ${k.grad}">
+                        <div class="kpi-ic"><i class="fas ${k.icon}"></i></div>
+                        <div>
+                            <div class="kpi-val">${k.val}</div>
+                            <div class="kpi-lbl">${k.lbl}</div>
                         </div>
-                        <p style="margin:0; font-size:11.5px; color:var(--text-body);">${a.task}</p>
                     </div>
                 `).join('');
+            }
+
+            // 2. Dashboard Active Tasks
+            const activeTasksList = document.getElementById('dashActiveTasksList');
+            if (activeTasksList) {
+                activeTasksList.innerHTML = visAreas.length === 0
+                    ? `<div style="text-align:center; padding:16px; color:var(--text-muted);">No active field assignments loaded.</div>`
+                    : visAreas.map(a => `
+                        <div class="sub-card ${getToneClass(a.severity)}" style="padding:10px 12px;">
+                            <div class="sub-card-top">
+                                <div>
+                                    <h4>${a.village}</h4>
+                                    <span style="font-size:10.5px; color:var(--text-muted);">${a.block} • Deadline: <strong>${a.deadline}</strong></span>
+                                </div>
+                                <span class="pill ${getPillClass(a.severity)}">${a.severity}</span>
+                            </div>
+                            <p style="margin:0; font-size:11.5px; color:var(--text-body);">${a.task}</p>
+                        </div>
+                    `).join('');
+            }
 
             // 3. Delivery Verification Cards (Dashboard + Full Tab 3)
             const buildDeliveryCards = (list) => {
@@ -177,32 +183,37 @@ const __onReady = (fn) => __ready.push(fn);
             };
 
             const delivHtml = buildDeliveryCards(visDeliv);
-            document.getElementById('dashDeliveryCards').innerHTML = delivHtml;
-            document.getElementById('fullDeliveryVerifyGrid').innerHTML = delivHtml;
+            const dashDelivCards = document.getElementById('dashDeliveryCards');
+            if (dashDelivCards) dashDelivCards.innerHTML = delivHtml;
+            const fullDelivGrid = document.getElementById('fullDeliveryVerifyGrid');
+            if (fullDelivGrid) fullDelivGrid.innerHTML = delivHtml;
 
             // 4. Assigned Areas Cards (Tab 2)
-            document.getElementById('assignedAreasGrid').innerHTML = visAreas.length === 0
-                ? `<div style="grid-column:1/-1; text-align:center; padding:18px; color:var(--text-muted);">No assigned areas found.</div>`
-                : visAreas.map(a => `
-                    <div class="sub-card ${getToneClass(a.severity)}">
-                        <div class="sub-card-top">
-                            <div>
-                                <h4>${a.village}</h4>
-                                <span style="font-size:11px; color:var(--text-muted);">${a.id} • ${a.block}</span>
+            const assignedAreas = document.getElementById('assignedAreasGrid');
+            if (assignedAreas) {
+                assignedAreas.innerHTML = visAreas.length === 0
+                    ? `<div style="grid-column:1/-1; text-align:center; padding:18px; color:var(--text-muted);">No assigned areas found.</div>`
+                    : visAreas.map(a => `
+                        <div class="sub-card ${getToneClass(a.severity)}">
+                            <div class="sub-card-top">
+                                <div>
+                                    <h4>${a.village}</h4>
+                                    <span style="font-size:11px; color:var(--text-muted);">${a.id} • ${a.block}</span>
+                                </div>
+                                <span class="pill ${getPillClass(a.severity)}">${a.severity}</span>
                             </div>
-                            <span class="pill ${getPillClass(a.severity)}">${a.severity}</span>
+                            <div class="meta-box">
+                                <span>Priority: <strong>${a.priority}</strong></span>
+                                <span>GPS: <strong>${a.coords}</strong></span>
+                            </div>
+                            <p style="margin:0; font-size:11.5px; color:var(--text-body);">${a.task}</p>
+                            <div class="sub-card-footer">
+                                <span style="font-size:10.5px; color:var(--text-muted);">Due: <strong>${a.deadline}</strong></span>
+                                <button class="btn-go" onclick="switchGroundTab('field-reports', document.querySelector('[data-tab=field-reports]'))">File Field Report</button>
+                            </div>
                         </div>
-                        <div class="meta-box">
-                            <span>Priority: <strong>${a.priority}</strong></span>
-                            <span>GPS: <strong>${a.coords}</strong></span>
-                        </div>
-                        <p style="margin:0; font-size:11.5px; color:var(--text-body);">${a.task}</p>
-                        <div class="sub-card-footer">
-                            <span style="font-size:10.5px; color:var(--text-muted);">Due: <strong>${a.deadline}</strong></span>
-                            <button class="btn-go" onclick="switchGroundTab('field-reports', document.querySelector('[data-tab=field-reports]'))">File Field Report</button>
-                        </div>
-                    </div>
-                `).join('');
+                    `).join('');
+            }
 
             // 5. Field Situation Cards (Dashboard + My Reports)
             const buildFieldReportCards = (list) => {
@@ -229,12 +240,16 @@ const __onReady = (fn) => __ready.push(fn);
                 `).join('');
             };
 
-            document.getElementById('dashFieldSitCards').innerHTML = buildFieldReportCards(visReports);
+            const dashFieldCards = document.getElementById('dashFieldSitCards');
+            if (dashFieldCards) dashFieldCards.innerHTML = buildFieldReportCards(visReports);
 
             const repFilter = document.getElementById('reportStatusFilter')?.value || 'ALL';
-            document.getElementById('myReportsGrid').innerHTML = buildFieldReportCards(
-                visReports.filter(r => repFilter === 'ALL' || r.reviewStatus === repFilter)
-            );
+            const myReports = document.getElementById('myReportsGrid');
+            if (myReports) {
+                myReports.innerHTML = buildFieldReportCards(
+                    visReports.filter(r => repFilter === 'ALL' || r.reviewStatus === repFilter)
+                );
+            }
 
             // 6. Rescue Operations Cards (Dashboard + Tab 5)
             const buildOpsCards = (list) => {
@@ -266,13 +281,17 @@ const __onReady = (fn) => __ready.push(fn);
             };
 
             const opsHtml = buildOpsCards(visOps);
-            document.getElementById('dashRescueOpsCards').innerHTML = opsHtml;
-            document.getElementById('fullRescueOpsGrid').innerHTML = opsHtml;
+            const dashRescueCards = document.getElementById('dashRescueOpsCards');
+            if (dashRescueCards) dashRescueCards.innerHTML = opsHtml;
+            const fullRescueGrid = document.getElementById('fullRescueOpsGrid');
+            if (fullRescueGrid) fullRescueGrid.innerHTML = opsHtml;
 
             // 7. Return Verification Cards (Tab 6)
-            document.getElementById('returnVerifyGrid').innerHTML = state.returns.length === 0
-                ? `<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-muted);">No post-operation return verifications recorded yet.</div>`
-                : state.returns.map(r => `
+            const retGrid = document.getElementById('returnVerifyGrid');
+            if (retGrid) {
+                retGrid.innerHTML = state.returns.length === 0
+                    ? `<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-muted);">No post-operation return verifications recorded yet.</div>`
+                    : state.returns.map(r => `
                     <div class="sub-card ${r.damaged > 0 || r.missing > 0 ? 'tone-amber' : 'tone-good'}">
                         <div class="sub-card-top">
                             <div>
@@ -289,11 +308,14 @@ const __onReady = (fn) => __ready.push(fn);
                         <p style="margin:0; font-size:11px; color:var(--text-body);">${r.remarks}</p>
                     </div>
                 `).join('');
+            }
 
             // 8. Notifications Grid (Tab 8)
-            document.getElementById('notificationsGrid').innerHTML = state.notifications.length === 0
-                ? `<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-muted);">No unread notifications.</div>`
-                : state.notifications.map(n => `
+            const notifGrid = document.getElementById('notificationsGrid');
+            if (notifGrid) {
+                notifGrid.innerHTML = state.notifications.length === 0
+                    ? `<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-muted);">No unread notifications.</div>`
+                    : state.notifications.map(n => `
                     <div class="sub-card ${getToneClass(n.priority)}">
                         <div class="sub-card-top">
                             <h4>${n.title}</h4>
@@ -302,6 +324,7 @@ const __onReady = (fn) => __ready.push(fn);
                         <p style="margin:0; font-size:11.5px; color:var(--text-body);">${n.detail}</p>
                     </div>
                 `).join('');
+            }
         }
 
         /* =====================================================================

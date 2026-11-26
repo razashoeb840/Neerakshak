@@ -19,6 +19,7 @@ let convoyLayerGroup = null;
 
 let currentAllocations = [];
 let activeFilter = 'ALL';
+let hasAutoFitted = false;
 
 // Fix Leaflet marker icons with bundlers
 delete L.Icon.Default.prototype._getIconUrl;
@@ -63,7 +64,13 @@ export function initGodownLogisticsMap(containerId = 'godownLeafletMap', initial
     zoom: initialZoom,
     minZoom: 5,
     maxZoom: 18,
-    zoomControl: false
+    zoomControl: false,
+    scrollWheelZoom: true,
+    doubleClickZoom: true,
+    touchZoom: true,
+    boxZoom: true,
+    keyboard: true,
+    dragging: true
   });
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -349,10 +356,12 @@ export function updateGodownMapAllocations(allocations = []) {
       }
     });
 
-    if (allCoords.length > 1 && mapInstance) {
+    // Only fitBounds on initial view or filter switch, never override active user zoom on polls
+    if (!hasAutoFitted && allCoords.length > 1 && mapInstance) {
       try {
         const bounds = L.latLngBounds(allCoords);
         mapInstance.fitBounds(bounds.pad(0.18), { maxZoom: 12 });
+        hasAutoFitted = true;
       } catch (err) {}
     }
   } catch (e) {
@@ -408,15 +417,29 @@ export function centerOnMap(lat, lng, zoom = 13) {
 }
 
 export function godownMapZoomIn() {
-  if (mapInstance) mapInstance.zoomIn();
+  if (mapInstance) {
+    mapInstance.zoomIn(1);
+  }
 }
 
 export function godownMapZoomOut() {
-  if (mapInstance) mapInstance.zoomOut();
+  if (mapInstance) {
+    mapInstance.zoomOut(1);
+  }
 }
 
 export function godownMapRecenter() {
-  if (mapInstance) mapInstance.flyTo([26.12, 91.45], 11, { duration: 1.2 });
+  if (mapInstance) {
+    mapInstance.setView([26.12, 91.45], 11, { animate: true });
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.godownMapZoomIn = godownMapZoomIn;
+  window.godownMapZoomOut = godownMapZoomOut;
+  window.godownMapRecenter = godownMapRecenter;
+  window.filterGodownMap = filterGodownMap;
+  window.searchGodownMap = searchGodownMap;
 }
 
 /**

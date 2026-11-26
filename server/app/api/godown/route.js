@@ -15,7 +15,7 @@ export async function OPTIONS() {
 
 export async function GET() {
   try {
-    const state = godownService.getFullState();
+    const state = await godownService.getFullState();
     return NextResponse.json({ success: true, data: state }, { headers: corsHeaders() });
   } catch (err) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders() });
