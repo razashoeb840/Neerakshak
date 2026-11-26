@@ -551,8 +551,25 @@ export default function initGodownPage() {
       <div style="color:#0284c7; font-weight:600;">Authority Requirement: ${alloc.summary}</div>
     `;
     document.getElementById('dispDestInput').value = alloc.destination;
-    document.getElementById('dispVehicleInput').value = alloc.vehicle || 'AS-01-EC-4210';
+    document.getElementById('dispVehicleInput').value = alloc.vehicle || 'Heavy Truck AS-01-EC-4210';
     document.getElementById('dispDriverInput').value = alloc.driver || 'Rajesh Das (+91 98640-21943)';
+
+    // Pre-fill resource quantities from summary
+    const sum = String(alloc.summary || '');
+    const bMatch = sum.match(/(\d+)\s*(?:Boats?|Rescue Boats?)/i);
+    const jMatch = sum.match(/(\d+)\s*(?:Jackets?|Life Jackets?)/i);
+    const fMatch = sum.match(/(\d+)\s*(?:Food|Food Packets?)/i);
+    const mMatch = sum.match(/(\d+)\s*(?:Meds?|Medicines?|Kits?)/i);
+
+    const bInput = document.getElementById('dispBoatsInput');
+    const jInput = document.getElementById('dispJacketsInput');
+    const fInput = document.getElementById('dispFoodInput');
+    const mInput = document.getElementById('dispMedsInput');
+
+    if (bInput) bInput.value = bMatch ? Number(bMatch[1]) : 0;
+    if (jInput) jInput.value = jMatch ? Number(jMatch[1]) : 0;
+    if (fInput) fInput.value = fMatch ? Number(fMatch[1]) : 0;
+    if (mInput) mInput.value = mMatch ? Number(mMatch[1]) : 0;
 
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -568,6 +585,13 @@ export default function initGodownPage() {
     const driver = document.getElementById('dispDriverInput').value.trim();
     const dest = document.getElementById('dispDestInput').value.trim();
     const dt = document.getElementById('dispDateTimeInput').value.replace('T', ' ');
+
+    const boatsDisp = Number(document.getElementById('dispBoatsInput')?.value) || 0;
+    const jacketsDisp = Number(document.getElementById('dispJacketsInput')?.value) || 0;
+    const foodDisp = Number(document.getElementById('dispFoodInput')?.value) || 0;
+    const medsDisp = Number(document.getElementById('dispMedsInput')?.value) || 0;
+    const providedSummary = `${boatsDisp} Boats, ${jacketsDisp} Jackets, ${foodDisp} Food, ${medsDisp} Meds`;
+
     const alloc = (state.allocations || [])[idx];
 
     closeModal('dispatchModal');
@@ -579,13 +603,22 @@ export default function initGodownPage() {
         vehicle,
         driver,
         dest,
-        dispatchTime: dt
+        dispatchTime: dt,
+        providedSummary,
+        boats: boatsDisp,
+        jackets: jacketsDisp,
+        food: foodDisp,
+        meds: medsDisp
       });
 
+      if (alloc) {
+        alloc.status = 'Dispatched';
+        alloc.summary = providedSummary;
+      }
       renderAllGodownViews();
       updateGodownMapAllocations(state.allocations || []);
       renderSelectedAllocBox(allocId);
-      showToast(`Convoy Dispatched for ${dest} (Gate-Pass Ref: ${res.refNo || 'DSP-2026'}). Live tracking active.`);
+      showToast(`Convoy Dispatched for ${dest} with: ${providedSummary} (Ref: ${res.refNo || 'DSP-2026'}).`);
     } catch (err) {
       console.error('Dispatch error:', err);
       showToast('Dispatch recorded locally.');

@@ -571,6 +571,12 @@ export const godownDb = {
       (a.village && a.village.trim().toLowerCase() === destClean)
     );
 
+    const providedSummary = dispatchData.providedSummary || (
+      (dispatchData.boats !== undefined || dispatchData.food !== undefined)
+        ? `${dispatchData.boats || 0} Boats, ${dispatchData.jackets || 0} Jackets, ${dispatchData.food || 0} Food, ${dispatchData.meds || 0} Meds`
+        : null
+    );
+
     if (targetAuth) {
       targetAuth.godownStatus = `Dispatched (${refNo}) • En-Route`;
       targetAuth.deliveryProgress = 75;
@@ -578,12 +584,13 @@ export const godownDb = {
       targetAuth.driver = driver;
       targetAuth.refNo = refNo;
       targetAuth.dispatchTime = nowTime;
+      if (providedSummary) targetAuth.summary = providedSummary;
       if (!targetAuth.timeline) targetAuth.timeline = [];
       targetAuth.timeline.unshift({
         step: `Convoy Dispatched (${refNo})`,
         time: nowTime,
         status: 'done',
-        detail: `Gate-pass issued. Vehicle ${vehicle} departed under escort with driver ${driver}.`
+        detail: `Gate-pass issued. Vehicle ${vehicle} departed with driver ${driver}. Verified Resources: ${providedSummary || targetAuth.summary}.`
       });
 
       const db = await getDatabase();
@@ -594,10 +601,43 @@ export const godownDb = {
       }
     }
 
+    // Deduct provided quantities from inventoryitems
+    if (dispatchData.boats || dispatchData.jackets || dispatchData.food || dispatchData.meds) {
+      const db = await getDatabase();
+      if (db) {
+        try {
+          if (dispatchData.boats) {
+            await db.collection('inventoryitems').updateOne(
+              { category: 'Rescue Boats' },
+              { $inc: { available: -Number(dispatchData.boats), dispatched: Number(dispatchData.boats) } }
+            );
+          }
+          if (dispatchData.jackets) {
+            await db.collection('inventoryitems').updateOne(
+              { category: 'Life Jackets' },
+              { $inc: { available: -Number(dispatchData.jackets), dispatched: Number(dispatchData.jackets) } }
+            );
+          }
+          if (dispatchData.food) {
+            await db.collection('inventoryitems').updateOne(
+              { category: 'Food Packets' },
+              { $inc: { available: -Number(dispatchData.food), dispatched: Number(dispatchData.food) } }
+            );
+          }
+          if (dispatchData.meds) {
+            await db.collection('inventoryitems').updateOne(
+              { category: 'Medicines' },
+              { $inc: { available: -Number(dispatchData.meds), dispatched: Number(dispatchData.meds) } }
+            );
+          }
+        } catch (e) {}
+      }
+    }
+
     const movement = {
       time: `Today, ${nowTime}`,
       type: 'DISPATCH',
-      item: `Emergency Consignment for ${dest}`,
+      item: providedSummary || `Emergency Consignment for ${dest}`,
       party: `To: ${dest}`,
       note: `Ref: ${refNo} • Vehicle: ${vehicle} • Driver: ${driver}`
     };

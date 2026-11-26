@@ -572,6 +572,32 @@ const markup = (
             <input type="hidden" id="dispAllocIndex" />
             <input type="hidden" id="dispAllocId" />
             <div id="dispAllocSummary" style={{ background: "#f0f7fe", padding: "9px 11px", borderRadius: "8px", fontSize: "12px", marginBottom: "10px" }}></div>
+            
+            {/* CONFIRM LOADED RESOURCE QUANTITIES */}
+            <div style={{ background: "#f8fafc", border: "1.5px solid #cbd5e1", borderRadius: "8px", padding: "10px 12px", marginBottom: "12px" }}>
+              <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--navy-deep)", marginBottom: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span><i className="fas fa-boxes-stacked" style={{ color: "var(--river-blue)", marginRight: "5px" }}></i> Confirm Dispatched Resource Quantities *</span>
+                <span style={{ fontSize: "10.5px", color: "var(--text-muted)", fontWeight: "normal" }}>Verify quantities loaded onto vehicle</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontSize: "10.5px", fontWeight: "600" }}>Boats</label>
+                  <input type="number" id="dispBoatsInput" className="form-control" min="0" required />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontSize: "10.5px", fontWeight: "600" }}>Life Jackets</label>
+                  <input type="number" id="dispJacketsInput" className="form-control" min="0" required />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontSize: "10.5px", fontWeight: "600" }}>Food Packets</label>
+                  <input type="number" id="dispFoodInput" className="form-control" min="0" required />
+                </div>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ fontSize: "10.5px", fontWeight: "600" }}>Medicine Kits</label>
+                  <input type="number" id="dispMedsInput" className="form-control" min="0" required />
+                </div>
+              </div>
+            </div>
             <div className="form-grid-2">
               <div className="form-group">
                 <label>Assigned Vehicle Number *</label>
