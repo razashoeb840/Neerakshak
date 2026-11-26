@@ -369,6 +369,12 @@ function godownBackendPlugin() {
 
           // Returns
           if (pathname === '/api/godown/returns') {
+            if (method === 'POST') {
+              const result = await godownDb.recordAreaReturn(body);
+              res.statusCode = 200;
+              res.end(JSON.stringify({ success: true, data: result }));
+              return;
+            }
             res.statusCode = 200;
             res.end(JSON.stringify({ success: true, data: data.returns || [] }));
             return;

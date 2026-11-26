@@ -36,6 +36,10 @@ export const godownService = {
 
   getReturns() {
     return godownDb.getState().then(s => s.returns || []);
+  },
+
+  logReturn(returnData) {
+    return godownDb.recordAreaReturn(returnData);
   }
 };
 

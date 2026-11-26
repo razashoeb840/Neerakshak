@@ -409,7 +409,51 @@ export default function initGodownPage() {
         }).join('');
     }
 
-    // 7. Return Management Cards
+    // 7. Returns Tab: Dispatched Area Selector & Return Intake Form
+    const returnsAreaList = document.getElementById('returnsDispatchedAreasList');
+    if (returnsAreaList) {
+      const dispatchedAllocations = (allocations || []).filter(a => 
+        a.status === 'Dispatched' || 
+        String(a.godownStatus || '').toLowerCase().includes('dispatched') ||
+        String(a.godownStatus || '').toLowerCase().includes('en-route')
+      );
+
+      if (dispatchedAllocations.length === 0) {
+        returnsAreaList.innerHTML = `
+          <div style="text-align:center; padding:20px; border:1.5px dashed #93c5fd; border-radius:10px; color:var(--text-muted); font-size:12px;">
+            <i class="fas fa-truck-ramp-box" style="font-size:22px; color:#38bdf8; margin-bottom:6px; display:block;"></i>
+            No relief consignments dispatched yet. When supplies are dispatched to an area, it will appear here for return intake.
+          </div>
+        `;
+      } else {
+        returnsAreaList.innerHTML = `
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:10px;">
+            ${dispatchedAllocations.map(a => `
+              <div class="sub-card tone-good" style="cursor:pointer; border:1.5px solid #86efac; transition:all 0.2s;" onclick="window.selectAreaForReturn('${a.destination.replace(/'/g, "\\'")}', '${a.id}', '${a.refNo || 'DSP-2026'}')" title="Click to inspect and log return for this area">
+                <div class="sub-card-top" style="margin-bottom:6px;">
+                  <div>
+                    <h4 style="color:#0f172a; margin:0 0 2px;"><i class="fas fa-location-dot" style="color:#16a34a; margin-right:4px;"></i>${a.destination}</h4>
+                    <span style="font-size:11px; color:var(--text-muted); font-weight:600;">Gate-Pass Ref: <strong>${a.refNo && a.refNo !== '—' ? a.refNo : 'DSP-2026'}</strong></span>
+                  </div>
+                  <span class="pill p-good" style="font-size:9.5px; padding:2px 7px;">Dispatched</span>
+                </div>
+                <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:6px 8px; font-size:11px; color:#166534; margin-bottom:8px;">
+                  <strong>Dispatched Supplies:</strong> ${a.summary || 'Emergency Relief Buffer'}
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:10.5px; color:#475569;">
+                  <span><i class="fas fa-shield-halved" style="color:#0284c7;"></i> ${a.leadOfficerName || 'NDRF Escort'}</span>
+                  <button class="btn-gd primary" style="padding:4px 9px; font-size:10.5px;" onclick="event.stopPropagation(); window.selectAreaForReturn('${a.destination.replace(/'/g, "\\'")}', '${a.id}', '${a.refNo || 'DSP-2026'}')">
+                    <i class="fas fa-rotate-left"></i> Log Return
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+    }
+
+    // Return Management Audited Cards
     const returnsGrid = document.getElementById('returnsCardGrid');
     if (returnsGrid) {
       returnsGrid.innerHTML = returns.length === 0
@@ -418,17 +462,18 @@ export default function initGodownPage() {
           <div class="sub-card ${r.damaged > 0 || r.missing > 0 ? 'tone-amber' : 'tone-good'}">
             <div class="sub-card-top">
               <div>
-                <h4>${r.resourceName}</h4>
-                <span style="font-size:11px; color:var(--text-muted);">${r.id} • From ${r.from}</span>
+                <h4>${r.area || r.resourceName || 'Relief Consignment Return'}</h4>
+                <span style="font-size:11px; color:var(--text-muted);">${r.id} • Ref: <strong>${r.refNo || 'DSP-2026'}</strong></span>
               </div>
-              <span class="pill p-good">Inspected</span>
+              <span class="pill ${r.verificationStatus?.includes('Verified') ? 'p-good' : 'p-amber'}">${r.verificationStatus || 'Pending Verification'}</span>
             </div>
-            <div class="meta-box-4" style="grid-template-columns: repeat(3, 1fr);">
-              <div><span>Good</span><strong style="color:#15803d;">${r.good}</strong></div>
-              <div><span>Damaged</span><strong style="color:#d97706;">${r.damaged}</strong></div>
-              <div><span>Missing</span><strong style="color:#dc2626;">${r.missing}</strong></div>
+            <div class="meta-box-4" style="grid-template-columns: repeat(3, 1fr); margin:8px 0;">
+              <div><span>Good</span><strong style="color:#15803d;">${r.boatsReturned !== undefined ? (r.boatsReturned + r.jacketsReturned) : r.good}</strong></div>
+              <div><span>Damaged</span><strong style="color:#d97706;">${r.boatsDamaged !== undefined ? (r.boatsDamaged + r.jacketsDamaged) : r.damaged}</strong></div>
+              <div><span>Missing</span><strong style="color:#dc2626;">${r.boatsMissing !== undefined ? (r.boatsMissing + r.jacketsMissing) : r.missing}</strong></div>
             </div>
-            <div style="font-size:10.5px; color:var(--text-muted);">${r.date}</div>
+            <div style="font-size:11px; color:#334155;"><strong>Handover By:</strong> ${r.returnedByOfficer || 'NDRF Officer'} (${r.officerId || 'ID'})</div>
+            <div style="font-size:10px; color:var(--text-muted); margin-top:4px;"><i class="far fa-clock"></i> ${r.date}</div>
           </div>
         `).join('');
     }
@@ -554,6 +599,25 @@ export default function initGodownPage() {
     document.getElementById('dispVehicleInput').value = alloc.vehicle || 'Heavy Truck AS-01-EC-4210';
     document.getElementById('dispDriverInput').value = alloc.driver || 'Rajesh Das (+91 98640-21943)';
 
+    // Authority Designated Escort / Receiving Officer
+    const offNameEl = document.getElementById('dispOfficerName');
+    const offIdEl = document.getElementById('dispOfficerId');
+    const offAgencyPill = document.getElementById('dispOfficerAgencyPill');
+    if (offNameEl) offNameEl.textContent = alloc.leadOfficerName || 'Inspector Rajesh Kalita';
+    if (offIdEl) offIdEl.textContent = alloc.leadOfficerId || 'NDRF-1BN-842';
+    if (offAgencyPill) offAgencyPill.textContent = (alloc.leadAgency || 'NDRF (1st Bn)') + ' Verified';
+
+    // Look up present available warehouse stock for each resource
+    const boatsItem = (state.inventory || []).find(i => (i.category || '').toLowerCase().includes('boat'));
+    const jacketsItem = (state.inventory || []).find(i => (i.category || '').toLowerCase().includes('jacket'));
+    const foodItem = (state.inventory || []).find(i => (i.category || '').toLowerCase().includes('food'));
+    const medsItem = (state.inventory || []).find(i => (i.category || '').toLowerCase().includes('medicine'));
+
+    const availBoats = boatsItem ? Number(boatsItem.available) : 30;
+    const availJackets = jacketsItem ? Number(jacketsItem.available) : 500;
+    const availFood = foodItem ? Number(foodItem.available) : 3500;
+    const availMeds = medsItem ? Number(medsItem.available) : 750;
+
     // Pre-fill resource quantities from summary
     const sum = String(alloc.summary || '');
     const bMatch = sum.match(/(\d+)\s*(?:Boats?|Rescue Boats?)/i);
@@ -561,15 +625,82 @@ export default function initGodownPage() {
     const fMatch = sum.match(/(\d+)\s*(?:Food|Food Packets?)/i);
     const mMatch = sum.match(/(\d+)\s*(?:Meds?|Medicines?|Kits?)/i);
 
+    const reqBoats = bMatch ? Number(bMatch[1]) : 0;
+    const reqJackets = jMatch ? Number(jMatch[1]) : 0;
+    const reqFood = fMatch ? Number(fMatch[1]) : 0;
+    const reqMeds = mMatch ? Number(mMatch[1]) : 0;
+
+    // Update Available & Required labels
+    const bStockLbl = document.getElementById('dispBoatsStockLabel');
+    const jStockLbl = document.getElementById('dispJacketsStockLabel');
+    const fStockLbl = document.getElementById('dispFoodStockLabel');
+    const mStockLbl = document.getElementById('dispMedsStockLabel');
+
+    if (bStockLbl) bStockLbl.textContent = `Avail: ${availBoats}`;
+    if (jStockLbl) jStockLbl.textContent = `Avail: ${availJackets}`;
+    if (fStockLbl) fStockLbl.textContent = `Avail: ${availFood}`;
+    if (mStockLbl) mStockLbl.textContent = `Avail: ${availMeds}`;
+
+    const bReqLbl = document.getElementById('dispBoatsReqLabel');
+    const jReqLbl = document.getElementById('dispJacketsReqLabel');
+    const fReqLbl = document.getElementById('dispFoodReqLabel');
+    const mReqLbl = document.getElementById('dispMedsReqLabel');
+
+    if (bReqLbl) bReqLbl.textContent = `Req: ${reqBoats}`;
+    if (jReqLbl) jReqLbl.textContent = `Req: ${reqJackets}`;
+    if (fReqLbl) fReqLbl.textContent = `Req: ${reqFood}`;
+    if (mReqLbl) mReqLbl.textContent = `Req: ${reqMeds}`;
+
     const bInput = document.getElementById('dispBoatsInput');
     const jInput = document.getElementById('dispJacketsInput');
     const fInput = document.getElementById('dispFoodInput');
     const mInput = document.getElementById('dispMedsInput');
 
-    if (bInput) bInput.value = bMatch ? Number(bMatch[1]) : 0;
-    if (jInput) jInput.value = jMatch ? Number(jMatch[1]) : 0;
-    if (fInput) fInput.value = fMatch ? Number(fMatch[1]) : 0;
-    if (mInput) mInput.value = mMatch ? Number(mMatch[1]) : 0;
+    const validateInput = (input, maxAvail, name) => {
+      const val = Number(input.value);
+      const warn = document.getElementById('dispStockWarningMsg');
+      if (val > maxAvail) {
+        input.value = maxAvail;
+        if (warn) {
+          warn.textContent = `Cannot exceed available ${name} stock (${maxAvail})!`;
+          warn.style.color = '#dc2626';
+        }
+        showToast(`Cannot dispatch more than present inventory stock of ${name} (${maxAvail} Available)`);
+      }
+    };
+
+    // Strict validation: cap input by present inventory stock
+    if (bInput) {
+      bInput.max = availBoats;
+      bInput.value = Math.min(reqBoats, availBoats);
+      bInput.oninput = () => validateInput(bInput, availBoats, 'Boats');
+    }
+    if (jInput) {
+      jInput.max = availJackets;
+      jInput.value = Math.min(reqJackets, availJackets);
+      jInput.oninput = () => validateInput(jInput, availJackets, 'Life Jackets');
+    }
+    if (fInput) {
+      fInput.max = availFood;
+      fInput.value = Math.min(reqFood, availFood);
+      fInput.oninput = () => validateInput(fInput, availFood, 'Food Packets');
+    }
+    if (mInput) {
+      mInput.max = availMeds;
+      mInput.value = Math.min(reqMeds, availMeds);
+      mInput.oninput = () => validateInput(mInput, availMeds, 'Medicine Kits');
+    }
+
+    const warnMsg = document.getElementById('dispStockWarningMsg');
+    if (warnMsg) {
+      if (reqBoats > availBoats || reqJackets > availJackets || reqFood > availFood || reqMeds > availMeds) {
+        warnMsg.textContent = '⚠️ Stock deficit: quantities capped to available warehouse inventory';
+        warnMsg.style.color = '#dc2626';
+      } else {
+        warnMsg.textContent = '✓ Full required stock available in depot';
+        warnMsg.style.color = '#15803d';
+      }
+    }
 
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -593,6 +724,22 @@ export default function initGodownPage() {
     const providedSummary = `${boatsDisp} Boats, ${jacketsDisp} Jackets, ${foodDisp} Food, ${medsDisp} Meds`;
 
     const alloc = (state.allocations || [])[idx];
+    const officerVerified = document.getElementById('dispOfficerVerifiedCheck')?.checked ?? true;
+
+    // Check available stock
+    const boatsItem = (state.inventory || []).find(i => (i.category || '').toLowerCase().includes('boat'));
+    const jacketsItem = (state.inventory || []).find(i => (i.category || '').toLowerCase().includes('jacket'));
+    const availB = boatsItem ? Number(boatsItem.available) : 999;
+    const availJ = jacketsItem ? Number(jacketsItem.available) : 999;
+
+    if (boatsDisp > availB) {
+      showToast(`Cannot dispatch ${boatsDisp} Boats. Only ${availB} available in warehouse!`);
+      return;
+    }
+    if (jacketsDisp > availJ) {
+      showToast(`Cannot dispatch ${jacketsDisp} Jackets. Only ${availJ} available in warehouse!`);
+      return;
+    }
 
     closeModal('dispatchModal');
 
@@ -608,17 +755,22 @@ export default function initGodownPage() {
         boats: boatsDisp,
         jackets: jacketsDisp,
         food: foodDisp,
-        meds: medsDisp
+        meds: medsDisp,
+        verifiedOfficerName: alloc?.leadOfficerName || 'Inspector Rajesh Kalita',
+        verifiedOfficerId: alloc?.leadOfficerId || 'NDRF-1BN-842',
+        verifiedAgency: alloc?.leadAgency || 'NDRF (1st Bn)',
+        officerVerified
       });
 
       if (alloc) {
         alloc.status = 'Dispatched';
         alloc.summary = providedSummary;
+        alloc.godownStatus = `Dispatched (${res.refNo || 'DSP-2026'}) • En-Route`;
       }
       renderAllGodownViews();
       updateGodownMapAllocations(state.allocations || []);
       renderSelectedAllocBox(allocId);
-      showToast(`Convoy Dispatched for ${dest} with: ${providedSummary} (Ref: ${res.refNo || 'DSP-2026'}).`);
+      showToast(`Convoy Dispatched for ${dest} with: ${providedSummary} • Handed to ${alloc?.leadOfficerName || 'Lead Officer'} (Ref: ${res.refNo || 'DSP-2026'}).`);
     } catch (err) {
       console.error('Dispatch error:', err);
       showToast('Dispatch recorded locally.');
@@ -749,6 +901,245 @@ export default function initGodownPage() {
     }
   }
 
+  function selectAreaForReturn(areaName, allocId, refNo) {
+    const allocations = state.allocations || [];
+    const alloc = allocations.find(a => a.id === allocId || a.destination === areaName) || {
+      destination: areaName,
+      id: allocId,
+      refNo: refNo || 'DSP-2026',
+      boats: 3,
+      jackets: 33,
+      food: 264,
+      meds: 44,
+      leadOfficerName: 'Inspector Rajesh Kalita',
+      leadOfficerId: 'NDRF-1BN-842',
+      leadAgency: 'NDRF'
+    };
+
+    const card = document.getElementById('areaReturnIntakeCard');
+    if (!card) return;
+
+    const boatsSent = alloc.boats !== undefined ? alloc.boats : (alloc.dispatchedBoats || 0);
+    const jacketsSent = alloc.jackets !== undefined ? alloc.jackets : (alloc.dispatchedJackets || 0);
+    const foodSent = alloc.food !== undefined ? alloc.food : (alloc.dispatchedFood || 0);
+    const medsSent = alloc.meds !== undefined ? alloc.meds : (alloc.dispatchedMeds || 0);
+    const officerName = alloc.leadOfficerName || alloc.verifiedOfficerName || 'Inspector Rajesh Kalita';
+    const officerId = alloc.leadOfficerId || alloc.verifiedOfficerId || 'NDRF-1BN-842';
+    const agency = alloc.leadAgency || 'NDRF (1st Bn)';
+
+    card.style.display = 'block';
+    card.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; border-bottom:1px solid #bfdbfe; padding-bottom:8px;">
+        <div>
+          <h3 style="margin:0 0 2px; color:#1e3a8a; font-size:15px;">
+            <i class="fas fa-rotate-left" style="color:#0284c7;"></i> Return Intake Reconciliation: <strong>${areaName}</strong>
+          </h3>
+          <span style="font-size:11.5px; color:#64748b;">
+            Gate-Pass Dispatch Ref: <strong>${alloc.refNo || refNo || 'DSP-2026'}</strong> • Allocation ID: <strong>${alloc.id}</strong>
+          </span>
+        </div>
+        <button type="button" class="btn-gd outline" style="padding:4px 9px; font-size:11px;" onclick="document.getElementById('areaReturnIntakeCard').style.display='none'">
+          <i class="fas fa-times"></i> Close
+        </button>
+      </div>
+
+      <!-- SECTION 1: WHAT WAS SENT -->
+      <div style="background:#ffffff; border:1px solid #cbd5e1; border-radius:8px; padding:10px 12px; margin-bottom:12px;">
+        <div style="font-size:11.5px; font-weight:700; color:#0f172a; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+          <span><i class="fas fa-box-open" style="color:#0284c7;"></i> Consignment Sent to Field (भेजा गया सामान):</span>
+          <span class="pill p-good" style="font-size:10px;">Escort: ${agency} - ${officerName} (${officerId})</span>
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; text-align:center;">
+          <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:6px;">
+            <span style="display:block; font-size:10.5px; color:#166534; font-weight:600;">Rescue Boats Sent</span>
+            <strong style="font-size:15px; color:#15803d;">${boatsSent}</strong>
+          </div>
+          <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:6px;">
+            <span style="display:block; font-size:10.5px; color:#166534; font-weight:600;">Life Jackets Sent</span>
+            <strong style="font-size:15px; color:#15803d;">${jacketsSent}</strong>
+          </div>
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:6px;">
+            <span style="display:block; font-size:10.5px; color:#475569; font-weight:600;">Food Packets Sent</span>
+            <strong style="font-size:15px; color:#334155;">${foodSent}</strong>
+          </div>
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:6px;">
+            <span style="display:block; font-size:10.5px; color:#475569; font-weight:600;">Medicine Kits Sent</span>
+            <strong style="font-size:15px; color:#334155;">${medsSent}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: MANUAL RETURN INTAKE FORM -->
+      <form onsubmit="event.preventDefault(); window.submitAreaReturnForm('${alloc.id}', '${areaName.replace(/'/g, "\\'")}', '${alloc.refNo || refNo || 'DSP-2026'}');">
+        <div style="font-size:12px; font-weight:700; color:#1e293b; margin-bottom:8px;">
+          <i class="fas fa-pen-to-square" style="color:#2563eb;"></i> Manual Intake Entry (कितना आया - मैनुअल भरें):
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+          <!-- Boats Returns -->
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px;">
+            <h5 style="margin:0 0 6px; font-size:11.5px; color:#1e3a8a;"><i class="fas fa-ship" style="color:#0284c7;"></i> Inflatable Rescue Boats (Sent: ${boatsSent})</h5>
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:6px;">
+              <div>
+                <label style="font-size:10px; font-weight:600; color:#15803d; display:block;">Good (Restock)</label>
+                <input type="number" id="retAreaBoatsGood" class="form-ctrl" min="0" max="${boatsSent}" value="${boatsSent}" style="padding:4px; font-size:12px;" required />
+              </div>
+              <div>
+                <label style="font-size:10px; font-weight:600; color:#d97706; display:block;">Damaged</label>
+                <input type="number" id="retAreaBoatsDamaged" class="form-ctrl" min="0" max="${boatsSent}" value="0" style="padding:4px; font-size:12px;" required />
+              </div>
+              <div>
+                <label style="font-size:10px; font-weight:600; color:#dc2626; display:block;">Missing</label>
+                <input type="number" id="retAreaBoatsMissing" class="form-ctrl" min="0" max="${boatsSent}" value="0" style="padding:4px; font-size:12px;" required />
+              </div>
+            </div>
+          </div>
+
+          <!-- Life Jackets Returns -->
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px;">
+            <h5 style="margin:0 0 6px; font-size:11.5px; color:#1e3a8a;"><i class="fas fa-vest" style="color:#f59e0b;"></i> Life Jackets (Sent: ${jacketsSent})</h5>
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:6px;">
+              <div>
+                <label style="font-size:10px; font-weight:600; color:#15803d; display:block;">Good (Restock)</label>
+                <input type="number" id="retAreaJacketsGood" class="form-ctrl" min="0" max="${jacketsSent}" value="${jacketsSent}" style="padding:4px; font-size:12px;" required />
+              </div>
+              <div>
+                <label style="font-size:10px; font-weight:600; color:#d97706; display:block;">Damaged</label>
+                <input type="number" id="retAreaJacketsDamaged" class="form-ctrl" min="0" max="${jacketsSent}" value="0" style="padding:4px; font-size:12px;" required />
+              </div>
+              <div>
+                <label style="font-size:10px; font-weight:600; color:#dc2626; display:block;">Missing</label>
+                <input type="number" id="retAreaJacketsMissing" class="form-ctrl" min="0" max="${jacketsSent}" value="0" style="padding:4px; font-size:12px;" required />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Consumables Breakdown -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px;">
+            <h5 style="margin:0 0 6px; font-size:11.5px; color:#1e3a8a;"><i class="fas fa-bowl-food" style="color:#10b981;"></i> Food Packets (Sent: ${foodSent})</h5>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+              <div>
+                <label style="font-size:10px; font-weight:600; color:#475569; display:block;">Distributed / Consumed</label>
+                <input type="number" id="retAreaFoodDist" class="form-ctrl" min="0" max="${foodSent}" value="${foodSent}" style="padding:4px; font-size:12px;" />
+              </div>
+              <div>
+                <label style="font-size:10px; font-weight:600; color:#15803d; display:block;">Unopened Returned</label>
+                <input type="number" id="retAreaFoodGood" class="form-ctrl" min="0" max="${foodSent}" value="0" style="padding:4px; font-size:12px;" />
+              </div>
+            </div>
+          </div>
+
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:10px;">
+            <h5 style="margin:0 0 6px; font-size:11.5px; color:#1e3a8a;"><i class="fas fa-kit-medical" style="color:#ef4444;"></i> Medicine Kits (Sent: ${medsSent})</h5>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+              <div>
+                <label style="font-size:10px; font-weight:600; color:#475569; display:block;">Utilized on Ground</label>
+                <input type="number" id="retAreaMedsUsed" class="form-ctrl" min="0" max="${medsSent}" value="${medsSent}" style="padding:4px; font-size:12px;" />
+              </div>
+              <div>
+                <label style="font-size:10px; font-weight:600; color:#15803d; display:block;">Sealed Returned</label>
+                <input type="number" id="retAreaMedsGood" class="form-ctrl" min="0" max="${medsSent}" value="0" style="padding:4px; font-size:12px;" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Handover Officer & Physical Verification -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; margin-bottom:10px;">
+          <div>
+            <label style="font-size:11px; font-weight:600; color:#334155; display:block;">Handover Officer Name *</label>
+            <input type="text" id="retAreaOfficerName" class="form-ctrl" value="${officerName}" style="padding:5px; font-size:11.5px;" required />
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:600; color:#334155; display:block;">Officer Service / Badge ID *</label>
+            <input type="text" id="retAreaOfficerId" class="form-ctrl" value="${officerId}" style="padding:5px; font-size:11.5px;" required />
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:600; color:#334155; display:block;">Inspection Bay Notes</label>
+            <input type="text" id="retAreaNotes" class="form-ctrl" value="Equipment washed, disinfected & integrity checked at dock" style="padding:5px; font-size:11.5px;" />
+          </div>
+        </div>
+
+        <!-- Verification Notice -->
+        <div style="background:#eff6ff; border-left:3.5px solid #3b82f6; padding:8px 12px; border-radius:6px; font-size:11px; color:#1e40af; margin-bottom:12px;">
+          <i class="fas fa-shield-halved"></i> <strong>Ground Officer Cross-Verification:</strong>
+          This return will be logged as <strong>'Pending Ground Officer Verification'</strong>. The Field Ground Officer will cross-examine and confirm the numbers directly on their console before final archival.
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:8px;">
+          <button type="button" class="btn-gd outline" onclick="document.getElementById('areaReturnIntakeCard').style.display='none'">
+            Cancel
+          </button>
+          <button type="submit" class="btn-gd primary">
+            <i class="fas fa-check-circle"></i> Submit Return Intake & Restock Inventory
+          </button>
+        </div>
+      </form>
+    `;
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  async function submitAreaReturnForm(allocId, areaName, refNo) {
+    const boatsGood = Number(document.getElementById('retAreaBoatsGood')?.value || 0);
+    const boatsDamaged = Number(document.getElementById('retAreaBoatsDamaged')?.value || 0);
+    const boatsMissing = Number(document.getElementById('retAreaBoatsMissing')?.value || 0);
+
+    const jacketsGood = Number(document.getElementById('retAreaJacketsGood')?.value || 0);
+    const jacketsDamaged = Number(document.getElementById('retAreaJacketsDamaged')?.value || 0);
+    const jacketsMissing = Number(document.getElementById('retAreaJacketsMissing')?.value || 0);
+
+    const foodDist = Number(document.getElementById('retAreaFoodDist')?.value || 0);
+    const foodGood = Number(document.getElementById('retAreaFoodGood')?.value || 0);
+    const medsUsed = Number(document.getElementById('retAreaMedsUsed')?.value || 0);
+    const medsGood = Number(document.getElementById('retAreaMedsGood')?.value || 0);
+
+    const officerName = document.getElementById('retAreaOfficerName')?.value.trim() || 'NDRF Officer';
+    const officerId = document.getElementById('retAreaOfficerId')?.value.trim() || 'OFF-ID';
+    const notes = document.getElementById('retAreaNotes')?.value.trim() || 'Post-rescue inspection completed';
+
+    const card = document.getElementById('areaReturnIntakeCard');
+    if (card) card.style.display = 'none';
+
+    try {
+      await submitReturnRecordApi({
+        area: areaName,
+        destination: areaName,
+        refNo: refNo || 'DSP-2026',
+        boatsGood,
+        boatsDamaged,
+        boatsMissing,
+        jacketsGood,
+        jacketsDamaged,
+        jacketsMissing,
+        foodDistributed: foodDist,
+        foodGood,
+        medsUsed,
+        medsGood,
+        returnedByOfficer: officerName,
+        officerId,
+        conditionNotes: notes
+      });
+
+      // Update local state inventory for Good restocked items
+      const boatInv = (state.inventory || []).find(i => i.id === 'INV-01' || i.name.toLowerCase().includes('boat'));
+      if (boatInv) {
+        boatInv.available = (Number(boatInv.available) || 0) + boatsGood;
+      }
+      const jacketInv = (state.inventory || []).find(i => i.id === 'INV-02' || i.name.toLowerCase().includes('jacket'));
+      if (jacketInv) {
+        jacketInv.available = (Number(jacketInv.available) || 0) + jacketsGood;
+      }
+
+      renderAllGodownViews();
+      showToast(`Consignment return recorded for ${areaName}! ${boatsGood} Boats & ${jacketsGood} Jackets restocked to available inventory. Marked as 'Pending Ground Officer Verification'.`);
+    } catch (err) {
+      console.error('Error submitting area return form:', err);
+      showToast('Return recorded locally.');
+    }
+  }
+
   function closeModal(id) {
     const el = document.getElementById(id);
     if (el) el.classList.remove('open');
@@ -822,6 +1213,8 @@ export default function initGodownPage() {
     renderAllGodownViews,
     reportShortageToAuthority,
     selectAllocationForDispatch,
+    selectAreaForReturn,
+    submitAreaReturnForm,
     showToast,
     submitReturnRecord,
     submitStockCorrection,

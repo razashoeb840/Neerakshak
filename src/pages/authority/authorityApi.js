@@ -219,23 +219,33 @@ export async function confirmRequestDecisionApi(index, decision, reason) {
 }
 
 // Direct Allocation to Godown (with Deduplication & Update)
-export async function allocateDirectResourcesApi(village, summary) {
+export async function allocateDirectResourcesApi(village, summary, officerDetails = {}) {
   if (!cachedState) cachedState = getDefaultAuthoritySeed();
   if (!cachedState.allocations) cachedState.allocations = [];
 
   const villageClean = String(village || '').trim().toLowerCase();
   const existing = cachedState.allocations.find(a => a.village && a.village.trim().toLowerCase() === villageClean);
 
+  const leadAgency = officerDetails.leadAgency || officerDetails.agency || 'NDRF (1st Bn)';
+  const leadOfficerName = officerDetails.leadOfficerName || officerDetails.officerName || 'Inspector Rajesh Kalita';
+  const leadOfficerId = officerDetails.leadOfficerId || officerDetails.officerId || 'NDRF-1BN-842';
+  const leadOfficerContact = officerDetails.leadOfficerContact || officerDetails.officerContact || '+91 94350-12345';
+
   if (existing) {
     existing.summary = summary;
     existing.godownStatus = 'Updated by Authority • Preparing Dispatch';
     existing.timestamp = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    existing.leadAgency = leadAgency;
+    existing.leadOfficerName = leadOfficerName;
+    existing.leadOfficerId = leadOfficerId;
+    existing.leadOfficerContact = leadOfficerContact;
+    existing.escortOfficer = `${leadAgency} ${leadOfficerName}`;
     if (!existing.timeline) existing.timeline = [];
     existing.timeline.unshift({
       step: 'Allocation Order Adjusted',
       time: 'Just now',
       status: 'done',
-      detail: `Emergency supplies updated by District Authority to: ${summary}`
+      detail: `Emergency supplies updated by District Authority to: ${summary}. Assigned Escort: ${leadAgency} - ${leadOfficerName} (ID: ${leadOfficerId}).`
     });
 
     if (!cachedState.logs) cachedState.logs = [];
@@ -243,7 +253,7 @@ export async function allocateDirectResourcesApi(village, summary) {
       id: `LOG-${Date.now().toString(36).toUpperCase()}`,
       time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
       actor: 'District Authority (DDMA)',
-      note: `Updated allocation (${summary}) for ${existing.village} (${existing.id}); notified Godown Manager.`
+      note: `Updated allocation (${summary}) for ${existing.village} (${existing.id}) with lead officer ${leadOfficerName}; notified Godown Manager.`
     });
 
     notifySync(cachedState);
@@ -271,9 +281,13 @@ export async function allocateDirectResourcesApi(village, summary) {
     assignedGodown: 'Central Relief Godown – Mirza (Bay 2)',
     vehicle: 'Heavy Truck AS-01-EC-4210 (6-Ton Swaraj)',
     driver: 'Rajesh Das (Ph: +91 98640-21943)',
-    escortOfficer: 'ASI D. Kalita (District Police Escort)',
+    escortOfficer: `${leadAgency} ${leadOfficerName}`,
+    leadAgency,
+    leadOfficerName,
+    leadOfficerId,
+    leadOfficerContact,
     timeline: [
-      { step: 'DDMA Allocation Approved', time: 'Just now', status: 'done', detail: `Direct allocation (${summary}) approved by Authority & transmitted to Godown Manager.` },
+      { step: 'DDMA Allocation Approved', time: 'Just now', status: 'done', detail: `Direct allocation (${summary}) approved by Authority. Designated lead officer: ${leadAgency} - ${leadOfficerName} (Badge/ID: ${leadOfficerId}). Transmitted to Godown.` },
       { step: 'Stock Verification & Staging', time: 'In Progress', status: 'active', detail: 'Godown warehouse crew picking verified stock from storage racks.' },
       { step: 'Vehicle Dispatch & Gate Pass', time: 'Pending', status: 'pending', detail: 'Pallets loading & security checkpoint clearance.' },
       { step: 'Route Checkpoint Crossing', time: 'Pending', status: 'pending', detail: 'Transit via high-water bypass bridge towards destination.' },

@@ -339,25 +339,40 @@ const markup = (
           </div>
 
           {/* ===============================================================
-                 TAB 6: RETURN MANAGEMENT
+                 TAB 6: RETURN MANAGEMENT (DISPATCHED AREA RECONCILIATION)
                  =============================================================== */}
           <div className="gd-tab-pane" id="tab-returns">
-            <div className="aqua-card">
+            <div className="aqua-card" style={{ marginBottom: "14px" }}>
               <div className="card-head">
                 <h2>
                   <i className="fas fa-rotate-left" style={{ color: "var(--teal-water)" }}></i>
-                  {" Post-Operation Returned Resources Inspection"}
+                  {" Post-Operation Relief Consignment Returns Intake"}
                 </h2>
-                <button className="btn-gd primary" onClick={(event) => window.openReturnModal && window.openReturnModal()}>
-                  <i className="fas fa-plus"></i>
-                  {" Log Returned Resources"}
-                </button>
+                <span style={{ fontSize: "11.5px", color: "var(--text-muted)" }}>
+                  Select an Area that received resources to reconcile and log returned units
+                </span>
               </div>
               <div style={{ background: "#f0fdf4", borderLeft: "3.5px solid #16a34a", padding: "8px 12px", borderRadius: "8px", fontSize: "11.5px", color: "#14532d", marginBottom: "12px" }}>
-                <strong>Inventory Integrity Rule:</strong>
-                {" Only returned units verified in "}
+                <strong>Intake & Verification Rule:</strong>
+                {" Tap any dispatched area below. Units verified in "}
                 <strong>Good</strong>
-                {" condition are added back to Available Stock. Damaged and Missing units are logged separately for audit. "}
+                {" condition automatically restock to Available inventory. Ground Officer will verify receipt acknowledgement."}
+              </div>
+
+              {/* LIST OF DISPATCHED AREAS */}
+              <div id="returnsDispatchedAreasList" style={{ marginBottom: "12px" }}></div>
+
+              {/* AREA RETURN INTAKE FORM (APPEARS ON TAPPING AN AREA) */}
+              <div id="areaReturnIntakeCard" style={{ display: "none", background: "#f8fafc", border: "1.5px solid #93c5fd", borderRadius: "10px", padding: "14px", marginBottom: "14px" }}></div>
+            </div>
+
+            {/* AUDITED RETURN RECORDS */}
+            <div className="aqua-card">
+              <div className="card-head" style={{ marginBottom: "10px" }}>
+                <h3>
+                  <i className="fas fa-clipboard-check" style={{ color: "var(--river-blue)" }}></i>
+                  {" Recorded Post-Operation Returns Audit Trail"}
+                </h3>
               </div>
               <div className="grid-3 switchable-collection" id="returnsCardGrid"></div>
             </div>
@@ -573,28 +588,62 @@ const markup = (
             <input type="hidden" id="dispAllocId" />
             <div id="dispAllocSummary" style={{ background: "#f0f7fe", padding: "9px 11px", borderRadius: "8px", fontSize: "12px", marginBottom: "10px" }}></div>
             
-            {/* CONFIRM LOADED RESOURCE QUANTITIES */}
+            {/* AUTHORITY DESIGNATED LEAD OFFICER & VERIFICATION */}
+            <div id="dispOfficerVerificationBox" style={{ background: "#ecfeff", border: "1.5px solid #a5f3fc", borderRadius: "8px", padding: "10px 12px", marginBottom: "12px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
+                <span style={{ fontSize: "12px", fontWeight: "700", color: "#0e7490" }}>
+                  <i className="fas fa-id-badge" style={{ marginRight: "5px" }}></i>
+                  Authority Designated Escort / Receiving Officer:
+                </span>
+                <span className="pill p-good" id="dispOfficerAgencyPill" style={{ fontSize: "9.5px", padding: "2px 7px" }}>NDRF Verified</span>
+              </div>
+              <div id="dispOfficerDetailsText" style={{ fontSize: "11.5px", color: "#155e75", marginBottom: "6px" }}>
+                Officer: <strong id="dispOfficerName">Insp. Rajesh Kalita</strong> • Service ID: <strong id="dispOfficerId">NDRF-1BN-842</strong>
+              </div>
+              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "#0e7490", cursor: "pointer", fontWeight: "600" }}>
+                <input type="checkbox" id="dispOfficerVerifiedCheck" defaultChecked style={{ cursor: "pointer" }} />
+                <span>Verified Handover: Authority designated officer confirmed present at depot loading gate</span>
+              </label>
+            </div>
+
+            {/* CONFIRM LOADED RESOURCE QUANTITIES & INVENTORY STOCK VALIDATION */}
             <div style={{ background: "#f8fafc", border: "1.5px solid #cbd5e1", borderRadius: "8px", padding: "10px 12px", marginBottom: "12px" }}>
-              <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--navy-deep)", marginBottom: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--navy-deep)", marginBottom: "6px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span><i className="fas fa-boxes-stacked" style={{ color: "var(--river-blue)", marginRight: "5px" }}></i> Confirm Dispatched Resource Quantities *</span>
-                <span style={{ fontSize: "10.5px", color: "var(--text-muted)", fontWeight: "normal" }}>Verify quantities loaded onto vehicle</span>
+                <span style={{ fontSize: "10.5px", color: "#dc2626", fontWeight: "700" }} id="dispStockWarningMsg"></span>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ fontSize: "10.5px", fontWeight: "600" }}>Boats</label>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginBottom: "2px" }}>
+                    <span style={{ fontWeight: "700" }}>Boats</span>
+                    <span id="dispBoatsStockLabel" style={{ color: "#0284c7", fontWeight: "600" }}>Avail: 30</span>
+                  </div>
                   <input type="number" id="dispBoatsInput" className="form-control" min="0" required />
+                  <div style={{ fontSize: "9.5px", color: "var(--text-muted)", marginTop: "2px" }} id="dispBoatsReqLabel">Req: 3</div>
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ fontSize: "10.5px", fontWeight: "600" }}>Life Jackets</label>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginBottom: "2px" }}>
+                    <span style={{ fontWeight: "700" }}>Life Jackets</span>
+                    <span id="dispJacketsStockLabel" style={{ color: "#0284c7", fontWeight: "600" }}>Avail: 500</span>
+                  </div>
                   <input type="number" id="dispJacketsInput" className="form-control" min="0" required />
+                  <div style={{ fontSize: "9.5px", color: "var(--text-muted)", marginTop: "2px" }} id="dispJacketsReqLabel">Req: 33</div>
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ fontSize: "10.5px", fontWeight: "600" }}>Food Packets</label>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginBottom: "2px" }}>
+                    <span style={{ fontWeight: "700" }}>Food Packets</span>
+                    <span id="dispFoodStockLabel" style={{ color: "#0284c7", fontWeight: "600" }}>Avail: 3500</span>
+                  </div>
                   <input type="number" id="dispFoodInput" className="form-control" min="0" required />
+                  <div style={{ fontSize: "9.5px", color: "var(--text-muted)", marginTop: "2px" }} id="dispFoodReqLabel">Req: 264</div>
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ fontSize: "10.5px", fontWeight: "600" }}>Medicine Kits</label>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", marginBottom: "2px" }}>
+                    <span style={{ fontWeight: "700" }}>Medicine Kits</span>
+                    <span id="dispMedsStockLabel" style={{ color: "#0284c7", fontWeight: "600" }}>Avail: 750</span>
+                  </div>
                   <input type="number" id="dispMedsInput" className="form-control" min="0" required />
+                  <div style={{ fontSize: "9.5px", color: "var(--text-muted)", marginTop: "2px" }} id="dispMedsReqLabel">Req: 44</div>
                 </div>
               </div>
             </div>

@@ -354,27 +354,29 @@ export async function reportShortageApi(allocIndexOrId, reason = '') {
 export async function submitReturnRecordApi(returnData) {
   if (!cachedState) cachedState = getDefaultGodownSeed();
 
-  const { resourceId, from, good, damaged, missing } = returnData;
-  const goodQty = Number(good) || 0;
-  const damagedQty = Number(damaged) || 0;
-  const missingQty = Number(missing) || 0;
-
-  const invItem = (cachedState.inventory || []).find(i => i.id === resourceId);
-  const resName = invItem ? invItem.name : 'Rescue Resource';
-
-  if (invItem && goodQty > 0) {
-    invItem.available += goodQty;
-    invItem.dispatched = Math.max(0, (invItem.dispatched || 0) - (goodQty + damagedQty + missingQty));
-  }
+  const area = returnData.area || returnData.from || 'Assigned Area';
+  const goodQty = Number(returnData.good || returnData.boatsGood || 0);
+  const damagedQty = Number(returnData.damaged || returnData.boatsDamaged || 0);
+  const missingQty = Number(returnData.missing || returnData.boatsMissing || 0);
 
   const retRecord = {
-    id: `RET-${Math.floor(305 + Math.random() * 90)}`,
-    resourceId,
-    resourceName: resName,
-    from,
+    id: returnData.id || `RET-${Math.floor(305 + Math.random() * 90)}`,
+    area,
+    resourceName: returnData.resourceName || returnData.dispatchedSummary || 'Dispatched Consignment Return',
+    from: area,
     good: goodQty,
     damaged: damagedQty,
     missing: missingQty,
+    boatsReturned: Number(returnData.boatsGood || 0),
+    boatsDamaged: Number(returnData.boatsDamaged || 0),
+    boatsMissing: Number(returnData.boatsMissing || 0),
+    jacketsReturned: Number(returnData.jacketsGood || 0),
+    jacketsDamaged: Number(returnData.jacketsDamaged || 0),
+    jacketsMissing: Number(returnData.jacketsMissing || 0),
+    returnedByOfficer: returnData.returnedByOfficer || 'NDRF / Field Escort',
+    officerId: returnData.officerId || 'OFF-ID',
+    conditionNotes: returnData.conditionNotes || 'Inspected at intake bay',
+    verificationStatus: 'Pending Ground Officer Verification',
     date: 'Just now'
   };
 
@@ -385,9 +387,9 @@ export async function submitReturnRecordApi(returnData) {
   cachedState.movements.unshift({
     time: 'Just now',
     type: 'RETURN AUDIT',
-    item: `${resName} (Good: ${goodQty}, Damaged: ${damagedQty}, Missing: ${missingQty})`,
-    party: `From: ${from}`,
-    note: 'Only verified Good items added back to Available Stock'
+    item: `Return from ${area} (Boats: ${retRecord.boatsReturned}, Jackets: ${retRecord.jacketsReturned})`,
+    party: `From: ${area}`,
+    note: 'Good units restocked to Available. Awaiting Ground Officer verification.'
   });
 
   notifySync(cachedState);
@@ -396,7 +398,7 @@ export async function submitReturnRecordApi(returnData) {
     const res = await fetch(`${API_BASE}/returns`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(returnData)
+      body: JSON.stringify(retRecord)
     });
     if (res.ok) {
       const json = await res.json();

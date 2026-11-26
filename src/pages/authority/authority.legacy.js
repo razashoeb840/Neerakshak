@@ -353,6 +353,37 @@ export default function initAuthorityPage() {
                 <div class="res-qty-card"><label><i class="fas fa-box-open" style="color:#16a34a;"></i> Food Packets</label><input type="number" id="assessFood" value="${f}" min="0" /></div>
                 <div class="res-qty-card"><label><i class="fas fa-kit-medical" style="color:#dc2626;"></i> Medicine Kits</label><input type="number" id="assessMeds" value="${m}" min="0" /></div>
               </div>
+
+              <!-- Designated Lead Field Handover Officer (NDRF / SDRF) -->
+              <div style="background:#fff; border:1px solid #bfdbfe; border-radius:8px; padding:10px 12px; margin-top:12px;">
+                <div style="font-size:11.5px; font-weight:700; color:var(--navy-deep); margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                  <span><i class="fas fa-user-shield" style="color:#0284c7; margin-right:5px;"></i> Designated Field Handover Lead (NDRF / SDRF / Volunteer Escort):</span>
+                  <span style="font-size:10.5px; color:#0369a1; font-weight:600;">Verified at Godown Gate & Ground Intake</span>
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:8px;">
+                  <div>
+                    <label style="font-size:10.5px; color:#475569; display:block; margin-bottom:3px; font-weight:600;">Responding Agency *</label>
+                    <select id="assessLeadAgency" class="form-control" style="padding:5px 8px; font-size:11.5px;">
+                      <option value="NDRF (1st Bn)" ${existingAlloc?.leadAgency?.includes('NDRF') ? 'selected' : ''}>NDRF (1st Bn)</option>
+                      <option value="SDRF (River Column)" ${existingAlloc?.leadAgency?.includes('SDRF') ? 'selected' : ''}>SDRF (River Column)</option>
+                      <option value="District Civil Defense" ${existingAlloc?.leadAgency?.includes('Civil Defense') ? 'selected' : ''}>District Civil Defense</option>
+                      <option value="Disaster Volunteer Lead" ${existingAlloc?.leadAgency?.includes('Volunteer') ? 'selected' : ''}>Disaster Volunteer Lead</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size:10.5px; color:#475569; display:block; margin-bottom:3px; font-weight:600;">Officer / Lead Name *</label>
+                    <input type="text" id="assessLeadOfficer" class="form-control" placeholder="e.g. Insp. Rajesh Kalita" value="${existingAlloc?.leadOfficerName || 'Inspector Rajesh Kalita'}" style="padding:5px 8px; font-size:11.5px;" required />
+                  </div>
+                  <div>
+                    <label style="font-size:10.5px; color:#475569; display:block; margin-bottom:3px; font-weight:600;">Badge / Service ID *</label>
+                    <input type="text" id="assessLeadId" class="form-control" placeholder="e.g. NDRF-1BN-842" value="${existingAlloc?.leadOfficerId || 'NDRF-1BN-842'}" style="padding:5px 8px; font-size:11.5px;" required />
+                  </div>
+                  <div>
+                    <label style="font-size:10.5px; color:#475569; display:block; margin-bottom:3px; font-weight:600;">Contact / VHF Channel</label>
+                    <input type="text" id="assessLeadContact" class="form-control" placeholder="e.g. +91 94350-12345" value="${existingAlloc?.leadOfficerContact || '+91 94350-12345'}" style="padding:5px 8px; font-size:11.5px;" />
+                  </div>
+                </div>
+              </div>
               <div style="margin-top:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                 <span style="font-size:11.5px; color:#0369a1;">
                   <i class="fas fa-paper-plane"></i>
@@ -684,6 +715,11 @@ export default function initAuthorityPage() {
     const m = Number(document.getElementById('assessMeds')?.value || 50);
     const summary = `${b} Boats, ${j} Jackets, ${f} Food, ${m} Meds`;
 
+    const leadAgency = document.getElementById('assessLeadAgency')?.value || 'NDRF (1st Bn)';
+    const leadOfficerName = document.getElementById('assessLeadOfficer')?.value?.trim() || 'Inspector Rajesh Kalita';
+    const leadOfficerId = document.getElementById('assessLeadId')?.value?.trim() || 'NDRF-1BN-842';
+    const leadOfficerContact = document.getElementById('assessLeadContact')?.value?.trim() || '+91 94350-12345';
+
     const vClean = String(villageName || '').trim().toLowerCase();
     const vObj = (state.villages || []).find(v => v.name && v.name.trim().toLowerCase() === vClean);
     if (vObj) {
@@ -692,14 +728,19 @@ export default function initAuthorityPage() {
 
     const existing = (state.allocations || []).find(a => a.village && a.village.trim().toLowerCase() === vClean);
 
-    showToast(`Forwarding assessed allocation to Godown Manager...`);
-    await allocateDirectResourcesApi(villageName, summary);
+    showToast(`Forwarding assessed allocation with escort officer to Godown Manager...`);
+    await allocateDirectResourcesApi(villageName, summary, {
+      leadAgency,
+      leadOfficerName,
+      leadOfficerId,
+      leadOfficerContact
+    });
     renderAllAuthorityViews();
 
     if (existing) {
-      showToast(`Allocation ${existing.id} updated to (${summary}) for ${villageName}.`);
+      showToast(`Allocation ${existing.id} updated with Lead Officer ${leadOfficerName} (${leadAgency}).`);
     } else {
-      showToast(`Allocation for ${villageName} sent to Godown Manager.`);
+      showToast(`Allocation for ${villageName} sent to Godown Manager with escort officer ${leadOfficerName}.`);
     }
   }
 

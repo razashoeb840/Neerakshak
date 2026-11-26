@@ -283,12 +283,16 @@ export const authorityDb = {
       existing.timestamp = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
       if (allocData.vehicle) existing.vehicle = allocData.vehicle;
       if (allocData.driver) existing.driver = allocData.driver;
+      if (allocData.leadAgency) existing.leadAgency = allocData.leadAgency;
+      if (allocData.leadOfficerName) existing.leadOfficerName = allocData.leadOfficerName;
+      if (allocData.leadOfficerId) existing.leadOfficerId = allocData.leadOfficerId;
+      if (allocData.leadOfficerContact) existing.leadOfficerContact = allocData.leadOfficerContact;
       if (!existing.timeline) existing.timeline = [];
       existing.timeline.unshift({
         step: 'Allocation Order Adjusted',
         time: 'Just now',
         status: 'done',
-        detail: `Emergency supplies updated by District Authority to: ${existing.summary}`
+        detail: `Emergency supplies updated by District Authority to: ${existing.summary}. Designated Escort: ${existing.leadAgency || 'NDRF'} ${existing.leadOfficerName || 'Lead Officer'} (${existing.leadOfficerId || 'ID'}).`
       });
 
       const db = await getDatabase();
@@ -300,6 +304,11 @@ export const authorityDb = {
       return existing;
     }
 
+    const leadAgency = allocData.leadAgency || allocData.agency || 'NDRF (1st Bn)';
+    const leadOfficerName = allocData.leadOfficerName || allocData.officerName || 'Inspector Rajesh Kalita';
+    const leadOfficerId = allocData.leadOfficerId || allocData.officerId || 'NDRF-1BN-842';
+    const leadOfficerContact = allocData.leadOfficerContact || allocData.officerContact || '+91 94350-12345';
+
     const newAlloc = {
       id: allocData.id || `ALC-${Math.floor(530 + Math.random() * 70)}`,
       village: allocData.village || allocData.destination || 'Assigned Area',
@@ -309,10 +318,19 @@ export const authorityDb = {
       assignedGodown: allocData.assignedGodown || 'Central Relief Godown',
       vehicle: allocData.vehicle || 'Heavy Truck AS-01-EC-4210',
       driver: allocData.driver || 'Rajesh Das (+91 98640-21943)',
-      escortOfficer: allocData.escortOfficer || 'District Police Escort',
+      escortOfficer: allocData.escortOfficer || `${leadAgency} ${leadOfficerName}`,
+      leadAgency,
+      leadOfficerName,
+      leadOfficerId,
+      leadOfficerContact,
       timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
       timeline: [
-        { step: 'DDMA Allocation Approved', time: 'Just now', status: 'done', detail: 'Direct allocation approved by Authority & transmitted to Godown Manager.' },
+        { 
+          step: 'DDMA Allocation Approved', 
+          time: 'Just now', 
+          status: 'done', 
+          detail: `Direct allocation approved by Authority. Designated Handover Officer: ${leadAgency} - ${leadOfficerName} (Badge/ID: ${leadOfficerId}). Transmitted to Godown.` 
+        },
         { step: 'Stock Verification & Staging', time: 'In Progress', status: 'active', detail: 'Godown warehouse crew picking verified stock from storage racks.' },
         { step: 'Vehicle Dispatch & Gate Pass', time: 'Pending', status: 'pending', detail: 'Pallets loading & security checkpoint clearance.' },
         { step: 'Route Checkpoint Crossing', time: 'Pending', status: 'pending', detail: 'Transit via high-water bypass bridge towards destination.' },
@@ -490,6 +508,10 @@ export const godownDb = {
         vehicle: authAlloc.vehicle || 'Heavy Truck AS-01-EC-4210',
         driver: authAlloc.driver || 'Rajesh Das (+91 98640-21943)',
         escortOfficer: authAlloc.escortOfficer || 'District Police Escort',
+        leadAgency: authAlloc.leadAgency || 'NDRF (1st Bn)',
+        leadOfficerName: authAlloc.leadOfficerName || 'Inspector Rajesh Kalita',
+        leadOfficerId: authAlloc.leadOfficerId || 'NDRF-1BN-842',
+        leadOfficerContact: authAlloc.leadOfficerContact || '+91 94350-12345',
         refNo: authAlloc.refNo || (isDispatched ? 'DSP-2026-884' : '—'),
         dispatchTime: isDispatched ? (authAlloc.dispatchTime || 'Today, 09:40 AM') : '—',
         deliveryProgress: authAlloc.deliveryProgress || (isDispatched ? 75 : 20)
@@ -585,12 +607,23 @@ export const godownDb = {
       targetAuth.refNo = refNo;
       targetAuth.dispatchTime = nowTime;
       if (providedSummary) targetAuth.summary = providedSummary;
+
+      const verifiedOfficer = dispatchData.verifiedOfficerName 
+        ? `${dispatchData.verifiedAgency || 'NDRF'} ${dispatchData.verifiedOfficerName} (ID: ${dispatchData.verifiedOfficerId || 'VERIFIED'})` 
+        : (targetAuth.escortOfficer || 'Escort Team');
+      targetAuth.escortOfficer = verifiedOfficer;
+      if (dispatchData.verifiedOfficerName) {
+        targetAuth.leadOfficerName = dispatchData.verifiedOfficerName;
+        targetAuth.leadOfficerId = dispatchData.verifiedOfficerId;
+        targetAuth.leadAgency = dispatchData.verifiedAgency || targetAuth.leadAgency;
+      }
+
       if (!targetAuth.timeline) targetAuth.timeline = [];
       targetAuth.timeline.unshift({
         step: `Convoy Dispatched (${refNo})`,
         time: nowTime,
         status: 'done',
-        detail: `Gate-pass issued. Vehicle ${vehicle} departed with driver ${driver}. Verified Resources: ${providedSummary || targetAuth.summary}.`
+        detail: `Gate-pass issued. Vehicle ${vehicle} departed with driver ${driver}. Verified Handover Officer: ${verifiedOfficer}. Resources Provided: ${providedSummary || targetAuth.summary}.`
       });
 
       const db = await getDatabase();
@@ -675,6 +708,55 @@ export const godownDb = {
       }
     }
     return { success: true };
+  },
+
+  async recordAreaReturn(returnData) {
+    const area = returnData.area || returnData.destination || 'Assigned Area';
+    const retRecord = {
+      id: returnData.id || `RET-${Date.now().toString(36).toUpperCase()}`,
+      area,
+      refNo: returnData.refNo || 'DSP-2026',
+      date: new Date().toLocaleDateString('en-IN') + ', ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      dispatchedSummary: returnData.dispatchedSummary || '',
+      boatsReturned: Number(returnData.boatsGood || 0),
+      boatsDamaged: Number(returnData.boatsDamaged || 0),
+      boatsMissing: Number(returnData.boatsMissing || 0),
+      jacketsReturned: Number(returnData.jacketsGood || 0),
+      jacketsDamaged: Number(returnData.jacketsDamaged || 0),
+      jacketsMissing: Number(returnData.jacketsMissing || 0),
+      foodDistributed: Number(returnData.foodDistributed || 0),
+      medsUsed: Number(returnData.medsUsed || 0),
+      returnedByOfficer: returnData.returnedByOfficer || 'NDRF / Field Escort',
+      officerId: returnData.officerId || 'OFF-ID',
+      conditionNotes: returnData.conditionNotes || 'Post-rescue inspection completed at godown intake bay',
+      verificationStatus: 'Pending Ground Officer Verification'
+    };
+
+    if (!cache.godown.returns) cache.godown.returns = [];
+    cache.godown.returns.unshift(retRecord);
+
+    const db = await getDatabase();
+    if (db) {
+      try {
+        await db.collection('returnrecords').insertOne({ ...retRecord });
+
+        // Add back "Good" units to inventoryitems
+        if (retRecord.boatsReturned > 0) {
+          await db.collection('inventoryitems').updateOne(
+            { category: 'Rescue Boats' },
+            { $inc: { available: retRecord.boatsReturned } }
+          );
+        }
+        if (retRecord.jacketsReturned > 0) {
+          await db.collection('inventoryitems').updateOne(
+            { category: 'Life Jackets' },
+            { $inc: { available: retRecord.jacketsReturned } }
+          );
+        }
+      } catch (e) {}
+    }
+
+    return retRecord;
   }
 };
 
