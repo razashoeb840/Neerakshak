@@ -1281,6 +1281,1555 @@ export const SEED_DATA = {
       "icon": "fas fa-box-open",
       "theme": "green"
     }
-  ]
+  ],
+  "rawCollections": {
+    "reliefcamps": [
+      {
+        "name": "Rampur Community Shelter Hall",
+        "district": "Kamrup",
+        "subDivision": "Palashbari",
+        "location": "Rampur Block Gate",
+        "lat": 26.108,
+        "lng": 91.475,
+        "capacity": 450,
+        "currentOccupants": 310,
+        "contactPerson": "T. Sarma, VDP Secretary",
+        "contactNumber": "+91 94351 10003",
+        "facilitiesAvailable": [
+          "Safe Water Tanker",
+          "Sanitary Kits",
+          "Baby Food Supplies"
+        ],
+        "status": "Operational",
+        "updatedAt": "2026-11-18T19:54:17.102Z",
+        "__v": 0
+      },
+      {
+        "name": "Chaygaon College Relief Center",
+        "district": "Kamrup",
+        "subDivision": "Palashbari",
+        "location": "Chaygaon College Campus",
+        "lat": 26.065,
+        "lng": 91.435,
+        "capacity": 850,
+        "currentOccupants": 620,
+        "contactPerson": "K. Kalita, Coordinator",
+        "contactNumber": "+91 94351 10002",
+        "facilitiesAvailable": [
+          "Solar Power Backup",
+          "Water Purification Unit",
+          "Doctor on Call",
+          "Dry Ration Storage"
+        ],
+        "status": "Operational",
+        "updatedAt": "2026-11-18T19:54:17.101Z",
+        "__v": 0
+      },
+      {
+        "name": "Palashbari Higher Secondary School Relief Camp",
+        "district": "Kamrup",
+        "subDivision": "Palashbari",
+        "location": "Palashbari Town",
+        "lat": 26.126,
+        "lng": 91.512,
+        "capacity": 600,
+        "currentOccupants": 480,
+        "contactPerson": "M. Borah, Headmaster",
+        "contactNumber": "+91 94351 10001",
+        "facilitiesAvailable": [
+          "Safe Drinking Water",
+          "Community Kitchen",
+          "Medical First Aid Post",
+          "Sanitation Blocks",
+          "Child Care"
+        ],
+        "status": "Operational",
+        "updatedAt": "2026-11-18T19:54:17.100Z",
+        "__v": 0
+      },
+      {
+        "name": "Hajo Multipurpose Cyclone & Flood Shelter",
+        "district": "Kamrup",
+        "subDivision": "Palashbari",
+        "location": "Hajo Circular Road",
+        "lat": 26.242,
+        "lng": 91.53,
+        "capacity": 700,
+        "currentOccupants": 390,
+        "contactPerson": "D. Choudhury",
+        "contactNumber": "+91 94351 10004",
+        "facilitiesAvailable": [
+          "Raised Ground Floor",
+          "Medical Post",
+          "Drinking Water Cistern"
+        ],
+        "status": "Operational",
+        "updatedAt": "2026-11-18T19:54:17.103Z",
+        "__v": 0
+      },
+      {
+        "name": "Mirza Public High School Shelter",
+        "district": "Kamrup",
+        "subDivision": "Palashbari",
+        "location": "Mirza Town Center",
+        "lat": 26.101,
+        "lng": 91.545,
+        "capacity": 500,
+        "currentOccupants": 260,
+        "contactPerson": "A. Medhi",
+        "contactNumber": "+91 94351 10005",
+        "facilitiesAvailable": [
+          "Kitchen Shed",
+          "Medical Tent",
+          "Rest Rooms"
+        ],
+        "status": "Operational",
+        "updatedAt": "2026-11-18T19:54:17.105Z",
+        "__v": 0
+      },
+      {
+        "name": "Goroimari Rural Relief Camp",
+        "district": "Kamrup",
+        "subDivision": "Palashbari",
+        "location": "Goroimari Block HQ",
+        "lat": 26.02,
+        "lng": 91.31,
+        "capacity": 550,
+        "currentOccupants": 320,
+        "contactPerson": "S. Ahmed",
+        "contactNumber": "+91 94351 10006",
+        "facilitiesAvailable": [
+          "Chlorinated Water",
+          "Tarpaulin Sheds"
+        ],
+        "status": "Operational",
+        "updatedAt": "2026-11-18T19:54:17.105Z",
+        "__v": 0
+      },
+      {
+        "name": "Boko Higher Secondary School Camp",
+        "district": "Kamrup",
+        "subDivision": "Palashbari",
+        "location": "Boko Town",
+        "lat": 25.98,
+        "lng": 91.22,
+        "capacity": 600,
+        "currentOccupants": 290,
+        "contactPerson": "N. Rabha",
+        "contactNumber": "+91 94351 10007",
+        "facilitiesAvailable": [
+          "Mobile Health Unit",
+          "Drinking Water Facility"
+        ],
+        "status": "Operational",
+        "updatedAt": "2026-11-18T19:54:17.106Z",
+        "__v": 0
+      },
+      {
+        "name": "Rangia Relief Camp 1 (Town Hall)",
+        "district": "Kamrup",
+        "subDivision": "Palashbari",
+        "location": "Rangia Sub-division",
+        "lat": 26.435,
+        "lng": 91.62,
+        "capacity": 650,
+        "currentOccupants": 310,
+        "contactPerson": "P. Deka",
+        "contactNumber": "+91 94351 10008",
+        "facilitiesAvailable": [
+          "First Aid Post",
+          "Cooked Meal Counter"
+        ],
+        "status": "Operational",
+        "updatedAt": "2026-11-18T19:54:17.107Z",
+        "__v": 0
+      },
+      {
+        "name": "Rangia High School Relief Camp 2",
+        "district": "Kamrup",
+        "subDivision": "Palashbari",
+        "location": "Station Road Rangia",
+        "lat": 26.442,
+        "lng": 91.632,
+        "capacity": 500,
+        "currentOccupants": 220,
+        "contactPerson": "B. Goswami",
+        "contactNumber": "+91 94351 10009",
+        "facilitiesAvailable": [
+          "Emergency Lighting",
+          "Purified Water"
+        ],
+        "status": "Operational",
+        "updatedAt": "2026-11-18T19:54:17.107Z",
+        "__v": 0
+      },
+      {
+        "name": "Sualkuchi Weavers Relief Center",
+        "district": "Kamrup",
+        "subDivision": "Palashbari",
+        "location": "Sualkuchi Riverside",
+        "lat": 26.175,
+        "lng": 91.57,
+        "capacity": 550,
+        "currentOccupants": 280,
+        "contactPerson": "R. Baishya",
+        "contactNumber": "+91 94351 10010",
+        "facilitiesAvailable": [
+          "Dry Storage",
+          "Mobile Medical Team"
+        ],
+        "status": "Operational",
+        "updatedAt": "2026-11-18T19:54:17.108Z",
+        "__v": 0
+      },
+      {
+        "name": "North Guwahati Government High School Shelter",
+        "district": "Kamrup",
+        "subDivision": "Palashbari",
+        "location": "Amingaon-North Guwahati",
+        "lat": 26.205,
+        "lng": 91.71,
+        "capacity": 500,
+        "currentOccupants": 190,
+        "contactPerson": "J. Das",
+        "contactNumber": "+91 94351 10011",
+        "facilitiesAvailable": [
+          "Power Generator",
+          "Clean Water"
+        ],
+        "status": "Operational",
+        "updatedAt": "2026-11-18T19:54:17.109Z",
+        "__v": 0
+      },
+      {
+        "name": "Boko BDO Office Relief Shelter",
+        "district": "Kamrup",
+        "subDivision": "Palashbari",
+        "location": "Boko Complex",
+        "lat": 25.985,
+        "lng": 91.228,
+        "capacity": 450,
+        "currentOccupants": 180,
+        "contactPerson": "M. Marak",
+        "contactNumber": "+91 94351 10012",
+        "facilitiesAvailable": [
+          "Blanket & Mat Distribution",
+          "Kitchen"
+        ],
+        "status": "Operational",
+        "updatedAt": "2026-11-18T19:54:17.110Z",
+        "__v": 0
+      },
+      {
+        "name": "Palashbari Municipal Community Center",
+        "district": "Kamrup",
+        "subDivision": "Palashbari",
+        "location": "Ward 4 Palashbari",
+        "lat": 26.13,
+        "lng": 91.515,
+        "capacity": 450,
+        "currentOccupants": 230,
+        "contactPerson": "H. Talukdar",
+        "contactNumber": "+91 94351 10014",
+        "facilitiesAvailable": [
+          "Cooked Food",
+          "Medical Inspection"
+        ],
+        "status": "Operational",
+        "updatedAt": "2026-11-18T19:54:17.112Z",
+        "__v": 0
+      },
+      {
+        "name": "Chaygaon Girls High School Center",
+        "district": "Kamrup",
+        "subDivision": "Palashbari",
+        "location": "Chaygaon Bazaar",
+        "lat": 26.068,
+        "lng": 91.439,
+        "capacity": 400,
+        "currentOccupants": 210,
+        "contactPerson": "R. Begum",
+        "contactNumber": "+91 94351 10013",
+        "facilitiesAvailable": [
+          "Sanitary Supplies",
+          "Female Health Attendant"
+        ],
+        "status": "Operational",
+        "updatedAt": "2026-11-18T19:54:17.111Z",
+        "__v": 0
+      },
+      {
+        "name": "Kukurmara Flood Relief Center",
+        "district": "Kamrup",
+        "subDivision": "Palashbari",
+        "location": "Kukurmara Riverfront",
+        "lat": 26.082,
+        "lng": 91.41,
+        "capacity": 350,
+        "currentOccupants": 175,
+        "contactPerson": "S. Boro",
+        "contactNumber": "+91 94351 10015",
+        "facilitiesAvailable": [
+          "Drinking Water Pouches",
+          "Solar Lamp"
+        ],
+        "status": "Operational",
+        "updatedAt": "2026-11-18T19:54:17.114Z",
+        "__v": 0
+      },
+      {
+        "name": "Amingaon Relief & Staging Camp",
+        "district": "Kamrup",
+        "subDivision": "Palashbari",
+        "location": "Amingaon Ground",
+        "lat": 26.195,
+        "lng": 91.685,
+        "capacity": 550,
+        "currentOccupants": 215,
+        "contactPerson": "A. Saikia",
+        "contactNumber": "+91 94351 10018",
+        "facilitiesAvailable": [
+          "Central Transport Hub",
+          "24x7 Ambulance Bay"
+        ],
+        "status": "Operational",
+        "updatedAt": "2026-11-18T19:54:17.118Z",
+        "__v": 0
+      },
+      {
+        "name": "Maniari Tiniali Relief Point",
+        "district": "Kamrup",
+        "subDivision": "Palashbari",
+        "location": "Palashbari Link Rd",
+        "lat": 26.115,
+        "lng": 91.52,
+        "capacity": 350,
+        "currentOccupants": 150,
+        "contactPerson": "U. Nath",
+        "contactNumber": "+91 94351 10016",
+        "facilitiesAvailable": [
+          "First Aid Kit",
+          "Water Jerrycans"
+        ],
+        "status": "Operational",
+        "updatedAt": "2026-11-18T19:54:17.115Z",
+        "__v": 0
+      },
+      {
+        "name": "Kamalpur Block Relief Shelter",
+        "district": "Kamrup",
+        "subDivision": "Palashbari",
+        "location": "Kamalpur Chowk",
+        "lat": 26.34,
+        "lng": 91.68,
+        "capacity": 400,
+        "currentOccupants": 160,
+        "contactPerson": "T. Lahkar",
+        "contactNumber": "+91 94351 10017",
+        "facilitiesAvailable": [
+          "Shelter Tents",
+          "Dry Ration Packets"
+        ],
+        "status": "Operational",
+        "updatedAt": "2026-11-18T19:54:17.117Z",
+        "__v": 0
+      }
+    ],
+    "dispatchrecords": [
+      {
+        "dispatchNumber": "DSP-KMP-2024-001",
+        "allocationId": "6afe026987e9f161e08e9354",
+        "allocationNumber": "ALC-KMP-2024-001",
+        "targetLocation": "Palashbari Lowland Sector",
+        "dispatchedItems": [
+          {
+            "itemId": "6afe026987e9f161e08e9342",
+            "itemName": "Inflatable Rescue Boat (IRB) with 40HP OBM",
+            "category": "Rescue Boats",
+            "quantityDispatched": 4,
+            "unit": "Units"
+          },
+          {
+            "itemId": "6afe026987e9f161e08e9343",
+            "itemName": "SOLAS Approved Adult Life Jackets (150N)",
+            "category": "Life Jackets",
+            "quantityDispatched": 60,
+            "unit": "Units"
+          },
+          {
+            "itemId": "6afe026987e9f161e08e9344",
+            "itemName": "Emergency Dry Food Ration Kits (Family 3-Day Pack)",
+            "category": "Food Packets",
+            "quantityDispatched": 500,
+            "unit": "Packets"
+          },
+          {
+            "itemId": "6afe026987e9f161e08e9345",
+            "itemName": "Packaged Drinking Water (20 Litre Sealed Cans)",
+            "category": "Drinking Water",
+            "quantityDispatched": 300,
+            "unit": "Units"
+          }
+        ],
+        "vehicleNumber": "AS-01-EC-4412 (Govt Truck)",
+        "driverName": "Ramen Das",
+        "driverContact": "+91 98640 55412",
+        "dispatchedBy": "Pranjal Saikia (Godown Manager)",
+        "godownSource": "Central Relief Godown, Amingaon",
+        "dispatchDate": "2026-11-18T17:54:17.250Z",
+        "status": "Delivered & Verified",
+        "remarks": "Dispatched with police escort up to Palashbari bridge.",
+        "__v": 0
+      },
+      {
+        "dispatchNumber": "DSP-KMP-2026-002",
+        "allocationId": "6afe057787e9f161e08e93a3",
+        "allocationNumber": "ALC-KMP-2026-002",
+        "targetLocation": "Chaygaon Riverine Belt",
+        "dispatchedItems": [
+          {
+            "itemId": "6afe026987e9f161e08e9342",
+            "itemName": "Inflatable Rescue Boat (IRB) with 40HP OBM",
+            "category": "Rescue Boats",
+            "quantityDispatched": 3,
+            "unit": "Units"
+          }
+        ],
+        "vehicleNumber": "AS-01-GC-9901",
+        "driverName": "Dipankar Medhi",
+        "driverContact": "+91 94350 77881",
+        "dispatchedBy": "System Quality Tester",
+        "godownSource": "NEERAKSHAK Technical Operations & Evaluation Unit",
+        "dispatchDate": "2026-11-18T20:07:19.146Z",
+        "status": "Discrepancy Reported",
+        "remarks": "Priority river convoy with SDRF escorts",
+        "__v": 0
+      }
+    ],
+    "deliveryverifications": [
+      {
+        "verificationNumber": "DVR-KMP-2024-001",
+        "dispatchId": "6afe026987e9f161e08e9356",
+        "dispatchNumber": "DSP-KMP-2024-001",
+        "allocationNumber": "ALC-KMP-2024-001",
+        "targetLocation": "Palashbari Lowland Sector",
+        "verifiedBy": "Bhaskar Jyoti Das (Ground Officer)",
+        "verifierDesignation": "Circle Field Disaster Officer",
+        "itemsVerified": [
+          {
+            "itemName": "Inflatable Rescue Boat (IRB) with 40HP OBM",
+            "category": "Rescue Boats",
+            "quantityDispatched": 4,
+            "quantityReceived": 4,
+            "quantityShortage": 0,
+            "condition": "Good",
+            "remarks": "All 4 IRBs and motors tested operational"
+          },
+          {
+            "itemName": "SOLAS Approved Adult Life Jackets (150N)",
+            "category": "Life Jackets",
+            "quantityDispatched": 60,
+            "quantityReceived": 60,
+            "quantityShortage": 0,
+            "condition": "Good",
+            "remarks": "60 life jackets distributed to volunteer teams"
+          },
+          {
+            "itemName": "Emergency Dry Food Ration Kits (Family 3-Day Pack)",
+            "category": "Food Packets",
+            "quantityDispatched": 500,
+            "quantityReceived": 490,
+            "quantityShortage": 10,
+            "condition": "Damaged",
+            "remarks": "10 cartons suffered transit water damage. 490 intact packets handed to camp in-charge"
+          },
+          {
+            "itemName": "Packaged Drinking Water (20 Litre Sealed Cans)",
+            "category": "Drinking Water",
+            "quantityDispatched": 300,
+            "quantityReceived": 300,
+            "quantityShortage": 0,
+            "condition": "Good",
+            "remarks": "Seal unbroken, stock stored at school hall"
+          }
+        ],
+        "hasShortage": true,
+        "hasDamage": true,
+        "shortageSummary": "Shortage of 10 food packets due to rain water seepage on truck tarpaulin during transit.",
+        "fieldSituationNotes": "Ground water level is steady at 2.4 ft. 4 rescue boats actively ferrying families from stranded ward to relief camp.",
+        "verificationTimestamp": "2026-11-18T18:54:17.260Z",
+        "status": "Shortage / Discrepancy Flagged",
+        "__v": 0
+      },
+      {
+        "verificationNumber": "DVR-KMP-2026-002",
+        "dispatchId": "6afe057787e9f161e08e93ab",
+        "dispatchNumber": "DSP-KMP-2026-002",
+        "allocationNumber": "ALC-KMP-2026-002",
+        "targetLocation": "Chaygaon Riverine Belt",
+        "verifiedBy": "System Quality Tester",
+        "verifierDesignation": "Platform Verification & End-to-End QA Evaluator",
+        "itemsVerified": [
+          {
+            "itemName": "Inflatable Rescue Boat (IRB) with 40HP OBM",
+            "category": "Rescue Boats",
+            "quantityDispatched": 3,
+            "quantityReceived": 2,
+            "quantityShortage": 1,
+            "condition": "Good",
+            "remarks": "2 boats delivered safely. 1 boat held up at ferry ghat due to current."
+          }
+        ],
+        "hasShortage": true,
+        "hasDamage": false,
+        "shortageSummary": "Inflatable Rescue Boat (IRB) with 40HP OBM: 1 shortage",
+        "fieldSituationNotes": "2 rescue boats actively deployed in Chaygaon lowlands.",
+        "status": "Shortage / Discrepancy Flagged",
+        "verificationTimestamp": "2026-11-18T20:07:19.288Z",
+        "__v": 0
+      }
+    ],
+    "rivers": [
+      {
+        "name": "Kolong",
+        "station": "Kamrup East Station",
+        "district": "Kamrup",
+        "currentLevel": 14.6,
+        "dangerLevel": 15,
+        "warningLevel": 14,
+        "trend": "rising",
+        "status": "Warning",
+        "lat": 26.142,
+        "lng": 91.89,
+        "lastUpdated": "2026-11-18T19:54:17.052Z",
+        "__v": 0
+      },
+      {
+        "name": "Kakang",
+        "station": "Kamrup Rural Basin",
+        "district": "Kamrup",
+        "currentLevel": 12.8,
+        "dangerLevel": 14,
+        "warningLevel": 13,
+        "trend": "steady",
+        "status": "Normal",
+        "lat": 26.085,
+        "lng": 91.56,
+        "lastUpdated": "2026-11-18T19:54:17.052Z",
+        "__v": 0
+      },
+      {
+        "name": "Brahmaputra",
+        "station": "Guwahati / Kamrup Gauge",
+        "district": "Kamrup",
+        "currentLevel": 18.2,
+        "dangerLevel": 17.5,
+        "warningLevel": 16.8,
+        "trend": "rising",
+        "status": "Dangerous",
+        "lat": 26.185,
+        "lng": 91.745,
+        "lastUpdated": "2026-11-18T19:54:17.051Z",
+        "__v": 0
+      }
+    ],
+    "emergencyfacilities": [
+      {
+        "type": "Hospital",
+        "name": "Gauhati Medical College & Hospital (GMCH)",
+        "district": "Kamrup",
+        "address": "Narakasur Hilltop, Bhangagarh, Guwahati",
+        "lat": 26.155,
+        "lng": 91.77,
+        "contactNumber": "0361-2529457",
+        "capacityOrStrength": "1500 Beds (24x7 Flood Trauma Emergency)",
+        "availableServices": [
+          "ICU",
+          "Trauma Surgery",
+          "Blood Bank",
+          "Epidemic Response Unit"
+        ],
+        "__v": 0
+      },
+      {
+        "type": "NDRF Base",
+        "name": "1st Battalion NDRF Station HQ",
+        "district": "Kamrup",
+        "address": "Patgaon, Azara, Guwahati",
+        "lat": 26.118,
+        "lng": 91.615,
+        "contactNumber": "0361-2849005",
+        "capacityOrStrength": "18 Specialized Flood Rescue Teams",
+        "availableServices": [
+          "Deep Water Rescue",
+          "Inflatable Motor Boats",
+          "Paramedic Extraction"
+        ],
+        "__v": 0
+      },
+      {
+        "type": "Police Station",
+        "name": "Palashbari Police Station",
+        "district": "Kamrup",
+        "address": "NH-17, Palashbari Town",
+        "lat": 26.127,
+        "lng": 91.51,
+        "contactNumber": "0361-2840233",
+        "capacityOrStrength": "Active Wireless Dispatch Desk",
+        "availableServices": [
+          "Patrol Boats Coordination",
+          "Traffic Diversions",
+          "Evacuation Escort"
+        ],
+        "__v": 0
+      },
+      {
+        "type": "Hospital",
+        "name": "Palashbari Sub-Divisional Civil Hospital",
+        "district": "Kamrup",
+        "address": "Mirza-Palashbari Road",
+        "lat": 26.11,
+        "lng": 91.53,
+        "contactNumber": "0361-2840222",
+        "capacityOrStrength": "100 Beds (Anti-Venom & Waterborne Disease Clinic)",
+        "availableServices": [
+          "Emergency Ward",
+          "Mobile Ambulance",
+          "ORS & Water Testing"
+        ],
+        "__v": 0
+      },
+      {
+        "type": "SDRF Unit",
+        "name": "Assam SDRF Regional Quick Reaction Base",
+        "district": "Kamrup",
+        "address": "Fire Service Headquarters, Panbazar",
+        "lat": 26.188,
+        "lng": 91.748,
+        "contactNumber": "101 / 0361-2540222",
+        "capacityOrStrength": "6 Quick Deployment Flood Columns",
+        "availableServices": [
+          "Life Saving Inflatables",
+          "Underwater Divers",
+          "Tree Clearing Saws"
+        ],
+        "__v": 0
+      }
+    ],
+    "inventoryitems": [
+      {
+        "itemName": "SOLAS Approved Adult Life Jackets (150N)",
+        "category": "Life Jackets",
+        "unit": "Units",
+        "totalStock": 450,
+        "availableStock": 290,
+        "allocatedStock": 100,
+        "dispatchedStock": 60,
+        "godownLocation": "Bay B2, Amingaon Central Godown",
+        "thresholdAlert": 50,
+        "lastUpdated": "2026-11-18T19:54:17.204Z",
+        "__v": 0
+      },
+      {
+        "itemName": "Inflatable Rescue Boat (IRB) with 40HP OBM",
+        "category": "Rescue Boats",
+        "unit": "Units",
+        "totalStock": 25,
+        "availableStock": 12,
+        "allocatedStock": 6,
+        "dispatchedStock": 7,
+        "godownLocation": "Bay A1, Amingaon Central Godown",
+        "thresholdAlert": 5,
+        "lastUpdated": "2026-11-18T19:54:17.203Z",
+        "__v": 0
+      },
+      {
+        "itemName": "Emergency Dry Food Ration Kits (Family 3-Day Pack)",
+        "category": "Food Packets",
+        "unit": "Packets",
+        "totalStock": 5000,
+        "availableStock": 3250,
+        "allocatedStock": 1000,
+        "dispatchedStock": 750,
+        "godownLocation": "Bay C1 (Dry Storage), Amingaon Godown",
+        "thresholdAlert": 500,
+        "lastUpdated": "2026-11-18T19:54:17.204Z",
+        "__v": 0
+      },
+      {
+        "itemName": "Emergency Flood Trauma & Medical Relief Kit",
+        "category": "Medicines & First Aid",
+        "unit": "Kits",
+        "totalStock": 150,
+        "availableStock": 95,
+        "allocatedStock": 35,
+        "dispatchedStock": 20,
+        "godownLocation": "Pharmacy Vault, Amingaon Godown",
+        "thresholdAlert": 20,
+        "lastUpdated": "2026-11-18T19:54:17.205Z",
+        "__v": 0
+      },
+      {
+        "itemName": "Packaged Drinking Water (20 Litre Sealed Cans)",
+        "category": "Drinking Water",
+        "unit": "Units",
+        "totalStock": 3000,
+        "availableStock": 1800,
+        "allocatedStock": 700,
+        "dispatchedStock": 500,
+        "godownLocation": "Bay C3, Amingaon Godown",
+        "thresholdAlert": 300,
+        "lastUpdated": "2026-11-18T19:54:17.205Z",
+        "__v": 0
+      },
+      {
+        "itemName": "Diesel High-Discharge Dewatering Mud Pump (5 HP)",
+        "category": "Dewatering Pumps",
+        "unit": "Units",
+        "totalStock": 30,
+        "availableStock": 18,
+        "allocatedStock": 7,
+        "dispatchedStock": 5,
+        "godownLocation": "Heavy Equipment Yard, Amingaon",
+        "thresholdAlert": 6,
+        "lastUpdated": "2026-11-18T19:54:17.206Z",
+        "__v": 0
+      },
+      {
+        "itemName": "High-Power Rechargeable LED Searchlights (1000m Beam)",
+        "category": "Emergency Lighting",
+        "unit": "Units",
+        "totalStock": 120,
+        "availableStock": 80,
+        "allocatedStock": 25,
+        "dispatchedStock": 15,
+        "godownLocation": "Electrical Tool Crib, Amingaon Godown",
+        "thresholdAlert": 15,
+        "lastUpdated": "2026-11-18T19:54:17.207Z",
+        "__v": 0
+      },
+      {
+        "itemName": "Heavy Duty Waterproof Tarpaulins (24ft x 18ft)",
+        "category": "Tents & Tarpaulins",
+        "unit": "Units",
+        "totalStock": 600,
+        "availableStock": 420,
+        "allocatedStock": 120,
+        "dispatchedStock": 60,
+        "godownLocation": "Bay D1, Amingaon Godown",
+        "thresholdAlert": 50,
+        "lastUpdated": "2026-11-18T19:54:17.207Z",
+        "__v": 0
+      }
+    ],
+    "newsupdates": [
+      {
+        "title": "NDRF team deployed for rescue operations in Chaygaon",
+        "tag": "Rescue",
+        "summary": "1st Battalion NDRF flood rescue columns deployed with inflatable motorized boats to assist district administration.",
+        "imageUrl": "https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=600&q=80",
+        "isTicker": true,
+        "createdAt": "2026-11-18T19:54:17.288Z",
+        "__v": 0
+      },
+      {
+        "title": "Water level in Brahmaputra crosses danger mark in Kamrup",
+        "tag": "River Update",
+        "summary": "Central Water Commission gauge records 18.2 meters against warning mark of 16.8 meters. High alert in low-lying riverside areas.",
+        "imageUrl": "https://images.unsplash.com/photo-1547683905-f686c993aae5?auto=format&fit=crop&w=600&q=80",
+        "isTicker": true,
+        "createdAt": "2026-11-18T19:54:17.288Z",
+        "__v": 0
+      },
+      {
+        "title": "Heavy rainfall expected in next 24 hours across Kamrup district",
+        "tag": "Weather",
+        "summary": "IMD regional advisory alerts of intense convective showers. Citizens advised to remain vigilant near river tributaries.",
+        "imageUrl": "https://images.unsplash.com/photo-1534274988757-a28bf1a57c17?auto=format&fit=crop&w=600&q=80",
+        "isTicker": true,
+        "createdAt": "2026-11-18T19:54:17.289Z",
+        "__v": 0
+      },
+      {
+        "title": "Relief camp operational in Palashbari, capacity: 500 persons",
+        "tag": "Relief",
+        "summary": "Designated shelter equipped with clean drinking water, community kitchen, baby food, and 24x7 medical assistance.",
+        "imageUrl": "https://images.unsplash.com/photo-1516483638261-f4dbaf036963?auto=format&fit=crop&w=600&q=80",
+        "isTicker": true,
+        "createdAt": "2026-11-18T19:54:17.289Z",
+        "__v": 0
+      }
+    ],
+    "resourceallocations": [
+      {
+        "allocationNumber": "ALC-KMP-2024-001",
+        "requestId": "6afe026987e9f161e08e9352",
+        "district": "Kamrup",
+        "targetLocation": "Palashbari Lowland Sector",
+        "allocatedItems": [
+          {
+            "itemId": "6afe026987e9f161e08e9342",
+            "itemName": "Inflatable Rescue Boat (IRB) with 40HP OBM",
+            "category": "Rescue Boats",
+            "quantity": 4,
+            "unit": "Units"
+          },
+          {
+            "itemId": "6afe026987e9f161e08e9343",
+            "itemName": "SOLAS Approved Adult Life Jackets (150N)",
+            "category": "Life Jackets",
+            "quantity": 60,
+            "unit": "Units"
+          },
+          {
+            "itemId": "6afe026987e9f161e08e9344",
+            "itemName": "Emergency Dry Food Ration Kits (Family 3-Day Pack)",
+            "category": "Food Packets",
+            "quantity": 500,
+            "unit": "Packets"
+          },
+          {
+            "itemId": "6afe026987e9f161e08e9345",
+            "itemName": "Packaged Drinking Water (20 Litre Sealed Cans)",
+            "category": "Drinking Water",
+            "quantity": 300,
+            "unit": "Units"
+          }
+        ],
+        "priority": "Critical",
+        "authorityOfficer": "Dr. Smita Kakati, IAS",
+        "status": "Dispatched",
+        "notes": "Priority convoy. Deliver directly to Palashbari Circle Ground Staging Point.",
+        "createdAt": "2026-11-18T17:24:17.241Z",
+        "__v": 0
+      },
+      {
+        "allocationNumber": "ALC-KMP-2026-002",
+        "requestId": "6afe057687e9f161e08e939a",
+        "district": "Kamrup",
+        "targetLocation": "Chaygaon Riverine Belt",
+        "allocatedItems": [
+          {
+            "itemId": "6afe026987e9f161e08e9342",
+            "itemName": "Inflatable Rescue Boat (IRB) with 40HP OBM",
+            "category": "Rescue Boats",
+            "quantity": 3,
+            "unit": "Units"
+          }
+        ],
+        "priority": "Critical",
+        "authorityOfficer": "System Quality Tester",
+        "status": "Dispatched",
+        "notes": "Sanctioned against REQ-KMP-2026-002. Sanctioned for immediate deployment.",
+        "createdAt": "2026-11-18T20:07:19.096Z",
+        "__v": 0
+      }
+    ],
+    "auditlogs": [
+      {
+        "actionType": "NDRF_COORDINATION_LOG",
+        "module": "Authority Coordination",
+        "performedBy": "Dr. Smita Kakati, IAS",
+        "userRole": "authority",
+        "description": "Logged official coordination update from 1st Bn NDRF: 385 citizens safely evacuated in Sector B.",
+        "details": {
+          "recordNumber": "COR-KMP-2024-001",
+          "agency": "NDRF",
+          "evacuated": 385
+        },
+        "timestamp": "2026-11-18T19:00:17.297Z",
+        "__v": 0
+      },
+      {
+        "actionType": "CREATE_ALERT",
+        "module": "Admin Monitoring",
+        "performedBy": "Er. Ranjit Baruah",
+        "userRole": "admin",
+        "description": "Published Critical Flood Alert: Brahmaputra crossed danger level at Kamrup gauge (18.2m).",
+        "details": {
+          "gauge": "Guwahati / Kamrup",
+          "level": 18.2,
+          "status": "Dangerous"
+        },
+        "timestamp": "2026-11-18T15:54:17.297Z",
+        "__v": 0
+      },
+      {
+        "actionType": "VERIFY_DELIVERY",
+        "module": "Ground Verification",
+        "performedBy": "Bhaskar Jyoti Das",
+        "userRole": "ground",
+        "description": "Completed Physical Delivery Verification for DSP-KMP-2024-001. Flagged 10 food packets water-damaged in transit.",
+        "details": {
+          "verificationNumber": "DVR-KMP-2024-001",
+          "shortage": 10,
+          "condition": "Damaged"
+        },
+        "timestamp": "2026-11-18T18:54:17.297Z",
+        "__v": 0
+      },
+      {
+        "actionType": "DISPATCH_RESOURCE",
+        "module": "Godown Dispatch",
+        "performedBy": "Pranjal Saikia",
+        "userRole": "godown",
+        "description": "Dispatched Consignment DSP-KMP-2024-001 via Govt Truck AS-01-EC-4412 to Palashbari.",
+        "details": {
+          "dispatchNumber": "DSP-KMP-2024-001",
+          "vehicle": "AS-01-EC-4412"
+        },
+        "timestamp": "2026-11-18T17:54:17.297Z",
+        "__v": 0
+      },
+      {
+        "actionType": "APPROVE_RESOURCE",
+        "module": "Authority Decisions",
+        "performedBy": "Dr. Smita Kakati, IAS",
+        "userRole": "authority",
+        "description": "Approved Resource Request REQ-KMP-2024-001 for Palashbari Sector (4 Boats, 60 Life Jackets, 500 Food Packets, 300 Water Cans).",
+        "details": {
+          "requestNumber": "REQ-KMP-2024-001",
+          "priority": "Critical"
+        },
+        "timestamp": "2026-11-18T16:54:17.297Z",
+        "__v": 0
+      },
+      {
+        "actionType": "REQUEST_RESOURCE",
+        "module": "Ground Field Requisition",
+        "performedBy": "System Quality Tester",
+        "userRole": "tester",
+        "description": "Raised Field Resource Request REQ-KMP-2026-002 for Chaygaon Riverine Belt (Urgency: Critical).",
+        "details": {
+          "requestNumber": "REQ-KMP-2026-002",
+          "targetLocation": "Chaygaon Riverine Belt",
+          "itemCount": 1
+        },
+        "timestamp": "2026-11-18T20:07:19.000Z",
+        "__v": 0
+      },
+      {
+        "actionType": "APPROVE_RESOURCE",
+        "module": "Authority Decision Support",
+        "performedBy": "System Quality Tester",
+        "userRole": "tester",
+        "description": "APPROVED Resource Request REQ-KMP-2026-002 for Chaygaon Riverine Belt. Remarks: \"Sanctioned for immediate deployment.\".",
+        "details": {
+          "requestId": "6afe057687e9f161e08e939a",
+          "action": "Approved",
+          "allocationNumber": "ALC-KMP-2026-002"
+        },
+        "timestamp": "2026-11-18T20:07:19.102Z",
+        "__v": 0
+      },
+      {
+        "actionType": "DISPATCH_RESOURCE",
+        "module": "Godown Dispatch Management",
+        "performedBy": "System Quality Tester",
+        "userRole": "tester",
+        "description": "Dispatched Consignment DSP-KMP-2026-002 (Alloc: ALC-KMP-2026-002) to Chaygaon Riverine Belt via AS-01-GC-9901 (Driver: Dipankar Medhi).",
+        "details": {
+          "dispatchNumber": "DSP-KMP-2026-002",
+          "allocationNumber": "ALC-KMP-2026-002",
+          "vehicleNumber": "AS-01-GC-9901"
+        },
+        "timestamp": "2026-11-18T20:07:19.162Z",
+        "__v": 0
+      },
+      {
+        "actionType": "FLAG_DISCREPANCY",
+        "module": "Ground Field Verification",
+        "performedBy": "System Quality Tester",
+        "userRole": "tester",
+        "description": "Ground Verification DVR-KMP-2026-002 submitted for DSP-KMP-2026-002. Discrepancy: FLAGGED.",
+        "details": {
+          "verificationNumber": "DVR-KMP-2026-002",
+          "dispatchNumber": "DSP-KMP-2026-002",
+          "isDiscrepant": true,
+          "shortageSummary": [
+            "Inflatable Rescue Boat (IRB) with 40HP OBM: 1 shortage"
+          ]
+        },
+        "timestamp": "2026-11-18T20:07:19.298Z",
+        "__v": 0
+      },
+      {
+        "actionType": "USER_LOGIN",
+        "module": "Authentication",
+        "performedBy": "System Quality Tester",
+        "userRole": "tester",
+        "description": "User System Quality Tester logged into TESTER portal.",
+        "details": {
+          "email": "tester@neeraksh.gov.in",
+          "designation": "Platform Verification & End-to-End QA Evaluator"
+        },
+        "timestamp": "2026-11-18T20:26:24.947Z",
+        "__v": 0
+      },
+      {
+        "actionType": "USER_LOGIN",
+        "module": "Authentication",
+        "performedBy": "Er. Ranjit Baruah",
+        "userRole": "admin",
+        "description": "User Er. Ranjit Baruah logged into ADMIN portal.",
+        "details": {
+          "email": "admin@neeraksh.gov.in",
+          "designation": "GIS Flood Intelligence Admin"
+        },
+        "timestamp": "2026-11-18T20:27:23.904Z",
+        "__v": 0
+      },
+      {
+        "actionType": "UPDATE_AFFECTED_AREA",
+        "module": "Admin Flood Data Management",
+        "performedBy": "Er. Ranjit Baruah",
+        "userRole": "admin",
+        "description": "Updated status for Hajo Lowland Farming Ward: Status=Improving, Severity=Moderate.",
+        "details": {
+          "areaId": "6afe026987e9f161e08e930b",
+          "status": "Improving",
+          "severity": "Moderate"
+        },
+        "timestamp": "2026-11-18T20:27:30.000Z",
+        "__v": 0
+      },
+      {
+        "actionType": "UPDATE_AFFECTED_AREA",
+        "module": "Admin Flood Data Management",
+        "performedBy": "Er. Ranjit Baruah",
+        "userRole": "admin",
+        "description": "Updated status for Hajo Lowland Farming Ward: Status=Active, Severity=Moderate.",
+        "details": {
+          "areaId": "6afe026987e9f161e08e930b",
+          "status": "Active",
+          "severity": "Moderate"
+        },
+        "timestamp": "2026-11-18T20:27:30.918Z",
+        "__v": 0
+      },
+      {
+        "actionType": "UPDATE_AFFECTED_AREA",
+        "module": "Admin Flood Data Management",
+        "performedBy": "Er. Ranjit Baruah",
+        "userRole": "admin",
+        "description": "Updated status for Hajo Lowland Farming Ward: Status=Improving, Severity=Moderate.",
+        "details": {
+          "areaId": "6afe026987e9f161e08e930b",
+          "status": "Improving",
+          "severity": "Moderate"
+        },
+        "timestamp": "2026-11-18T20:27:31.872Z",
+        "__v": 0
+      },
+      {
+        "actionType": "UPDATE_AFFECTED_AREA",
+        "module": "Admin Flood Data Management",
+        "performedBy": "Er. Ranjit Baruah",
+        "userRole": "admin",
+        "description": "Updated status for Hajo Lowland Farming Ward: Status=Active, Severity=Moderate.",
+        "details": {
+          "areaId": "6afe026987e9f161e08e930b",
+          "status": "Active",
+          "severity": "Moderate"
+        },
+        "timestamp": "2026-11-18T20:27:33.651Z",
+        "__v": 0
+      },
+      {
+        "actionType": "USER_LOGIN",
+        "module": "Authentication",
+        "performedBy": "Dr. Smita Kakati, IAS",
+        "userRole": "authority",
+        "description": "User Dr. Smita Kakati, IAS logged into AUTHORITY portal.",
+        "details": {
+          "email": "authority@neeraksh.gov.in",
+          "designation": "Additional District Magistrate & DDMA In-Charge"
+        },
+        "timestamp": "2026-11-18T20:28:43.762Z",
+        "__v": 0
+      },
+      {
+        "actionType": "USER_LOGIN",
+        "module": "Authentication",
+        "performedBy": "Bhaskar Jyoti Das",
+        "userRole": "ground",
+        "description": "User Bhaskar Jyoti Das logged into GROUND portal.",
+        "details": {
+          "email": "ground@neeraksh.gov.in",
+          "designation": "Circle Field Disaster Officer"
+        },
+        "timestamp": "2026-11-18T20:29:39.771Z",
+        "__v": 0
+      },
+      {
+        "actionType": "USER_LOGIN",
+        "module": "Authentication",
+        "performedBy": "Dr. Smita Kakati, IAS",
+        "userRole": "authority",
+        "description": "User Dr. Smita Kakati, IAS logged into AUTHORITY portal.",
+        "details": {
+          "email": "authority@neeraksh.gov.in",
+          "designation": "Additional District Magistrate & DDMA In-Charge"
+        },
+        "timestamp": "2026-11-18T20:37:36.577Z",
+        "__v": 0
+      },
+      {
+        "actionType": "USER_LOGIN",
+        "module": "Authentication",
+        "performedBy": "Dr. Smita Kakati, IAS",
+        "userRole": "authority",
+        "description": "User Dr. Smita Kakati, IAS logged into AUTHORITY portal.",
+        "details": {
+          "email": "authority@neeraksh.gov.in",
+          "designation": "Additional District Magistrate & DDMA In-Charge"
+        },
+        "timestamp": "2026-11-18T20:42:59.952Z",
+        "__v": 0
+      },
+      {
+        "actionType": "USER_LOGIN",
+        "module": "Authentication",
+        "performedBy": "Er. Ranjit Baruah",
+        "userRole": "admin",
+        "description": "User Er. Ranjit Baruah logged into ADMIN portal.",
+        "details": {
+          "email": "admin@neeraksh.gov.in",
+          "designation": "GIS Flood Intelligence Admin"
+        },
+        "timestamp": "2026-11-18T20:43:06.531Z",
+        "__v": 0
+      },
+      {
+        "actionType": "USER_LOGIN",
+        "module": "Authentication",
+        "performedBy": "Pranjal Saikia",
+        "userRole": "godown",
+        "description": "User Pranjal Saikia logged into GODOWN portal.",
+        "details": {
+          "email": "godown@neeraksh.gov.in",
+          "designation": "Central Relief Godown Superintendent"
+        },
+        "timestamp": "2026-11-18T20:43:06.612Z",
+        "__v": 0
+      },
+      {
+        "actionType": "USER_LOGIN",
+        "module": "Authentication",
+        "performedBy": "Bhaskar Jyoti Das",
+        "userRole": "ground",
+        "description": "User Bhaskar Jyoti Das logged into GROUND portal.",
+        "details": {
+          "email": "ground@neeraksh.gov.in",
+          "designation": "Circle Field Disaster Officer"
+        },
+        "timestamp": "2026-11-18T20:43:06.683Z",
+        "__v": 0
+      },
+      {
+        "actionType": "USER_LOGIN",
+        "module": "Authentication",
+        "performedBy": "Nabanita Hazarika",
+        "userRole": "monitoring",
+        "description": "User Nabanita Hazarika logged into MONITORING portal.",
+        "details": {
+          "email": "monitoring@neeraksh.gov.in",
+          "designation": "District Audit & Compliance Inspector"
+        },
+        "timestamp": "2026-11-18T20:43:06.758Z",
+        "__v": 0
+      },
+      {
+        "actionType": "USER_LOGIN",
+        "module": "Authentication",
+        "performedBy": "Dr. Smita Kakati, IAS",
+        "userRole": "authority",
+        "description": "User Dr. Smita Kakati, IAS logged into AUTHORITY portal.",
+        "details": {
+          "email": "authority@neeraksh.gov.in",
+          "designation": "Additional District Magistrate & DDMA In-Charge"
+        },
+        "timestamp": "2026-11-18T20:51:13.684Z",
+        "__v": 0
+      },
+      {
+        "actionType": "USER_LOGIN",
+        "module": "Authentication",
+        "performedBy": "Pranjal Saikia",
+        "userRole": "godown",
+        "description": "User Pranjal Saikia logged into GODOWN portal.",
+        "details": {
+          "email": "godown@neeraksh.gov.in",
+          "designation": "Central Relief Godown Superintendent"
+        },
+        "timestamp": "2026-11-18T20:51:13.795Z",
+        "__v": 0
+      },
+      {
+        "actionType": "USER_LOGIN",
+        "module": "Authentication",
+        "performedBy": "Bhaskar Jyoti Das",
+        "userRole": "ground",
+        "description": "User Bhaskar Jyoti Das logged into GROUND portal.",
+        "details": {
+          "email": "ground@neeraksh.gov.in",
+          "designation": "Circle Field Disaster Officer"
+        },
+        "timestamp": "2026-11-18T20:51:13.887Z",
+        "__v": 0
+      },
+      {
+        "actionType": "USER_LOGIN",
+        "module": "Authentication",
+        "performedBy": "Nabanita Hazarika",
+        "userRole": "monitoring",
+        "description": "User Nabanita Hazarika logged into MONITORING portal.",
+        "details": {
+          "email": "monitoring@neeraksh.gov.in",
+          "designation": "District Audit & Compliance Inspector"
+        },
+        "timestamp": "2026-11-18T20:51:13.974Z",
+        "__v": 0
+      },
+      {
+        "actionType": "USER_LOGIN",
+        "module": "Authentication",
+        "performedBy": "Er. Ranjit Baruah",
+        "userRole": "admin",
+        "description": "User Er. Ranjit Baruah logged into ADMIN portal.",
+        "details": {
+          "email": "admin@neeraksh.gov.in",
+          "designation": "GIS Flood Intelligence Admin"
+        },
+        "timestamp": "2026-11-18T20:56:20.885Z",
+        "__v": 0
+      },
+      {
+        "actionType": "USER_LOGIN",
+        "module": "Authentication",
+        "performedBy": "System Quality Tester",
+        "userRole": "tester",
+        "description": "User System Quality Tester logged into TESTER portal.",
+        "details": {
+          "email": "tester@neeraksh.gov.in",
+          "designation": "Platform Verification & End-to-End QA Evaluator"
+        },
+        "timestamp": "2026-11-18T20:57:02.159Z",
+        "__v": 0
+      },
+      {
+        "actionType": "USER_LOGIN",
+        "module": "Authentication",
+        "performedBy": "Er. Ranjit Baruah",
+        "userRole": "admin",
+        "description": "User Er. Ranjit Baruah logged into ADMIN portal.",
+        "details": {
+          "email": "admin@neeraksh.gov.in",
+          "designation": "GIS Flood Intelligence Admin"
+        },
+        "timestamp": "2026-11-18T21:03:03.728Z",
+        "__v": 0
+      }
+    ],
+    "coordinationrecords": [
+      {
+        "recordNumber": "COR-KMP-2024-001",
+        "agency": "NDRF",
+        "unitDesignation": "1st Battalion NDRF, Patgaon Unit",
+        "contactOfficer": "Assistant Commandant S. K. Nair",
+        "contactPhone": "+91 94359 88123",
+        "officialChannel": "District Emergency Operation Center (DEOC) Hotline",
+        "operationLocation": "Palashbari & Chaygaon Lowlands",
+        "assistanceRequested": "Deployment of specialized swift-water flood rescue columns and mechanized OBM boats for deep-cut water evacuation.",
+        "teamStrength": "3 Rescue Teams (45 Personnel, 6 Deep-V Boats)",
+        "operationalStatus": "On-Site Rescuing",
+        "evacuatedCitizensCount": 385,
+        "latestCoordinationBrief": "NDRF teams commenced deep water evacuation at 07:30 AM. 385 citizens safely shifted to Palashbari Higher Secondary School relief camp. Operations ongoing in Sector B.",
+        "recordedByAuthority": "Dr. Smita Kakati, IAS (Authority)",
+        "updatedAt": "2026-11-18T18:24:17.269Z",
+        "__v": 0
+      },
+      {
+        "recordNumber": "COR-KMP-2024-002",
+        "agency": "SDRF",
+        "unitDesignation": "Assam SDRF River Column 2",
+        "contactOfficer": "Inspector B. Kalita",
+        "contactPhone": "+91 94359 88456",
+        "officialChannel": "Official Encrypted Wireless Net",
+        "operationLocation": "Chaygaon Riverine Belt",
+        "assistanceRequested": "Assistance in erecting emergency sandbag bunds and shifting domestic livestock.",
+        "teamStrength": "2 Rescue Teams (24 Personnel, 4 Inflatables)",
+        "operationalStatus": "Dispatched / In Route",
+        "evacuatedCitizensCount": 140,
+        "latestCoordinationBrief": "SDRF team en route with heavy dewatering equipment. Contact reconfirmed via wireless net.",
+        "recordedByAuthority": "Dr. Smita Kakati, IAS (Authority)",
+        "updatedAt": "2026-11-18T19:06:17.274Z",
+        "__v": 0
+      }
+    ],
+    "floodalerts": [
+      {
+        "title": "CRITICAL: Brahmaputra River Surpasses Danger Level at Kamrup Gauge (18.2m)",
+        "district": "Kamrup",
+        "location": "Palashbari, Chaygaon & Guwahati Embankment Sectors",
+        "severity": "Critical",
+        "advisory": "Residents within 500m of low-lying embankments advised to move to designated relief shelters immediately. Avoid plying mechanized boats near swirling river bends.",
+        "issuedBy": "DDMA Kamrup & CWC Hydrology Division",
+        "isActive": true,
+        "createdAt": "2026-11-18T19:54:17.084Z",
+        "__v": 0
+      },
+      {
+        "title": "ORANGE WARNING: Intense Heavy Rainfall Forecast across Lower Assam in next 24h",
+        "district": "Kamrup",
+        "location": "Kamrup Rural & Metropolitan Sub-divisions",
+        "severity": "High",
+        "advisory": "Regional Meteorological Centre (IMD) predicts 90-140 mm localized rainfall. District emergency response teams kept on full standby alert.",
+        "issuedBy": "State Disaster Management Control Room",
+        "isActive": true,
+        "createdAt": "2026-11-18T19:54:17.085Z",
+        "__v": 0
+      }
+    ],
+    "citizenincidents": [
+      {
+        "incidentNumber": "INC-2024-002",
+        "citizenName": "Anowar Hussain",
+        "citizenContact": "+91 94355 88990",
+        "location": "Chaygaon Char Bazaar Link Road",
+        "district": "Kamrup",
+        "incidentType": "Embankment Breach",
+        "severity": "Critical",
+        "description": "Secondary mud embankment developed a 4-meter breach; water gushing into adjacent paddy fields and school road.",
+        "status": "Under Review",
+        "assignedToRole": "Authority / Water Resources Dept",
+        "actionRemarks": "Water Resources Executive Engineer alerted; sandbag reinforcement team dispatched.",
+        "createdAt": "2026-11-18T19:54:17.280Z",
+        "__v": 0
+      },
+      {
+        "incidentNumber": "INC-2024-001",
+        "citizenName": "Bipul Talukdar",
+        "citizenContact": "+91 98642 11234",
+        "location": "Ward No. 3, Near Sluice Gate, Palashbari",
+        "district": "Kamrup",
+        "incidentType": "Trapped Citizens / Evacuation",
+        "severity": "High",
+        "description": "Family of 6 including 2 senior citizens and an infant trapped on terrace due to 3-foot swirling water entering the ground floor.",
+        "status": "Dispatched for Action",
+        "assignedToRole": "Ground Officer (Bhaskar Jyoti Das)",
+        "actionRemarks": "NDRF Team Bravo boat diverted to location for immediate extraction.",
+        "createdAt": "2026-11-18T19:54:17.279Z",
+        "__v": 0
+      }
+    ],
+    "users": [
+      {
+        "name": "Nabanita Hazarika",
+        "email": "monitoring@neeraksh.gov.in",
+        "password": "$2a$10$N5hZm9hm1v1uwyWKqB7SKOSq4Y8u30.k0le7ZDT591hpKstJuRTN6",
+        "role": "monitoring",
+        "designation": "District Audit & Compliance Inspector",
+        "department": "Disaster Operations Monitoring Cell",
+        "district": "Kamrup",
+        "contactNumber": "+91 94350 55005",
+        "createdAt": "2026-11-18T19:54:16.943Z",
+        "__v": 0
+      },
+      {
+        "name": "Pranjal Saikia",
+        "email": "godown@neeraksh.gov.in",
+        "password": "$2a$10$N5hZm9hm1v1uwyWKqB7SKOSq4Y8u30.k0le7ZDT591hpKstJuRTN6",
+        "role": "godown",
+        "designation": "Central Relief Godown Superintendent",
+        "department": "Relief & Rehabilitation Branch, Amingaon",
+        "district": "Kamrup",
+        "contactNumber": "+91 94350 33003",
+        "createdAt": "2026-11-18T19:54:16.941Z",
+        "__v": 0
+      },
+      {
+        "name": "Bhaskar Jyoti Das",
+        "email": "ground@neeraksh.gov.in",
+        "password": "$2a$10$N5hZm9hm1v1uwyWKqB7SKOSq4Y8u30.k0le7ZDT591hpKstJuRTN6",
+        "role": "ground",
+        "designation": "Circle Field Disaster Officer",
+        "department": "Palashbari Revenue Circle",
+        "district": "Kamrup",
+        "contactNumber": "+91 94350 44004",
+        "createdAt": "2026-11-18T19:54:16.942Z",
+        "__v": 0
+      },
+      {
+        "name": "Er. Ranjit Baruah",
+        "email": "admin@neeraksh.gov.in",
+        "password": "$2a$10$N5hZm9hm1v1uwyWKqB7SKOSq4Y8u30.k0le7ZDT591hpKstJuRTN6",
+        "role": "admin",
+        "designation": "GIS Flood Intelligence Admin",
+        "department": "Assam State Disaster Management Authority (ASDMA)",
+        "district": "Kamrup",
+        "contactNumber": "+91 94350 11001",
+        "createdAt": "2026-11-18T19:54:16.935Z",
+        "__v": 0
+      },
+      {
+        "name": "Dr. Smita Kakati, IAS",
+        "email": "authority@neeraksh.gov.in",
+        "password": "$2a$10$N5hZm9hm1v1uwyWKqB7SKOSq4Y8u30.k0le7ZDT591hpKstJuRTN6",
+        "role": "authority",
+        "designation": "Additional District Magistrate & DDMA In-Charge",
+        "department": "District Administration Kamrup",
+        "district": "Kamrup",
+        "contactNumber": "+91 94350 22002",
+        "createdAt": "2026-11-18T19:54:16.940Z",
+        "__v": 0
+      },
+      {
+        "name": "System Quality Tester",
+        "email": "tester@neeraksh.gov.in",
+        "password": "$2a$10$N5hZm9hm1v1uwyWKqB7SKOSq4Y8u30.k0le7ZDT591hpKstJuRTN6",
+        "role": "tester",
+        "designation": "Platform Verification & End-to-End QA Evaluator",
+        "department": "NEERAKSHAK Technical Operations & Evaluation Unit",
+        "district": "Kamrup",
+        "contactNumber": "+91 94350 99999",
+        "createdAt": "2026-11-18T19:54:16.944Z",
+        "__v": 0
+      }
+    ],
+    "resourcerequests": [
+      {
+        "requestNumber": "REQ-KMP-2024-001",
+        "requestedBy": "Bhaskar Jyoti Das (Ground Officer)",
+        "requesterRole": "Ground Officer",
+        "district": "Kamrup",
+        "targetLocation": "Palashbari Lowland Sector",
+        "urgency": "Critical",
+        "items": [
+          {
+            "itemId": "6afe026987e9f161e08e9342",
+            "itemName": "Inflatable Rescue Boat (IRB) with 40HP OBM",
+            "category": "Rescue Boats",
+            "quantityRequested": 4,
+            "unit": "Units"
+          },
+          {
+            "itemId": "6afe026987e9f161e08e9343",
+            "itemName": "SOLAS Approved Adult Life Jackets (150N)",
+            "category": "Life Jackets",
+            "quantityRequested": 60,
+            "unit": "Units"
+          },
+          {
+            "itemId": "6afe026987e9f161e08e9344",
+            "itemName": "Emergency Dry Food Ration Kits (Family 3-Day Pack)",
+            "category": "Food Packets",
+            "quantityRequested": 500,
+            "unit": "Packets"
+          },
+          {
+            "itemId": "6afe026987e9f161e08e9345",
+            "itemName": "Packaged Drinking Water (20 Litre Sealed Cans)",
+            "category": "Drinking Water",
+            "quantityRequested": 300,
+            "unit": "Units"
+          }
+        ],
+        "purpose": "Rapid evacuation of 480 marooned villagers in Majortop and distribution of clean water and trauma supplies.",
+        "status": "Approved",
+        "approvalRemarks": "Sanctioned under District Flood Relief Contingency Fund. Dispatch immediately via NH-17 convoy.",
+        "reviewedBy": "Dr. Smita Kakati, IAS (Authority)",
+        "reviewedAt": "2026-11-18T16:54:17.225Z",
+        "createdAt": "2026-11-18T15:54:17.225Z",
+        "__v": 0
+      },
+      {
+        "requestNumber": "REQ-KMP-2026-002",
+        "requestedBy": "System Quality Tester",
+        "requesterRole": "Ground Officer",
+        "district": "Kamrup",
+        "targetLocation": "Chaygaon Riverine Belt",
+        "urgency": "Critical",
+        "items": [
+          {
+            "itemId": "6afe026987e9f161e08e9342",
+            "itemName": "Inflatable Rescue Boat (IRB) with 40HP OBM",
+            "category": "Rescue Boats",
+            "quantityRequested": 3,
+            "unit": "Units"
+          }
+        ],
+        "purpose": "Urgent deep-water evacuation of 40 families near breached bund.",
+        "status": "Approved",
+        "approvalRemarks": "Sanctioned for immediate deployment.",
+        "reviewedBy": "System Quality Tester",
+        "createdAt": "2026-11-18T20:07:18.991Z",
+        "__v": 0,
+        "reviewedAt": "2026-11-18T20:07:19.048Z"
+      }
+    ],
+    "returnrecords": [],
+    "affectedareas": [
+      {
+        "villageName": "Palashbari Lowland Sector",
+        "subDivision": "Palashbari Circle",
+        "district": "Kamrup",
+        "lat": 26.128,
+        "lng": 91.505,
+        "severity": "Critical",
+        "affectedPopulation": 4850,
+        "waterLevelDescription": "Overtopping embankment at 2.4 ft above river bank level",
+        "evacuationStatus": "In Progress",
+        "status": "Active",
+        "markedBy": "Er. Ranjit Baruah (Admin)",
+        "updatedAt": "2026-11-18T19:54:17.068Z",
+        "__v": 0
+      },
+      {
+        "villageName": "Hajo Lowland Farming Ward",
+        "subDivision": "Hajo Circle",
+        "district": "Kamrup",
+        "lat": 26.245,
+        "lng": 91.525,
+        "severity": "Moderate",
+        "affectedPopulation": 1650,
+        "waterLevelDescription": "Agricultural waterlogging, drainage channels near capacity",
+        "evacuationStatus": "Advised",
+        "status": "Active",
+        "markedBy": "Er. Ranjit Baruah (Admin)",
+        "updatedAt": "2026-11-18T20:27:33.648Z",
+        "__v": 0
+      },
+      {
+        "villageName": "Rampur Char Village",
+        "subDivision": "Palashbari Circle",
+        "district": "Kamrup",
+        "lat": 26.105,
+        "lng": 91.47,
+        "severity": "High",
+        "affectedPopulation": 2310,
+        "waterLevelDescription": "River island sandbar inundation; boat connectivity essential",
+        "evacuationStatus": "In Progress",
+        "status": "Active",
+        "markedBy": "Er. Ranjit Baruah (Admin)",
+        "updatedAt": "2026-11-18T19:54:17.069Z",
+        "__v": 0
+      },
+      {
+        "villageName": "Chaygaon Riverine Belt",
+        "subDivision": "Chaygaon Circle",
+        "district": "Kamrup",
+        "lat": 26.06,
+        "lng": 91.43,
+        "severity": "High",
+        "affectedPopulation": 3620,
+        "waterLevelDescription": "Submerged access roads; 1.8 ft standing water in low-lying settlement",
+        "evacuationStatus": "In Progress",
+        "status": "Active",
+        "markedBy": "Er. Ranjit Baruah (Admin)",
+        "updatedAt": "2026-11-18T19:54:17.069Z",
+        "__v": 0
+      }
+    ]
+  }
 };
-export default SEED_DATA;

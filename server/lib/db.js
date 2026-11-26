@@ -1,7 +1,7 @@
 // NEERAKSHAK Next.js MongoDB Database Engine
 // STRICT REAL-DATA ONLY: ZERO fake data in MongoDB.
 // All demonstration and fake drill data is isolated exclusively in public/seed.js.
-// MongoDB only holds real records explicitly created or updated by the user.
+// MongoDB (neerakshak_db) only holds real records explicitly created or updated by the user.
 
 import { getDatabase } from './mongodb.js';
 
@@ -49,7 +49,7 @@ let cache = {
 };
 
 // -----------------------------------------------------------------------------
-// 1. ADMIN REAL DATABASE OPERATIONS
+// 1. ADMIN REAL DATABASE OPERATIONS (neerakshak_db)
 // -----------------------------------------------------------------------------
 export const adminDb = {
   async getState() {
@@ -57,10 +57,10 @@ export const adminDb = {
     if (db) {
       try {
         const [areas, rivers, alerts, facilities] = await Promise.all([
-          db.collection('admin_areas').find({}, { projection: { _id: 0 } }).toArray(),
-          db.collection('admin_rivers').find({}, { projection: { _id: 0 } }).toArray(),
-          db.collection('admin_alerts').find({}, { projection: { _id: 0 } }).toArray(),
-          db.collection('admin_facilities').find({}, { projection: { _id: 0 } }).toArray(),
+          db.collection('affectedareas').find({}, { projection: { _id: 0 } }).toArray(),
+          db.collection('rivers').find({}, { projection: { _id: 0 } }).toArray(),
+          db.collection('floodalerts').find({}, { projection: { _id: 0 } }).toArray(),
+          db.collection('emergencyfacilities').find({}, { projection: { _id: 0 } }).toArray(),
         ]);
         cache.admin = {
           areas: areas || [],
@@ -95,11 +95,11 @@ export const adminDb = {
     if (idx >= 0) cache.admin.areas[idx] = { ...cache.admin.areas[idx], ...record };
     else cache.admin.areas.unshift(record);
 
-    // Save strictly to MongoDB
+    // Save strictly to MongoDB neerakshak_db
     const db = await getDatabase();
     if (db) {
       try {
-        await db.collection('admin_areas').updateOne(
+        await db.collection('affectedareas').updateOne(
           { id: record.id },
           { $set: record },
           { upsert: true }
@@ -118,7 +118,7 @@ export const adminDb = {
     const db = await getDatabase();
     if (db) {
       try {
-        await db.collection('admin_areas').deleteOne({ $or: [{ id }, { name: id }] });
+        await db.collection('affectedareas').deleteOne({ $or: [{ id }, { name: id }] });
       } catch (e) {}
     }
     return true;
@@ -139,7 +139,7 @@ export const adminDb = {
     const db = await getDatabase();
     if (db) {
       try {
-        await db.collection('admin_alerts').insertOne({ ...alert });
+        await db.collection('floodalerts').insertOne({ ...alert });
       } catch (e) {}
     }
     return alert;
@@ -152,7 +152,7 @@ export const adminDb = {
     const db = await getDatabase();
     if (db) {
       try {
-        await db.collection('admin_alerts').deleteOne({ $or: [{ id: idOrTitle }, { title: idOrTitle }] });
+        await db.collection('floodalerts').deleteOne({ $or: [{ id: idOrTitle }, { title: idOrTitle }] });
       } catch (e) {}
     }
     return true;
@@ -161,45 +161,47 @@ export const adminDb = {
   async saveFacility(facilityData) {
     const facility = {
       id: facilityData.id || `fac-${Date.now()}`,
-      name: facilityData.name || 'Emergency Center',
+      name: facilityData.name || 'Emergency Facility',
       type: facilityData.type || 'Relief Camp',
-      lat: Number(facilityData.lat) || 26.12,
-      lng: Number(facilityData.lng) || 91.45,
+      lat: Number(facilityData.lat) || 26.15,
+      lng: Number(facilityData.lng) || 91.55,
       capacity: Number(facilityData.capacity) || 500,
+      occupied: Number(facilityData.occupied) || 0,
       contact: facilityData.contact || ''
     };
     if (!cache.admin.facilities) cache.admin.facilities = [];
-    const idx = cache.admin.facilities.findIndex(f => f.id === facility.id || f.name === facility.name);
+    const idx = cache.admin.facilities.findIndex(f => f.id === facility.id);
     if (idx >= 0) cache.admin.facilities[idx] = facility;
     else cache.admin.facilities.push(facility);
 
     const db = await getDatabase();
     if (db) {
       try {
-        await db.collection('admin_facilities').updateOne({ id: facility.id }, { $set: facility }, { upsert: true });
+        await db.collection('emergencyfacilities').updateOne({ id: facility.id }, { $set: facility }, { upsert: true });
       } catch (e) {}
     }
     return facility;
   },
 
   async updateRiver(riverData) {
-    const id = riverData.id || riverData.name;
+    const river = {
+      id: riverData.id,
+      name: riverData.name,
+      current: Number(riverData.current),
+      danger: Number(riverData.danger),
+      trend: riverData.trend || 'Steady',
+      barColor: riverData.barColor || '#16a34a',
+      spark: riverData.spark || ''
+    };
     if (!cache.admin.rivers) cache.admin.rivers = [];
-    let river = cache.admin.rivers.find(r => r.id === id || r.name === id);
-    if (!river) {
-      river = { id, name: riverData.name || id, current: Number(riverData.current || 0), danger: Number(riverData.danger || 18.0) };
-      cache.admin.rivers.push(river);
-    }
-    if (riverData.current !== undefined) river.current = Number(riverData.current);
-    if (riverData.trend) river.trend = riverData.trend;
-    if (river.current >= river.danger) river.barColor = '#dc2626';
-    else if (river.current >= river.danger - 0.8) river.barColor = '#eab308';
-    else river.barColor = '#16a34a';
+    const idx = cache.admin.rivers.findIndex(r => r.id === river.id);
+    if (idx >= 0) cache.admin.rivers[idx] = { ...cache.admin.rivers[idx], ...river };
+    else cache.admin.rivers.push(river);
 
     const db = await getDatabase();
     if (db) {
       try {
-        await db.collection('admin_rivers').updateOne({ id: river.id }, { $set: river }, { upsert: true });
+        await db.collection('rivers').updateOne({ id: river.id }, { $set: river }, { upsert: true });
       } catch (e) {}
     }
     return river;
@@ -211,23 +213,21 @@ export const adminDb = {
 // -----------------------------------------------------------------------------
 export const authorityDb = {
   async getState() {
-    // Automatically incorporate real areas created in Admin into Authority villages
     const adminState = await adminDb.getState();
     const adminAreas = adminState.areas || [];
 
     const db = await getDatabase();
     if (db) {
       try {
-        const [villages, requests, allocations, coordinations, operations, logs] = await Promise.all([
-          db.collection('authority_villages').find({}, { projection: { _id: 0 } }).toArray(),
-          db.collection('authority_requests').find({}, { projection: { _id: 0 } }).toArray(),
-          db.collection('authority_allocations').find({}, { projection: { _id: 0 } }).toArray(),
-          db.collection('authority_coordinations').find({}, { projection: { _id: 0 } }).toArray(),
+        const [requests, allocations, coordinations, operations, logs] = await Promise.all([
+          db.collection('resourcerequests').find({}, { projection: { _id: 0 } }).toArray(),
+          db.collection('resourceallocations').find({}, { projection: { _id: 0 } }).toArray(),
+          db.collection('coordinationrecords').find({}, { projection: { _id: 0 } }).toArray(),
           db.collection('authority_operations').find({}, { projection: { _id: 0 } }).toArray(),
-          db.collection('authority_logs').find({}, { projection: { _id: 0 } }).toArray(),
+          db.collection('auditlogs').find({}, { projection: { _id: 0 } }).toArray(),
         ]);
         cache.authority = {
-          villages: villages || [],
+          villages: [],
           requests: requests || [],
           allocations: allocations || [],
           coordinations: coordinations || [],
@@ -239,7 +239,7 @@ export const authorityDb = {
       }
     }
 
-    // Merge any real admin areas that were saved into authority villages
+    // Map real admin areas into authority villages
     adminAreas.forEach(area => {
       const exists = cache.authority.villages.find(v => v.id === area.id || v.name.toLowerCase() === area.name.toLowerCase());
       if (!exists) {
@@ -294,7 +294,7 @@ export const authorityDb = {
       const db = await getDatabase();
       if (db) {
         try {
-          await db.collection('authority_allocations').updateOne({ id: existing.id }, { $set: existing }, { upsert: true });
+          await db.collection('resourceallocations').updateOne({ id: existing.id }, { $set: existing }, { upsert: true });
         } catch (e) {}
       }
       return existing;
@@ -324,7 +324,7 @@ export const authorityDb = {
     const db = await getDatabase();
     if (db) {
       try {
-        await db.collection('authority_allocations').insertOne({ ...newAlloc });
+        await db.collection('resourceallocations').insertOne({ ...newAlloc });
       } catch (e) {}
     }
     return newAlloc;
@@ -347,7 +347,7 @@ export const authorityDb = {
     const db = await getDatabase();
     if (db) {
       try {
-        await db.collection('authority_requests').insertOne({ ...newReq });
+        await db.collection('resourcerequests').insertOne({ ...newReq });
       } catch (e) {}
     }
     return newReq;
@@ -377,7 +377,7 @@ export const authorityDb = {
     const db = await getDatabase();
     if (db) {
       try {
-        await db.collection('authority_requests').updateOne({ id: req.id }, { $set: req });
+        await db.collection('resourcerequests').updateOne({ id: req.id }, { $set: req });
       } catch (e) {}
     }
     return req;
@@ -399,7 +399,7 @@ export const authorityDb = {
     const db = await getDatabase();
     if (db) {
       try {
-        await db.collection('authority_coordinations').insertOne({ ...record });
+        await db.collection('coordinationrecords').insertOne({ ...record });
       } catch (e) {}
     }
     return record;
@@ -438,7 +438,7 @@ export const authorityDb = {
     const db = await getDatabase();
     if (db) {
       try {
-        await db.collection('authority_logs').insertOne({ ...log });
+        await db.collection('auditlogs').insertOne({ ...log });
       } catch (e) {}
     }
     return log;
@@ -446,7 +446,7 @@ export const authorityDb = {
 };
 
 // -----------------------------------------------------------------------------
-// 3. CENTRAL RELIEF GODOWN REAL DATABASE OPERATIONS
+// 3. CENTRAL RELIEF GODOWN REAL DATABASE OPERATIONS (neerakshak_db)
 // -----------------------------------------------------------------------------
 export const godownDb = {
   async getState() {
@@ -459,9 +459,9 @@ export const godownDb = {
     if (db) {
       try {
         const [inventory, returns, movements] = await Promise.all([
-          db.collection('godown_inventory').find({}, { projection: { _id: 0 } }).toArray(),
-          db.collection('godown_returns').find({}, { projection: { _id: 0 } }).toArray(),
-          db.collection('godown_movements').find({}, { projection: { _id: 0 } }).toArray()
+          db.collection('inventoryitems').find({}, { projection: { _id: 0 } }).toArray(),
+          db.collection('returnrecords').find({}, { projection: { _id: 0 } }).toArray(),
+          db.collection('dispatchrecords').find({}, { projection: { _id: 0 } }).toArray()
         ]);
         cache.godown.inventory = inventory || [];
         cache.godown.returns = returns || [];
@@ -532,8 +532,8 @@ export const godownDb = {
     if (db) {
       try {
         await Promise.all([
-          db.collection('godown_inventory').insertOne({ ...newItem }),
-          db.collection('godown_movements').insertOne({ ...movement })
+          db.collection('inventoryitems').insertOne({ ...newItem }),
+          db.collection('dispatchrecords').insertOne({ ...movement })
         ]);
       } catch (e) {}
     }
@@ -550,7 +550,7 @@ export const godownDb = {
     const db = await getDatabase();
     if (db) {
       try {
-        await db.collection('godown_inventory').updateOne({ id: item.id }, { $set: item });
+        await db.collection('inventoryitems').updateOne({ id: item.id }, { $set: item });
       } catch (e) {}
     }
     return item;
@@ -589,7 +589,7 @@ export const godownDb = {
       const db = await getDatabase();
       if (db) {
         try {
-          await db.collection('authority_allocations').updateOne({ id: targetAuth.id }, { $set: targetAuth });
+          await db.collection('resourceallocations').updateOne({ id: targetAuth.id }, { $set: targetAuth });
         } catch (e) {}
       }
     }
@@ -607,7 +607,7 @@ export const godownDb = {
     const db = await getDatabase();
     if (db) {
       try {
-        await db.collection('godown_movements').insertOne({ ...movement });
+        await db.collection('dispatchrecords').insertOne({ ...movement });
       } catch (e) {}
     }
 
@@ -630,7 +630,7 @@ export const godownDb = {
       const db = await getDatabase();
       if (db) {
         try {
-          await db.collection('authority_allocations').updateOne({ id: targetAuth.id }, { $set: targetAuth });
+          await db.collection('resourceallocations').updateOne({ id: targetAuth.id }, { $set: targetAuth });
         } catch (e) {}
       }
     }
@@ -639,7 +639,7 @@ export const godownDb = {
 };
 
 // -----------------------------------------------------------------------------
-// 4. GROUND OFFICER & MONITORING REAL OPERATIONS
+// 4. GROUND OFFICER & MONITORING REAL OPERATIONS (neerakshak_db)
 // -----------------------------------------------------------------------------
 export const groundDb = {
   async getState() {
@@ -647,8 +647,8 @@ export const groundDb = {
     if (db) {
       try {
         const [reports, deliveries] = await Promise.all([
-          db.collection('ground_reports').find({}, { projection: { _id: 0 } }).toArray(),
-          db.collection('ground_deliveries').find({}, { projection: { _id: 0 } }).toArray()
+          db.collection('fieldreports').find({}, { projection: { _id: 0 } }).toArray(),
+          db.collection('deliveryverifications').find({}, { projection: { _id: 0 } }).toArray()
         ]);
         cache.groundOfficer.fieldReports = reports || [];
         cache.groundOfficer.deliveries = deliveries || [];
@@ -677,7 +677,7 @@ export const groundDb = {
     const db = await getDatabase();
     if (db) {
       try {
-        await db.collection('ground_reports').insertOne({ ...report });
+        await db.collection('fieldreports').insertOne({ ...report });
       } catch (e) {}
     }
     return report;

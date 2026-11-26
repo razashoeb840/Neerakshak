@@ -3,7 +3,7 @@
 
 import { MongoClient } from 'mongodb';
 
-const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/neerakshak';
+const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/neerakshak_db';
 
 const options = {
   maxPoolSize: 10,
@@ -40,7 +40,7 @@ if (process.env.NODE_ENV === 'development') {
 
 export default clientPromise;
 
-export async function getDatabase(dbName = 'neerakshak') {
+export async function getDatabase(dbName = 'neerakshak_db') {
   try {
     const c = await clientPromise;
     if (c) {
