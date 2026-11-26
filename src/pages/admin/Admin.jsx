@@ -475,125 +475,120 @@ const markup = (
          MODALS FOR MAP DATA & TELEMETRY MAINTENANCE
          ===================================================================== */}
       <div className="modal-overlay" id="areaModal" onClick={(event) => window.closeModal('areaModal')}>
-        <div className="modal-box" onClick={(event) => event.stopPropagation()}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-            <h3 id="areaModalHeading" style={{ margin: "0", fontSize: "16px", color: "var(--navy-deep)" }}>Mark / Update Flood Area on Map</h3>
-            <button onClick={(event) => window.closeModal('areaModal')} style={{ border: "none", background: "#e2e8f0", width: "28px", height: "28px", borderRadius: "50%", cursor: "pointer" }}>
-              <i className="fas fa-times"></i>
+        <div className="modal-box" style={{ maxWidth: "520px", maxHeight: "88vh", overflowY: "auto", padding: "14px 18px" }} onClick={(event) => event.stopPropagation()}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", borderBottom: "1px solid #e2e8f0", paddingBottom: "6px" }}>
+            <h3 id="areaModalHeading" style={{ margin: "0", fontSize: "15px", color: "var(--navy-deep)" }}>
+              <i className="fas fa-location-dot" style={{ color: "#0284c7", marginRight: "6px" }}></i>
+              Mark / Update Flood Area on Map
+            </h3>
+            <button onClick={(event) => window.closeModal('areaModal')} style={{ border: "none", background: "#e2e8f0", width: "26px", height: "26px", borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <i className="fas fa-times" style={{ fontSize: "12px" }}></i>
             </button>
           </div>
           <form onSubmit={(event) => window.saveAreaRecord(event)}>
             <input type="hidden" id="editAreaIdx" value="-1" />
 
-            {/* Auto-Detection Indicator Pill */}
-            <div id="geoDetectBadge" style={{ display: "none", alignItems: "center", gap: "8px", background: "#ecfdf5", border: "1px solid #a7f3d0", color: "#065f46", padding: "6px 10px", borderRadius: "8px", fontSize: "11px", fontWeight: "700", marginBottom: "12px" }}>
+            {/* Auto-Detection Indicator Pill & Quick Pick Bar */}
+            <div id="geoDetectBadge" style={{ display: "none", alignItems: "center", gap: "6px", background: "#ecfdf5", border: "1px solid #a7f3d0", color: "#065f46", padding: "4px 8px", borderRadius: "6px", fontSize: "10.5px", fontWeight: "700", marginBottom: "6px" }}>
               <i className="fas fa-circle-check" style={{ color: "#10b981" }}></i>
               <span>Auto-detected from GIS coordinates.</span>
             </div>
 
-            <div className="form-group" style={{ marginBottom: "14px", marginTop: "4px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", background: "#f8fafc", padding: "4px 8px", borderRadius: "6px", border: "1px dashed #93c5fd" }}>
               <button
                 type="button"
                 className="btn-pick-map-coords"
                 id="btnPickOnMap"
                 onClick={() => window.startMapPickMode && window.startMapPickMode()}
+                style={{ padding: "3px 8px", fontSize: "11px", margin: 0 }}
               >
-                <i className="fas fa-location-crosshairs" style={{ color: "#0284c7", fontSize: "14px" }}></i>
-                {" 📍 Click Map to Auto-Detect Location & River"}
+                <i className="fas fa-location-crosshairs" style={{ color: "#0284c7" }}></i>
+                {" 📍 Click Map to Pick"}
               </button>
-              <div id="lblMapPickStatus" style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "4px", fontWeight: "600" }}>
-                Click anywhere on the map: Village, Block, Coordinates & River Danger Level will be auto-filled!
+              <span id="lblMapPickStatus" style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: "600" }}>
+                Tap map: fills location & river
+              </span>
+            </div>
+
+            <div className="form-grid-2" style={{ gap: "8px", marginBottom: "6px" }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontSize: "11px", marginBottom: "2px" }}>Village / Sector Name *</label>
+                <input type="text" id="inpAreaName" className="form-control" style={{ padding: "5px 8px", fontSize: "11.5px" }} placeholder="Sector name" required />
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontSize: "11px", marginBottom: "2px" }}>Block / Circle / District *</label>
+                <input type="text" id="inpAreaBlock" className="form-control" style={{ padding: "5px 8px", fontSize: "11.5px" }} placeholder="Block / District" required />
               </div>
             </div>
 
-            <div className="form-grid-2">
-              <div className="form-group">
-                <label>Village / Town / Sector Name *</label>
-                {" "}
-                <input type="text" id="inpAreaName" className="form-control" placeholder="Auto-detected or custom name" required />
-              </div>
-              <div className="form-group">
-                <label>Block / District / Circle *</label>
-                {" "}
-                <input type="text" id="inpAreaBlock" className="form-control" placeholder="Auto-detected or custom circle" required />
-              </div>
-            </div>
-
-            <div className="form-grid-2">
-              <div className="form-group">
-                <label>Flood Severity *</label>
-                {" "}
-                <select id="inpAreaSev" className="form-control">
+            <div className="form-grid-2" style={{ gap: "8px", marginBottom: "6px" }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontSize: "11px", marginBottom: "2px" }}>Flood Severity *</label>
+                <select id="inpAreaSev" className="form-control" style={{ padding: "5px 8px", fontSize: "11.5px" }}>
                   <option value="Critical">Critical</option>
                   <option value="High">High</option>
                   <option value="Moderate">Moderate</option>
                   <option value="Normal">Normal</option>
                 </select>
               </div>
-              <div className="form-group" style={{ background: "#f0f9ff", border: "1.5px solid #bae6fd", padding: "8px 10px", borderRadius: "8px" }}>
-                <label style={{ color: "#0369a1", fontWeight: "700" }}>
-                  <i className="fas fa-users"></i>
-                  {" Est. Affected Population (प्रभावित अनुमानित जनसंख्या) *"}
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontSize: "11px", marginBottom: "2px", color: "#0369a1", fontWeight: "700" }}>
+                  <i className="fas fa-users" style={{ marginRight: "4px" }}></i>
+                  Est. Affected Pop *
                 </label>
-                {" "}
-                <input type="number" id="inpAreaPop" className="form-control" defaultValue="2500" placeholder="e.g. 3500 (Authority will prioritize high population areas)" required />
-                <span style={{ fontSize: "10.5px", color: "#0284c7", display: "block", marginTop: "3px" }}>
-                  Used by District Authority to decide resource preference and rescue boat allocations.
-                </span>
+                <input type="number" id="inpAreaPop" className="form-control" style={{ padding: "5px 8px", fontSize: "11.5px" }} defaultValue="2500" placeholder="e.g. 2500" required />
               </div>
             </div>
 
-            {/* River Basin & Danger Level Telemetry Box */}
-            <div className="river-telemetry-box" style={{ background: "#f0f9ff", border: "1.5px solid #bae6fd", borderRadius: "10px", padding: "12px", marginBottom: "14px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                <label style={{ margin: 0, fontWeight: "800", color: "var(--navy-deep)", fontSize: "12px", display: "flex", alignItems: "center", gap: "6px" }}>
+            {/* River Basin & Danger Level Telemetry Box (Compact) */}
+            <div className="river-telemetry-box" style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: "8px", padding: "8px 10px", margin: "6px 0 8px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "5px" }}>
+                <label style={{ margin: 0, fontWeight: "700", color: "var(--navy-deep)", fontSize: "11px", display: "flex", alignItems: "center", gap: "4px" }}>
                   <i className="fas fa-water" style={{ color: "#0284c7" }}></i>
-                  <span>River Basin & Danger Level Telemetry</span>
+                  <span>River Basin & Water Level</span>
                 </label>
-                <span id="lblRiverDangerStatus" className="sev-pill sev-critical" style={{ fontSize: "10px", padding: "2px 8px" }}>
+                <span id="lblRiverDangerStatus" className="sev-pill sev-critical" style={{ fontSize: "9px", padding: "1px 6px" }}>
                   Danger Breach
                 </span>
               </div>
 
-              <div className="form-group" style={{ marginBottom: "8px" }}>
-                <label style={{ fontSize: "11px" }}>Associated River / Basin</label>
-                <input type="text" id="inpAreaRiver" className="form-control" placeholder="e.g. Brahmaputra River / Ganga" defaultValue="Brahmaputra River" />
+              <div className="form-group" style={{ marginBottom: "5px" }}>
+                <input type="text" id="inpAreaRiver" className="form-control" style={{ padding: "4px 8px", fontSize: "11px" }} placeholder="Associated River" defaultValue="Brahmaputra River" />
               </div>
 
-              <div className="form-grid-2">
+              <div className="form-grid-2" style={{ gap: "8px", marginBottom: 0 }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ fontSize: "11px" }}>Current Water Level (m) *</label>
-                  <input type="number" step="0.1" id="inpRiverCur" className="form-control" defaultValue="18.2" onChange={() => window.calcRiverDangerStatus && window.calcRiverDangerStatus()} required />
+                  <label style={{ fontSize: "10px", marginBottom: "2px" }}>Current Level (m) *</label>
+                  <input type="number" step="0.1" id="inpRiverCur" className="form-control" style={{ padding: "4px 8px", fontSize: "11px" }} defaultValue="18.2" onChange={() => window.calcRiverDangerStatus && window.calcRiverDangerStatus()} required />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ fontSize: "11px" }}>Danger Mark Level (m) *</label>
-                  <input type="number" step="0.1" id="inpRiverDanger" className="form-control" defaultValue="18.0" onChange={() => window.calcRiverDangerStatus && window.calcRiverDangerStatus()} required />
+                  <label style={{ fontSize: "10px", marginBottom: "2px" }}>Danger Level (m) *</label>
+                  <input type="number" step="0.1" id="inpRiverDanger" className="form-control" style={{ padding: "4px 8px", fontSize: "11px" }} defaultValue="18.0" onChange={() => window.calcRiverDangerStatus && window.calcRiverDangerStatus()} required />
                 </div>
               </div>
 
-              <div id="lblDangerDiff" style={{ fontSize: "11px", color: "#dc2626", fontWeight: "700", marginTop: "6px" }}>
-                ⚠️ River is +0.2 m ABOVE Danger Mark! Inundation risk active.
+              <div id="lblDangerDiff" style={{ fontSize: "10px", color: "#dc2626", fontWeight: "700", marginTop: "3px" }}>
+                ⚠️ River is +0.2 m ABOVE Danger Mark!
               </div>
             </div>
 
-            <div className="form-grid-2">
-              <div className="form-group">
-                <label>Latitude</label>
-                {" "}
-                <input type="number" step="0.0001" id="inpAreaLat" className="form-control" defaultValue="26.1250" required />
+            <div className="form-grid-2" style={{ gap: "8px", marginBottom: "6px" }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontSize: "10.5px", marginBottom: "2px" }}>Latitude</label>
+                <input type="number" step="0.0001" id="inpAreaLat" className="form-control" style={{ padding: "4px 8px", fontSize: "11px" }} defaultValue="26.1250" required />
               </div>
-              <div className="form-group">
-                <label>Longitude</label>
-                {" "}
-                <input type="number" step="0.0001" id="inpAreaLng" className="form-control" defaultValue="91.5180" required />
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label style={{ fontSize: "10.5px", marginBottom: "2px" }}>Longitude</label>
+                <input type="number" step="0.0001" id="inpAreaLng" className="form-control" style={{ padding: "4px 8px", fontSize: "11px" }} defaultValue="91.5180" required />
               </div>
             </div>
-            <div className="form-group">
-              <label>{"Situation & Map Marker Notes *"}</label>
-              {" "}
-              <input type="text" id="inpAreaNotes" className="form-control" placeholder="e.g. Embankment waterlogging; boat access only" required />
+
+            <div className="form-group" style={{ marginBottom: "10px" }}>
+              <label style={{ fontSize: "11px", marginBottom: "2px" }}>Situation & Notes *</label>
+              <input type="text" id="inpAreaNotes" className="form-control" style={{ padding: "5px 8px", fontSize: "11.5px" }} placeholder="e.g. Embankment waterlogging; boat access only" required />
             </div>
-            <button type="submit" className="btn-save-primary">
+
+            <button type="submit" className="btn-save-primary" style={{ padding: "8px 14px", fontSize: "12.5px", width: "100%", justifyContent: "center" }}>
               <i className="fas fa-check-circle"></i>
               {" Save Map Zone Record"}
             </button>

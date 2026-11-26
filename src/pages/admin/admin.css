@@ -1336,11 +1336,13 @@
         .modal-box {
             background: #ffffff;
             border-radius: 16px;
-            max-width: 490px;
+            max-width: 520px;
             width: 100%;
-            padding: 20px 22px;
+            padding: 16px 20px;
             box-shadow: 0 20px 45px rgba(6, 37, 74, 0.28);
             border-top: 4px solid var(--river-blue);
+            max-height: 88vh;
+            overflow-y: auto;
         }
 
         .form-grid-2 {
