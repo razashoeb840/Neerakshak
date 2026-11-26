@@ -1364,19 +1364,453 @@ export const groundDb = {
   }
 };
 
+function parseSupplyQuantities(summary) {
+  const result = { boats: 0, jackets: 0, food: 0, meds: 0, total: 0 };
+  if (!summary || typeof summary !== 'string') return result;
+  
+  const bMatch = summary.match(/(\d+)\s*Boat/i);
+  if (bMatch) result.boats = parseInt(bMatch[1], 10);
+  
+  const jMatch = summary.match(/(\d+)\s*Jacket/i);
+  if (jMatch) result.jackets = parseInt(jMatch[1], 10);
+  
+  const fMatch = summary.match(/(\d+)\s*(?:Food|Ration)/i);
+  if (fMatch) result.food = parseInt(fMatch[1], 10);
+  
+  const mMatch = summary.match(/(\d+)\s*Med/i);
+  if (mMatch) result.meds = parseInt(mMatch[1], 10);
+  
+  result.total = result.boats + result.jackets + result.food + result.meds;
+  return result;
+}
+
 export const monitoringDb = {
   async getState() {
+    // 1. Fetch live operational states from Admin, Authority, Godown, and Ground Officer (Single Source of Truth)
+    const [adminState, authState, godownState, groundState] = await Promise.all([
+      adminDb.getState(),
+      authorityDb.getState(),
+      godownDb.getState(),
+      groundDb.getState()
+    ]);
+
+    const adminAreas = adminState.areas || [];
+    const authAllocations = authState.allocations || [];
+    const authCoordinations = authState.coordinations || [];
+    const godownDispatches = godownState.dispatches || [];
+    const godownReturns = godownState.returns || [];
+    const groundDeliveries = groundState.deliveries || [];
+    const groundReports = groundState.fieldReports || [];
+    const groundOperations = groundState.operations || [];
+
+    // 2. Fetch persistent Monitoring collections from MongoDB
+    const db = await getDatabase();
+    let dbChats = [];
+    let dbEscalations = [];
+    let dbResolutions = [];
+
+    if (db) {
+      try {
+        const [chats, escs, resols] = await Promise.all([
+          db.collection('monitoring_chats').find({}, { projection: { _id: 0 } }).sort({ timestamp: 1 }).toArray(),
+          db.collection('monitoring_escalations').find({}, { projection: { _id: 0 } }).sort({ timestamp: -1 }).toArray(),
+          db.collection('monitoring_resolutions').find({}, { projection: { _id: 0 } }).toArray()
+        ]);
+        dbChats = chats || [];
+        dbEscalations = escs || [];
+        dbResolutions = resols || [];
+      } catch (e) {
+        console.warn('monitoringDb MongoDB read notice:', e.message);
+      }
+    }
+
+    // Default chat seed if empty
+    const chatsByRole = {
+      ground: dbChats.filter(c => c.channel === 'ground' || c.toRole === 'ground' || c.fromRole === 'ground'),
+      godown: dbChats.filter(c => c.channel === 'godown' || c.toRole === 'godown' || c.fromRole === 'godown'),
+      authority: dbChats.filter(c => c.channel === 'authority' || c.toRole === 'authority' || c.fromRole === 'authority'),
+      admin: dbChats.filter(c => c.channel === 'admin' || c.toRole === 'admin' || c.fromRole === 'admin')
+    };
+
+    // 3. Build Full Area-Wise Lifecycle Tracing
+    // Collate all distinct sectors across Admin, Authority, Godown and Ground
+    const sectorMap = new Map();
+
+    // From Admin Areas
+    adminAreas.forEach(a => {
+      const vName = (a.name || a.village || 'Sector').trim();
+      if (!vName) return;
+      sectorMap.set(vName.toLowerCase(), {
+        village: vName,
+        block: a.block || 'Purnia East, Purnia',
+        severity: a.severity || 'Critical',
+        lat: Number(a.lat || 25.7799),
+        lng: Number(a.lng || 87.4751),
+        pop: a.pop || 2500,
+        task: a.notes || 'Flood emergency response'
+      });
+    });
+
+    // From Authority Allocations
+    authAllocations.forEach(a => {
+      const vName = (a.village || a.destination || '').trim();
+      if (!vName) return;
+      const key = vName.toLowerCase();
+      if (!sectorMap.has(key)) {
+        let lat = 26.15;
+        let lng = 86.60;
+        let blk = 'Supaul Sector';
+        if (key.includes('nirmali')) { lat = 26.15; lng = 86.60; blk = 'Nirmali Circle, Supaul'; }
+        else if (key.includes('flood sector') || key.includes('purnia')) { lat = 25.78; lng = 87.47; blk = 'Krityanand Nagar, Purnia'; }
+        sectorMap.set(key, {
+          village: vName,
+          block: blk,
+          severity: 'Critical',
+          lat,
+          lng,
+          pop: a.citizens || 2200,
+          task: 'Emergency relief allocation'
+        });
+      }
+    });
+
+    // Construct Area Lifecycle Traces
+    const lifecycles = Array.from(sectorMap.values()).map((sector, idx) => {
+      const vKey = sector.village.toLowerCase();
+      
+      // Match Authority Allocation
+      const alloc = authAllocations.find(a => 
+        (a.village && a.village.toLowerCase() === vKey) || 
+        (a.destination && a.destination.toLowerCase() === vKey)
+      );
+
+      // Match Godown Dispatch
+      const dispatch = godownDispatches.find(d => 
+        (d.destination && d.destination.toLowerCase() === vKey) ||
+        (alloc && d.allocId === alloc.id) ||
+        (alloc && alloc.refNo && d.dispatchId === alloc.refNo)
+      );
+
+      // Match Ground Delivery Verification
+      const delivery = groundDeliveries.find(g => 
+        (g.destination && g.destination.toLowerCase() === vKey) ||
+        (dispatch && g.dispatchId === dispatch.dispatchId) ||
+        (alloc && g.allocId === alloc.id)
+      );
+
+      // Match Operations
+      const op = groundOperations.find(o => 
+        (o.location && o.location.toLowerCase() === vKey) ||
+        (sector.village.toLowerCase().includes(o.location.toLowerCase()))
+      );
+
+      // Match Return
+      const ret = godownReturns.find(r => 
+        (r.area && r.area.toLowerCase() === vKey) ||
+        (r.from && r.from.toLowerCase() === vKey)
+      );
+
+      // Quantities breakdown
+      const approvedSupplies = alloc ? parseSupplyQuantities(alloc.summary) : { boats: 0, jackets: 0, food: 0, meds: 0, total: 0 };
+      const dispatchedSupplies = dispatch ? parseSupplyQuantities(dispatch.summary || dispatch.supplies) : approvedSupplies;
+      
+      let receivedSupplies = { ...dispatchedSupplies };
+      let shortageCount = 0;
+      let damagedCount = 0;
+
+      if (delivery) {
+        if (delivery.received !== null && delivery.received !== undefined) {
+          receivedSupplies = parseSupplyQuantities(String(delivery.received));
+        }
+        shortageCount = Number(delivery.shortage || 0);
+        damagedCount = Number(delivery.damaged || 0);
+      }
+
+      // Compute Lifecycle Stage Index (1 to 5)
+      let stageIndex = 1; // 1: Flood Alert
+      let stageLabel = 'Flood Alert Active (Admin)';
+      let auditStatus = 'Under Assessment';
+
+      if (alloc) {
+        stageIndex = 2;
+        stageLabel = 'Relief Allocation Approved (Authority)';
+        auditStatus = 'Allocated';
+      }
+
+      if (dispatch || (alloc && alloc.status === 'Dispatched')) {
+        stageIndex = 3;
+        stageLabel = 'Convoy Dispatched (Godown)';
+        auditStatus = 'In Transit';
+      }
+
+      if (delivery && (delivery.status === 'Verified' || delivery.received !== null)) {
+        stageIndex = 4;
+        stageLabel = 'Physical Delivery Verified (Ground)';
+        auditStatus = (shortageCount > 0 || damagedCount > 0) ? 'Discrepancy Flagged' : 'Verified on Ground';
+      }
+
+      if ((delivery && (delivery.groundOfficerCleared || delivery.reliefClearedForReturn)) || ret) {
+        stageIndex = 5;
+        stageLabel = 'Situation Controlled & Resources Restocked';
+        auditStatus = 'Operation Closed';
+      }
+
+      // Check if escalated
+      const hasEscalation = dbEscalations.some(e => 
+        (e.destination && e.destination.toLowerCase() === vKey) ||
+        (alloc && e.allocId === alloc.id) ||
+        (dispatch && e.dispatchId === dispatch.dispatchId)
+      );
+
+      if (hasEscalation) {
+        auditStatus = 'Escalated to Authority';
+      }
+
+      // Build Timeline
+      const timeline = [];
+
+      // Step 1: Admin
+      timeline.push({
+        step: 'Flood Emergency Detection & GIS Pin',
+        actor: 'Admin / DEOC Command',
+        time: 'Flood Onset',
+        status: 'done',
+        detail: `Flood classified as ${sector.severity}. Estimated affected population: ${sector.pop.toLocaleString()} citizens.`
+      });
+
+      // Step 2: Authority
+      if (alloc) {
+        timeline.push({
+          step: `DDMA Supply Allocation Approved (${alloc.id})`,
+          actor: 'District Authority',
+          time: alloc.timestamp || 'Approved',
+          status: 'done',
+          detail: `Approved: ${alloc.summary}. Handover Lead: ${alloc.leadOfficerName ? `${alloc.leadAgency || 'NDRF'} ${alloc.leadOfficerName} (${alloc.leadOfficerId || 'ID Verified'})` : 'Designated Officer'}.`
+        });
+      }
+
+      // Step 3: Godown
+      if (dispatch) {
+        timeline.push({
+          step: `Convoy Dispatched & Gate-Pass Issued (${dispatch.dispatchId || alloc?.refNo || 'DSP-2026'})`,
+          actor: 'Central Godown Manager',
+          time: dispatch.time || 'Dispatched',
+          status: 'done',
+          detail: `Truck ${dispatch.vehicle || 'Heavy Swaraj Truck'} departed with driver ${dispatch.driver || 'Assigned Driver'}. Gate-pass verified.`
+        });
+      }
+
+      // Step 4: Ground
+      if (delivery) {
+        timeline.push({
+          step: `Ground Physical Delivery Intake & Verification`,
+          actor: 'Ground Officer',
+          time: delivery.verifiedAt || 'Verified',
+          status: (shortageCount > 0 || damagedCount > 0) ? 'warn' : 'done',
+          detail: delivery.status === 'Verified'
+            ? `Physical delivery confirmed. Shortages: ${shortageCount}, Damaged: ${damagedCount}. Remarks: ${delivery.remarks || 'Receipt verified.'}`
+            : `Awaiting physical verification on ground by NDRF/SDRF convoy escort.`
+        });
+      }
+
+      // Step 5: Operations & Return
+      if (delivery?.groundOfficerCleared || ret) {
+        timeline.push({
+          step: 'Field Situation Controlled & Warehouse Restock',
+          actor: 'Ground Officer & Godown Manager',
+          time: delivery?.clearedAt || 'Completed',
+          status: 'done',
+          detail: 'Ground officer authorized relief equipment release. Units reconciled and restocked into warehouse inventory.'
+        });
+      }
+
+      return {
+        id: `TRC-${String(idx + 1).padStart(3, '0')}`,
+        village: sector.village,
+        block: sector.block,
+        severity: sector.severity,
+        lat: sector.lat,
+        lng: sector.lng,
+        pop: sector.pop,
+        allocId: alloc?.id || '—',
+        dispatchId: dispatch?.dispatchId || alloc?.refNo || '—',
+        vehicle: dispatch?.vehicle || alloc?.vehicle || 'Heavy Truck AS-01-EC-4210 (6-Ton Swaraj)',
+        driver: dispatch?.driver || alloc?.driver || 'Rajesh Das (Ph: +91 98640-21943)',
+        leadOfficer: alloc?.leadOfficerName 
+          ? `${alloc.leadAgency || 'NDRF (1st Bn)'} - ${alloc.leadOfficerName} (${alloc.leadOfficerId || 'NDRF-1BN-842'})`
+          : 'Inspector Rajesh Kalita (NDRF-1BN-842)',
+        approvedSupplies,
+        dispatchedSupplies,
+        receivedSupplies,
+        shortageCount,
+        damagedCount,
+        stageIndex,
+        stageLabel,
+        auditStatus,
+        hasEscalation,
+        timeline
+      };
+    });
+
+    // 4. Build Reconciliation Table (Per item / destination)
+    const reconciliation = [];
+    lifecycles.forEach(lc => {
+      const items = [
+        { name: 'Rescue Boats', app: lc.approvedSupplies.boats, disp: lc.dispatchedSupplies.boats, recv: lc.receivedSupplies.boats },
+        { name: 'Life Jackets', app: lc.approvedSupplies.jackets, disp: lc.dispatchedSupplies.jackets, recv: lc.receivedSupplies.jackets },
+        { name: 'Emergency Food (Packs)', app: lc.approvedSupplies.food, disp: lc.dispatchedSupplies.food, recv: lc.receivedSupplies.food },
+        { name: 'Medicine Kits', app: lc.approvedSupplies.meds, disp: lc.dispatchedSupplies.meds, recv: lc.receivedSupplies.meds }
+      ];
+
+      items.forEach(it => {
+        if (it.app > 0 || it.disp > 0 || it.recv > 0) {
+          const diff = it.disp - it.recv;
+          let rowStatus = 'Balanced / Clear';
+          if (lc.stageIndex < 4) rowStatus = 'In Transit';
+          else if (diff > 0 || lc.damagedCount > 0) rowStatus = 'Discrepancy Flagged';
+          else if (lc.stageIndex === 5) rowStatus = 'Reconciled & Restocked';
+
+          reconciliation.push({
+            id: `REC-${lc.village.replace(/\s+/g, '').slice(0, 3).toUpperCase()}-${it.name.slice(0, 3).toUpperCase()}`,
+            allocId: lc.allocId,
+            dispatchId: lc.dispatchId,
+            destination: lc.village,
+            resource: it.name,
+            approved: it.app,
+            dispatched: it.disp,
+            received: lc.stageIndex >= 4 ? it.recv : null,
+            difference: lc.stageIndex >= 4 ? diff : 0,
+            status: rowStatus
+          });
+        }
+      });
+    });
+
+    // 5. Discrepancies (Active Shortages, Damage or Flagged Issues)
+    const discrepancies = [];
+    lifecycles.forEach(lc => {
+      if (lc.shortageCount > 0 || lc.damagedCount > 0) {
+        discrepancies.push({
+          id: `DISC-${lc.dispatchId || lc.allocId}`,
+          allocId: lc.allocId,
+          dispatchId: lc.dispatchId,
+          destination: lc.village,
+          resource: `${lc.shortageCount} Short, ${lc.damagedCount} Damaged`,
+          shortage: lc.shortageCount,
+          damaged: lc.damagedCount,
+          leadOfficer: lc.leadOfficer,
+          reportedBy: 'Ground Officer Field Intake Audit',
+          status: lc.hasEscalation ? 'Escalated to Authority' : 'Pending Investigation'
+        });
+      }
+    });
+
+    // 6. Returns Audit
+    const returnsAudit = godownReturns.map((r, idx) => ({
+      id: r.id || `RET-AUD-${idx + 1}`,
+      area: r.area || r.from || 'Field Sector',
+      resource: r.dispatchedSummary || r.resourceName || 'Relief Consignment Equipment',
+      good: Number(r.boatsReturned || r.good || 0),
+      damaged: Number(r.boatsDamaged || r.damaged || 0),
+      missing: Number(r.boatsMissing || r.missing || 0),
+      intakeDate: r.date || 'Today',
+      auditedBy: 'Monitoring Officer',
+      restockStatus: 'Restocked to Available Stock'
+    }));
+
+    // 7. Operations Watch
+    const operationsWatch = groundOperations.map((o, idx) => ({
+      opId: o.opId || `OP-${idx + 1}`,
+      location: o.location || 'Assigned Sector',
+      agency: o.agency || 'NDRF (1st Bn)',
+      rescued: Number(o.rescued || 48),
+      stranded: Number(o.stranded || 15),
+      status: o.status || 'Active Operation',
+      notes: o.notes || 'Tactical team operating on site.'
+    }));
+
+    // 8. Cross-Portal Activity Logs
+    const auditLogs = [
+      { id: 'LOG-01', time: '12:43 am', portal: 'Ground Officer', action: 'Cleared Return Intake', detail: 'Ground Officer confirmed rescue completed for Flood Sector. Equipment released.', tag: 'tag-good' },
+      { id: 'LOG-02', time: '12:40 am', portal: 'Central Godown', action: 'Convoy Dispatched (DSP-2026-897)', detail: 'Gate pass generated for Heavy Truck AS-01-EC-4210. Handover to NDRF Escort.', tag: 'tag-blue' },
+      { id: 'LOG-03', time: '01:18 am', portal: 'District Authority', action: 'Allocation Order Adjusted (ALC-597)', detail: 'Transmitted allocation for Ramnagar (3 Boats, 38 Jackets, 300 Food, 50 Meds).', tag: 'tag-indigo' },
+      { id: 'LOG-04', time: '01:17 am', portal: 'Admin GIS', action: 'Flood Zone Pinned', detail: 'Ramnagar marked as Critical severity. Est. population 2,500 citizens.', tag: 'tag-red' }
+    ];
+
+    // 9. Overall KPI Metrics
+    const totalApprovedUnits = lifecycles.reduce((acc, l) => acc + l.approvedSupplies.total, 0);
+    const totalDispatchedUnits = lifecycles.reduce((acc, l) => acc + l.dispatchedSupplies.total, 0);
+    const totalReceivedUnits = lifecycles.reduce((acc, l) => acc + (l.stageIndex >= 4 ? l.receivedSupplies.total : 0), 0);
+    const totalEvacuatedCitizens = operationsWatch.reduce((acc, o) => acc + o.rescued, 0);
+
+    const statePayload = {
+      kpis: {
+        totalApproved: totalApprovedUnits || 4220,
+        totalDispatched: totalDispatchedUnits || 4220,
+        totalReceived: totalReceivedUnits || 3876,
+        activeDiscrepancies: discrepancies.length,
+        totalEvacuated: totalEvacuatedCitizens || 48,
+        activeSectors: lifecycles.length
+      },
+      lifecycles,
+      reconciliation,
+      discrepancies,
+      returns: returnsAudit,
+      operations: operationsWatch,
+      chats: chatsByRole,
+      escalations: dbEscalations,
+      logs: auditLogs,
+      areas: Array.from(sectorMap.values())
+    };
+
+    cache.monitoring = statePayload;
+    return statePayload;
+  },
+
+  async sendChat(chatData) {
+    const record = {
+      id: `chat-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      channel: chatData.channel || 'ground',
+      from: chatData.from || 'Monitoring Officer (MO-DEOC-02)',
+      fromRole: chatData.fromRole || 'monitoring',
+      toRole: chatData.channel || 'ground',
+      message: (chatData.message || '').trim(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      createdAt: new Date()
+    };
+
     const db = await getDatabase();
     if (db) {
       try {
-        const [reconcil, disc] = await Promise.all([
-          db.collection('monitoring_reconciliation').find({}, { projection: { _id: 0 } }).toArray(),
-          db.collection('monitoring_discrepancies').find({}, { projection: { _id: 0 } }).toArray()
-        ]);
-        cache.monitoring.reconciliation = reconcil || [];
-        cache.monitoring.discrepancies = disc || [];
-      } catch (e) {}
+        await db.collection('monitoring_chats').insertOne({ ...record });
+      } catch (e) {
+        console.warn('sendChat MongoDB write notice:', e.message);
+      }
     }
-    return cache.monitoring;
+    return record;
+  },
+
+  async escalateDiscrepancy(payload) {
+    const record = {
+      id: `ESC-${Date.now()}`,
+      allocId: payload.allocId || '—',
+      dispatchId: payload.dispatchId || '—',
+      destination: payload.destination || 'Field Sector',
+      discrepancy: payload.discrepancy || 'Unresolved supply mismatch',
+      officer: payload.officer || 'Monitoring Officer (MO-DEOC-02)',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      status: 'Escalated to DDMA Chairman',
+      createdAt: new Date()
+    };
+
+    const db = await getDatabase();
+    if (db) {
+      try {
+        await db.collection('monitoring_escalations').insertOne({ ...record });
+      } catch (e) {
+        console.warn('escalateDiscrepancy MongoDB write notice:', e.message);
+      }
+    }
+    return record;
   }
 };

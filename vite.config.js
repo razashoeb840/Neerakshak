@@ -511,8 +511,85 @@ function groundBackendPlugin() {
   };
 }
 
+function monitoringBackendPlugin() {
+  return {
+    name: 'monitoring-backend-fallback',
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        if (req.url && req.url.startsWith('/api/monitoring')) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 120);
+            const check = await fetch('http://localhost:5000/api/monitoring', { method: 'OPTIONS', signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (check.ok || check.status === 200) {
+              return next();
+            }
+          } catch (e) {}
+
+          const parsedUrl = new URL(req.url, 'http://localhost:5173');
+          const pathname = parsedUrl.pathname;
+          const method = req.method;
+
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+
+          if (method === 'OPTIONS') {
+            res.statusCode = 200;
+            res.end();
+            return;
+          }
+
+          const { monitoringDb } = await import('./server/lib/db.js');
+
+          let body = {};
+          if (method === 'POST') {
+            const chunks = [];
+            for await (const chunk of req) chunks.push(chunk);
+            try { body = JSON.parse(Buffer.concat(chunks).toString() || '{}'); } catch (e) {}
+          }
+
+          if (pathname === '/api/monitoring/chat') {
+            if (method === 'POST') {
+              const result = await monitoringDb.sendChat(body);
+              res.statusCode = 200;
+              res.end(JSON.stringify({ success: true, data: result }));
+              return;
+            }
+            const data = await monitoringDb.getState();
+            const channel = parsedUrl.searchParams.get('channel');
+            const chats = data.chats || [];
+            const filtered = channel ? chats.filter(c => c.channel === channel) : chats;
+            res.statusCode = 200;
+            res.end(JSON.stringify({ success: true, data: filtered }));
+            return;
+          }
+
+          if (pathname === '/api/monitoring/escalations') {
+            if (method === 'POST') {
+              const result = await monitoringDb.escalateDiscrepancy(body);
+              res.statusCode = 200;
+              res.end(JSON.stringify({ success: true, data: result }));
+              return;
+            }
+          }
+
+          if (pathname === '/api/monitoring' || pathname === '/api/monitoring/state') {
+            const data = await monitoringDb.getState();
+            res.statusCode = 200;
+            res.end(JSON.stringify({ success: true, data }));
+            return;
+          }
+        }
+        next();
+      });
+    }
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), adminBackendPlugin(), authorityBackendPlugin(), godownBackendPlugin(), groundBackendPlugin()],
+  plugins: [react(), adminBackendPlugin(), authorityBackendPlugin(), godownBackendPlugin(), groundBackendPlugin(), monitoringBackendPlugin()],
   server: {
     proxy: {
       '/api': {

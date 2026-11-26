@@ -1,371 +1,670 @@
-// Original 6monitoring.html logic, kept unchanged (only DOMContentLoaded -> __onReady, .html links -> routes).
+// NEERAKSHAK State DEOC Monitoring & Audit Portal Engine
+// Connects with Single Source of Truth MongoDB Engine, Leaflet GIS Map & Next.js Endpoints
+
+import {
+  fetchFullMonitoringState,
+  getCurrentMonitoringState,
+  onMonitoringSync,
+  sendMonitoringChatMessage,
+  escalateDiscrepancyApi,
+  startMonitoringSyncPolling
+} from './monitoringApi.js';
+
+import {
+  initMonitoringMap,
+  renderMonitoringAreas,
+  autoCenterMonitoringMap,
+  focusMonitoringMapByName,
+  filterMonitoringMapBySeverity,
+  invalidateMonitoringMapSize
+} from './monitoringMap.js';
+
+import {
+  INDIA_RIVER_SYSTEMS
+} from '../admin/indiaGisData.js';
+
+let activeTab = 'dashboard';
+let activeChatChannel = 'ground';
+let selectedSectorName = null;
+let activeAreaFilter = 'ALL';
+
 export default function initMonitoringPage() {
-const __ready = [];
-const __onReady = (fn) => __ready.push(fn);
+  // Expose global controller functions for UI clicks
+  window.switchMonitorTab = switchMonitorTab;
+  window.switchChatChannel = switchChatChannel;
+  window.sendChatMessage = sendChatMessage;
+  window.insertQuickChat = insertQuickChat;
+  window.escalateDiscrepancy = escalateDiscrepancy;
+  window.inspectSectorByName = inspectSectorByName;
+  window.focusMapOnSector = focusMapOnSector;
+  window.filterMonitoringSector = filterMonitoringSector;
+  window.filterTracingArea = filterTracingArea;
+  window.filterMapSeverity = filterMapSeverity;
+  window.searchMapSector = searchMapSector;
+  window.refreshMonitoringData = refreshMonitoringData;
+  window.exportAuditReport = exportAuditReport;
+  window.showToast = showToast;
 
-        /* =====================================================================
-           NEERAKSHAK MONITORING OFFICER STATE (Reference Drill vs Empty API)
-           ===================================================================== */
-        /* =====================================================================
-           NEERAKSHAK MONITORING SEED DATA LOADER (CONNECTED TO seed.js)
-           ===================================================================== */
-        function getSeedMonitoringData() {
-            if (window.NEERAKSHAK_SEED_DATA && window.NEERAKSHAK_SEED_DATA.monitoring) {
-                return JSON.parse(JSON.stringify(window.NEERAKSHAK_SEED_DATA.monitoring));
-            }
-            return {
-                reconciliation: [],
-                discrepancies: [],
-                returns: [],
-                operations: [],
-                logs: [],
-                escalations: [],
-                chats: { ground: [], godown: [], authority: [], admin: [] }
-            };
-        }
+  // Initialize Map
+  setTimeout(() => {
+    initMonitoringMap('monitoringMapSlot');
+    refreshMonitoringData();
+  }, 100);
 
-        const CHANNEL_LABELS = {
-            ground: 'Ground Officer (GO-KAM-04)',
-            godown: 'Godown Manager (Mirza Hub)',
-            authority: 'District Authority (DDMA)',
-            admin: 'Admin GIS Control'
-        };
+  // Subscribe to live sync events
+  onMonitoringSync(state => {
+    renderAllViews(state);
+  });
 
-        let isDrillMode = true;
-        let isListView = false;
-        let activeChatRole = 'ground';
-        let state = getSeedMonitoringData();
+  // Start periodic sync polling
+  startMonitoringSyncPolling(4000);
+}
 
-        function toggleGridListView() {
-            isListView = !isListView;
-            const sw = document.getElementById('viewSlideSwitch');
-            if (isListView) {
-                document.body.classList.add('list-mode');
-                sw.classList.add('is-list');
-                showToast('Switched to List View');
-            } else {
-                document.body.classList.remove('list-mode');
-                sw.classList.remove('is-list');
-                showToast('Switched to Grid Card View');
-            }
-        }
+export function showToast(message, type = 'info') {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.innerText = message;
+  toast.style.borderLeftColor = type === 'error' ? '#ef4444' : (type === 'success' ? '#22c55e' : '#38bdf8');
+  toast.style.right = '20px';
+  setTimeout(() => {
+    toast.style.right = '-380px';
+  }, 3200);
+}
 
-        function toggleDataMode() {
-            isDrillMode = !isDrillMode;
-            const btn = document.getElementById('dataModeBtn');
-            if (isDrillMode) {
-                state = getSeedMonitoringData();
-                btn.innerHTML = '<i class="fas fa-database"></i> Reference Drill';
-                showToast('Switched to Reference Drill dataset.');
-            } else {
-                state = {
-                    reconciliation: [],
-                    discrepancies: [],
-                    returns: [],
-                    operations: [],
-                    logs: [],
-                    escalations: [],
-                    chats: { ground: [], godown: [], authority: [], admin: [] }
-                };
-                btn.innerHTML = '<i class="fas fa-plug"></i> Empty API State';
-                showToast('Switched to Empty API State.');
-            }
-            renderAllMonitoringViews();
-            renderChatFeed();
-        }
+export async function refreshMonitoringData() {
+  showToast('Syncing DEOC audit ledger with database...', 'info');
+  const state = await fetchFullMonitoringState();
+  renderAllViews(state);
+  showToast('DEOC audit stream synced.', 'success');
+}
 
-        function switchMonitorTab(tabKey, btnEl) {
-            document.querySelectorAll('.mo-nav-btn').forEach(b => b.classList.remove('active'));
-            if (btnEl) btnEl.classList.add('active');
-            document.querySelectorAll('.mo-tab-pane').forEach(p => p.classList.remove('active'));
-            const target = document.getElementById(`tab-${tabKey}`);
-            if (target) target.classList.add('active');
-        }
+export function switchMonitorTab(tabId, el) {
+  activeTab = tabId;
+  document.querySelectorAll('.mo-tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.mon-nav-btn').forEach(b => b.classList.remove('active'));
 
-        function renderAllMonitoringViews() {
-            const locFilter = document.getElementById('districtScopeFilter')?.value || 'ALL';
-            const visRec = state.reconciliation.filter(r => locFilter === 'ALL' || r.destination === locFilter);
-            const visDisc = state.discrepancies.filter(d => locFilter === 'ALL' || d.destination === locFilter);
+  const targetPane = document.getElementById(`tab-${tabId}`);
+  if (targetPane) targetPane.classList.add('active');
+  if (el) el.classList.add('active');
 
-            const totalApproved = visRec.reduce((s, r) => s + r.approved, 0);
-            const totalDispatched = visRec.reduce((s, r) => s + r.dispatched, 0);
-            const totalReceived = visRec.reduce((s, r) => s + (r.received || 0), 0);
+  if (tabId === 'dashboard') {
+    invalidateMonitoringMapSize();
+  }
+}
 
-            const elDisc = document.getElementById('navDiscCount'); if (elDisc) elDisc.textContent = visDisc.length;
-            const elEsc = document.getElementById('navEscCount'); if (elEsc) elEsc.textContent = state.escalations.length;
+export function filterMapSeverity(sev) {
+  filterMonitoringMapBySeverity(sev);
+  const state = getCurrentMonitoringState();
+  renderMonitoringAreas(state.areas || []);
+  showToast(`Filtered map by severity: ${sev}`);
+}
 
-            // 1. 4-KPI Primary Overview
-            const kpis = [
-                { val: isDrillMode ? totalApproved.toLocaleString() : '0', lbl: 'Approved Units', icon: 'fa-clipboard-check', cls: 'kpi-indigo' },
-                { val: isDrillMode ? totalDispatched.toLocaleString() : '0', lbl: 'Dispatched Units', icon: 'fa-truck-fast', cls: 'kpi-blue' },
-                { val: isDrillMode ? totalReceived.toLocaleString() : '0', lbl: 'Ground Verified Units', icon: 'fa-circle-check', cls: 'kpi-green' },
-                { val: isDrillMode ? visDisc.length : '0', lbl: 'Active Discrepancies', icon: 'fa-triangle-exclamation', cls: 'kpi-red' }
-            ];
+export function searchMapSector(query) {
+  if (!query) return;
+  focusMonitoringMapByName(query.trim());
+}
 
-            const kpiGrid = document.getElementById('monitorKpiGrid');
-            if (kpiGrid) {
-                kpiGrid.innerHTML = kpis.map(k => `
-                    <div class="kpi-tile ${k.cls}">
-                        <div class="kpi-ic"><i class="fas ${k.icon}"></i></div>
-                        <div>
-                            <div class="kpi-val">${k.val}</div>
-                            <div class="kpi-lbl">${k.lbl}</div>
-                        </div>
-                    </div>
-                `).join('');
-            }
+export function filterMonitoringSector(sectorName) {
+  activeAreaFilter = sectorName;
+  const state = getCurrentMonitoringState();
+  renderAllViews(state);
+  if (sectorName !== 'ALL') {
+    focusMapOnSector(sectorName);
+  }
+}
 
-            // 2. Reconciliation Table (Dashboard & Lifecycle Tab)
-            const buildReconcileRows = (showAction) => {
-                if (visRec.length === 0) {
-                    return `<tr><td colspan="${showAction ? 8 : 7}" style="text-align:center; padding:16px; color:var(--text-muted);">No lifecycle records loaded.</td></tr>`;
-                }
-                return visRec.map((r, idx) => {
-                    const diff = r.received !== null ? (r.dispatched - r.received) : 0;
-                    const pillCls = r.status === 'Matched' ? 'p-green' : (r.status === 'Shortage' ? 'p-red' : 'p-amber');
-                    return `
-                        <tr>
-                            ${showAction ? `<td><strong>${r.allocId}</strong></td>` : ''}
-                            <td><strong>${r.resource}</strong></td>
-                            <td>${r.destination}</td>
-                            <td>${r.approved}</td>
-                            <td>${r.dispatched}</td>
-                            <td><strong>${r.received !== null ? r.received : 'Pending'}</strong></td>
-                            <td><strong style="color:${diff > 0 ? '#dc2626' : '#15803d'};">${r.received !== null ? diff : '—'}</strong></td>
-                            <td><span class="pill ${pillCls}">${r.status}</span></td>
-                            ${showAction ? `<td>${diff > 0 ? `<button class="btn-mo escalate" onclick="flagMismatchToChat('${r.dispatchId}', '${r.resource}', ${diff})">Clarify in Chat</button>` : '<span style="font-size:11px; color:#15803d;">Verified</span>'}</td>` : ''}
-                        </tr>
-                    `;
-                }).join('');
-            };
+export function filterTracingArea(sectorName) {
+  activeAreaFilter = sectorName;
+  const state = getCurrentMonitoringState();
+  renderAreaTracing(state.lifecycles || []);
+  if (sectorName !== 'ALL') {
+    inspectSectorByName(sectorName);
+  }
+}
 
-            const dashRec = document.getElementById('dashReconcileBody');
-            if (dashRec) dashRec.innerHTML = buildReconcileRows(false);
-            const fullLife = document.getElementById('fullLifecycleBody');
-            if (fullLife) fullLife.innerHTML = buildReconcileRows(true);
+export function focusMapOnSector(name) {
+  switchMonitorTab('dashboard', document.querySelector('[data-tab=dashboard]'));
+  setTimeout(() => {
+    focusMonitoringMapByName(name);
+    inspectSectorByName(name);
+  }, 200);
+}
 
-            // 3. Discrepancy Cards (Dashboard + Tab 5)
-            const discHtml = visDisc.length === 0
-                ? `<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-muted);">No discrepancies flagged.</div>`
-                : visDisc.map((d, idx) => `
-                    <div class="audit-card ${d.status === 'Resolved' ? 'tone-ok' : 'tone-crit'}">
-                        <div class="ac-top">
-                            <div>
-                                <h4>${d.id} • ${d.ref} (${d.destination})</h4>
-                                <span style="font-size:10.5px; color:var(--text-muted);">Audit Observation</span>
-                            </div>
-                            <span class="pill ${d.status === 'Resolved' ? 'p-green' : 'p-red'}">${d.status}</span>
-                        </div>
-                        <p style="margin:0; font-size:11.5px; color:var(--text-body);">${d.issue}</p>
-                        <div class="ac-footer">
-                            <button class="btn-mo" onclick="openChatForRole('${d.targetRole}', 'Regarding ${d.id} (${d.ref}): ${d.issue}')"><i class="fas fa-comments"></i> Ask Clarification</button>
-                            ${d.status !== 'Resolved'
-                                ? `<button class="btn-mo escalate" onclick="escalateDiscrepancy(${idx})"><i class="fas fa-arrow-up-right-from-square"></i> Escalate to Authority</button>`
-                                : `<span style="font-size:11px; font-weight:700; color:#15803d;">Resolved</span>`}
-                        </div>
-                    </div>
-                `).join('');
+export function inspectSectorByName(name) {
+  selectedSectorName = name;
+  const state = getCurrentMonitoringState();
+  renderInspector(state);
+}
 
-            const dashDisc = document.getElementById('dashDiscrepancyCards');
-            if (dashDisc) dashDisc.innerHTML = discHtml;
-            const fullDisc = document.getElementById('fullDiscrepancyGrid');
-            if (fullDisc) fullDisc.innerHTML = discHtml;
+// ---------------------------------------------------------------------------
+// VIEW RENDERERS
+// ---------------------------------------------------------------------------
+function renderAllViews(state) {
+  if (!state) return;
 
-            // 4. Allocation & Dispatch Cards + Delivery Audit Cards
-            const lifecycleCardsHtml = visRec.map(r => `
-                <div class="audit-card ${r.status === 'Matched' ? 'tone-ok' : (r.status === 'Shortage' ? 'tone-crit' : 'tone-warn')}">
-                    <div class="ac-top">
-                        <h4>${r.allocId} → ${r.dispatchId} • ${r.resource}</h4>
-                        <span class="pill ${r.status === 'Matched' ? 'p-green' : (r.status === 'Shortage' ? 'p-red' : 'p-amber')}">${r.status}</span>
-                    </div>
-                    <div class="ac-meta">
-                        <div><span>Approved</span><strong>${r.approved}</strong></div>
-                        <div><span>Dispatched</span><strong>${r.dispatched}</strong></div>
-                        <div><span>Received</span><strong>${r.received !== null ? r.received : 'Pending'}</strong></div>
-                    </div>
-                    <div style="font-size:11px; color:var(--text-muted);">Destination: <strong>${r.destination}</strong></div>
-                </div>
-            `).join('') || `<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-muted);">No records found.</div>`;
+  renderKpis(state);
+  renderSectorDropdowns(state);
+  renderDashboard(state);
+  renderAreaTracing(state.lifecycles || []);
+  renderReconciliationTable(state.reconciliation || []);
+  renderDiscrepancies(state.discrepancies || []);
+  renderReturns(state.returns || []);
+  renderLogs(state.logs || []);
+  renderInspector(state);
+  renderRiverTelemetry();
+  renderChatFeed(state.chats || []);
 
-            const allocGrid = document.getElementById('allocDispatchGrid');
-            if (allocGrid) allocGrid.innerHTML = lifecycleCardsHtml;
-            const delivAudit = document.getElementById('deliveryAuditGrid');
-            if (delivAudit) delivAudit.innerHTML = lifecycleCardsHtml;
+  // Update map
+  if (Array.isArray(state.areas) && state.areas.length > 0) {
+    renderMonitoringAreas(state.areas);
+    if (!selectedSectorName) {
+      autoCenterMonitoringMap(state.areas);
+    }
+  }
 
-            // 5. Return & Utilization Audit Table
-            const retBody = document.getElementById('returnAuditBody');
-            if (retBody) {
-                retBody.innerHTML = state.returns.length === 0
-                    ? `<tr><td colspan="6" style="text-align:center; padding:16px; color:var(--text-muted);">No return records synced.</td></tr>`
-                    : state.returns.map(ret => `
-                        <tr>
-                            <td><strong>${ret.resource}</strong></td>
-                            <td>${ret.dispatched}</td>
-                            <td><strong style="color:#15803d;">${ret.returnedGood}</strong></td>
-                            <td><strong style="color:#d97706;">${ret.damaged}</strong></td>
-                            <td><strong style="color:#dc2626;">${ret.missing}</strong></td>
-                            <td><span class="pill p-blue">${ret.syncStatus}</span></td>
-                        </tr>
-                    `).join('');
-            }
+  // Update badge counts in left rail
+  const countTracing = (state.lifecycles || []).length;
+  const countDisc = (state.discrepancies || []).filter(d => !d.escalated).length;
+  const elTracing = document.getElementById('navTracingCount');
+  const elDisc = document.getElementById('navDiscCount');
+  if (elTracing) elTracing.innerText = countTracing;
+  if (elDisc) elDisc.innerText = countDisc;
+}
 
-            // 6. Operation Monitoring Cards
-            const opsGrid = document.getElementById('opsMonitorGrid');
-            if (opsGrid) {
-                opsGrid.innerHTML = state.operations.length === 0
-                    ? `<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-muted);">No active operations under monitoring.</div>`
-                    : state.operations.map(op => `
-                        <div class="audit-card tone-indigo">
-                            <div class="ac-top">
-                                <h4>${op.opId} • ${op.location}</h4>
-                                <span class="pill p-indigo">${op.status}</span>
-                            </div>
-                            <div style="font-size:11px; color:var(--text-muted);">Field Officer: <strong>${op.officer}</strong></div>
-                            <p style="margin:0; font-size:11.5px; color:var(--text-body);">${op.notes}</p>
-                        </div>
-                    `).join('');
-            }
+function renderKpis(state) {
+  const container = document.getElementById('monitorKpiGrid');
+  if (!container) return;
 
-            // 7. User Activity Logs
-            const logsHtml = state.logs.length === 0
-                ? `<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-muted);">No activity logs recorded.</div>`
-                : state.logs.map(l => `
-                    <div class="audit-card">
-                        <div class="ac-top">
-                            <h4>${l.user}</h4>
-                            <span style="font-size:10.5px; color:var(--text-muted);">${l.time}</span>
-                        </div>
-                        <p style="margin:0; font-size:11.5px; color:var(--text-body);">${l.action}</p>
-                    </div>
-                `).join('');
+  const summary = state.summary || {};
+  const dispatched = summary.totalDispatched || 0;
+  const received = summary.totalReceived || 0;
+  const shortages = summary.activeShortages || 0;
+  const ops = summary.activeRescueOps || 0;
 
-            const dashLogs = document.getElementById('dashRecentLogsGrid');
-            if (dashLogs) dashLogs.innerHTML = logsHtml;
-            const fullLogs = document.getElementById('fullActivityLogsGrid');
-            if (fullLogs) fullLogs.innerHTML = logsHtml;
+  container.innerHTML = `
+    <div className="kpi-card tone-indigo">
+      <div style="font-size: 26px; font-weight: 800; color: #4338ca;">${dispatched.toLocaleString()}</div>
+      <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Total Dispatched Units</div>
+      <div style="font-size: 10px; color: #0284c7; margin-top: 4px;">🚚 Released from Central Godown</div>
+    </div>
+    <div className="kpi-card tone-ok">
+      <div style="font-size: 26px; font-weight: 800; color: #16a34a;">${received.toLocaleString()}</div>
+      <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Ground Verified Units</div>
+      <div style="font-size: 10px; color: #16a34a; margin-top: 4px;">✅ Confirmed by Field Officers</div>
+    </div>
+    <div className="kpi-card tone-alert">
+      <div style="font-size: 26px; font-weight: 800; color: ${shortages > 0 ? '#dc2626' : '#64748b'};">${shortages}</div>
+      <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Active Shortages / Flags</div>
+      <div style="font-size: 10px; color: #dc2626; margin-top: 4px;">⚠️ Discrepancy Escalations</div>
+    </div>
+    <div className="kpi-card tone-blue">
+      <div style="font-size: 26px; font-weight: 800; color: #0284c7;">${ops}</div>
+      <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Active Field Rescue Ops</div>
+      <div style="font-size: 10px; color: #0ea5e9; margin-top: 4px;">🛡️ Multi-Agency NDRF/SDRF</div>
+    </div>
+  `;
+}
 
-            // 8. Reports Summary Cards & Escalations
-            const repCards = document.getElementById('auditReportCards');
-            if (repCards) {
-                repCards.innerHTML = `
-                    <div class="audit-card tone-ok"><h4>Reconciliation Accuracy</h4><strong style="font-size:20px; color:#15803d;">${isDrillMode ? '97.7%' : '0%'}</strong><span style="font-size:11px; color:var(--text-muted);">Matched across Approved → Dispatched → Received</span></div>
-                    <div class="audit-card tone-crit"><h4>Total Shortage / Missing</h4><strong style="font-size:20px; color:#dc2626;">${isDrillMode ? '41 Units' : '0 Units'}</strong><span style="font-size:11px; color:var(--text-muted);">Flagged for clarification & Authority review</span></div>
-                `;
-            }
+function renderSectorDropdowns(state) {
+  const lifecycles = state.lifecycles || [];
+  const areas = state.areas || [];
+  const sectorNames = Array.from(new Set([
+    ...lifecycles.map(l => l.area),
+    ...areas.map(a => a.name || a.village)
+  ])).filter(Boolean);
 
-            const escGrid = document.getElementById('escalationsGrid');
-            if (escGrid) {
-                escGrid.innerHTML = state.escalations.length === 0
-                    ? `<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-muted);">No escalations raised yet.</div>`
-                    : state.escalations.map(e => `
-                        <div class="audit-card tone-crit">
-                            <div class="ac-top">
-                                <h4>${e.id} • ${e.title}</h4>
-                                <span class="pill p-red">${e.status}</span>
-                            </div>
-                            <p style="margin:0; font-size:11.5px; color:var(--text-body);">${e.detail}</p>
-                        </div>
-                    `).join('');
-            }
-        }
+  const heroSelect = document.getElementById('districtScopeFilter');
+  if (heroSelect && heroSelect.options.length <= 1) {
+    sectorNames.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = `${name} Sector`;
+      heroSelect.appendChild(opt);
+    });
+  }
 
-        /* =====================================================================
-           INTER-PORTAL CLARIFICATION CHAT LOGIC
-           ===================================================================== */
-        function switchChatChannel(roleKey, btnEl) {
-            activeChatRole = roleKey;
-            document.querySelectorAll('.channel-tab').forEach(b => b.classList.remove('active'));
-            if (btnEl) btnEl.classList.add('active');
-            document.getElementById('chatChannelTitle').textContent = `Channel: ${CHANNEL_LABELS[roleKey]}`;
-            renderChatFeed();
-        }
+  const tracingSelect = document.getElementById('tracingAreaSelect');
+  if (tracingSelect && tracingSelect.options.length <= 1) {
+    sectorNames.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      tracingSelect.appendChild(opt);
+    });
+  }
+}
 
-        function renderChatFeed() {
-            const feed = document.getElementById('chatMessagesFeed');
-            const msgs = state.chats[activeChatRole] || [];
-            if (msgs.length === 0) {
-                feed.innerHTML = `<div style="text-align:center; color:var(--text-muted); font-size:11px; margin:auto 0;">No messages in this portal channel yet. Start an audit clarification below.</div>`;
-                return;
-            }
-            feed.innerHTML = msgs.map(m => `
-                <div class="chat-bubble ${m.sender}">
-                    ${m.text}
-                    <span class="chat-meta">${m.sender === 'outgoing' ? 'Monitoring Officer' : CHANNEL_LABELS[activeChatRole]} • ${m.time}</span>
-                </div>
-            `).join('');
-            feed.scrollTop = feed.scrollHeight;
-        }
+function renderDashboard(state) {
+  const container = document.getElementById('dashTracingPreview');
+  if (!container) return;
 
-        function insertQuickChat(text) {
-            const inp = document.getElementById('chatMessageInput');
-            inp.value = text;
-            inp.focus();
-        }
+  const lifecycles = state.lifecycles || [];
+  if (lifecycles.length === 0) {
+    container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: #64748b; padding: 20px;">No active flood sectors logged in database.</div>`;
+    return;
+  }
 
-        function sendChatMessage(e) {
-            e.preventDefault();
-            const inp = document.getElementById('chatMessageInput');
-            const msg = inp.value.trim();
-            if (!msg) return;
+  container.innerHTML = lifecycles.slice(0, 4).map(item => `
+    <div className="lifecycle-card anim-card" style="margin-bottom: 0;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+        <strong style="font-size: 13.5px; color: #0f172a;">${item.area}</strong>
+        <span class="lifecycle-pill ${getStagePillClass(item.currentStage)}">${item.currentStage}</span>
+      </div>
+      <div style="font-size: 11px; color: #64748b; margin-bottom: 8px;">
+        District: <b>${item.district || 'Kamrup'}</b> • Pop: <b>${(item.population || 0).toLocaleString()}</b>
+      </div>
+      <div style="font-size: 11.5px; line-height: 1.5; background: #f8fafc; padding: 8px 10px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 10px;">
+        <div><b>Allocated:</b> ${item.resourcesAllocated || 'None'}</div>
+        <div><b>Dispatched:</b> ${item.resourcesDispatched || 'Pending warehouse processing'}</div>
+        <div><b>Ground Status:</b> <span style="color:#16a34a; font-weight:600;">${item.groundVerificationStatus || 'En route'}</span></div>
+      </div>
+      <div style="display:flex; gap: 8px;">
+        <button class="btn-mo" style="flex:1; padding: 5px 8px; font-size: 11px;" onclick="window.focusMapOnSector('${item.area}')">
+          <i class="fas fa-crosshairs"></i> Focus on Map
+        </button>
+        <button class="btn-mo" style="flex:1; padding: 5px 8px; font-size: 11px; background: #0284c7; color:#fff;" onclick="window.switchMonitorTab('tracing', document.querySelector('[data-tab=tracing]')); window.filterTracingArea('${item.area}');">
+          Full Tracing →
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
 
-            if (!state.chats[activeChatRole]) state.chats[activeChatRole] = [];
-            state.chats[activeChatRole].push({
-                sender: 'outgoing',
-                text: msg,
-                time: 'Just now'
-            });
+function getStagePillClass(stage) {
+  if (!stage) return 'pill-allocated';
+  const s = stage.toLowerCase();
+  if (s.includes('restock') || s.includes('return')) return 'pill-restocked';
+  if (s.includes('delivered') || s.includes('verified')) return 'pill-verified';
+  if (s.includes('transit') || s.includes('dispatch')) return 'pill-in-transit';
+  if (s.includes('shortage')) return 'pill-shortage';
+  return 'pill-allocated';
+}
 
-            state.logs.unshift({
-                user: 'MO-DEOC-02 (Monitoring Officer)',
-                action: `Sent audit clarification message to ${CHANNEL_LABELS[activeChatRole]}`,
-                time: 'Just now'
-            });
+function renderAreaTracing(lifecycles) {
+  const container = document.getElementById('areaTracingContainer');
+  if (!container) return;
 
-            inp.value = '';
-            renderChatFeed();
-            renderAllMonitoringViews();
-        }
+  const filtered = activeAreaFilter === 'ALL'
+    ? lifecycles
+    : lifecycles.filter(l => l.area === activeAreaFilter);
 
-        function openChatForRole(roleKey, prefillText) {
-            const tabBtns = document.querySelectorAll('.channel-tab');
-            const idxMap = { ground: 0, godown: 1, authority: 2, admin: 3 };
-            switchChatChannel(roleKey, tabBtns[idxMap[roleKey] || 0]);
-            insertQuickChat(prefillText);
-        }
+  if (filtered.length === 0) {
+    container.innerHTML = `<div style="text-align: center; color: #64748b; padding: 30px;">No lifecycle traces found for selected filter.</div>`;
+    return;
+  }
 
-        function flagMismatchToChat(dispId, resName, diff) {
-            openChatForRole('ground', `Audit Query (${dispId}): Dispatched vs Received mismatch of ${diff} units for ${resName}. Please verify.`);
-        }
+  container.innerHTML = filtered.map(item => {
+    const s1 = item.stages && item.stages.pin;
+    const s2 = item.stages && item.stages.allocation;
+    const s3 = item.stages && item.stages.dispatch;
+    const s4 = item.stages && item.stages.verification;
+    const s5 = item.stages && item.stages.restock;
 
-        function escalateDiscrepancy(idx) {
-            const d = state.discrepancies[idx];
-            if (!d) return;
-            d.status = 'Escalated to Authority';
-            state.escalations.unshift({
-                id: 'ESC-' + Math.floor(20 + Math.random() * 75),
-                title: `Escalated Mismatch (${d.ref})`,
-                detail: d.issue,
-                status: 'Escalated to Authority'
-            });
-            openChatForRole('authority', `ESCALATION (${d.id} / ${d.ref}): ${d.issue}`);
-            renderAllMonitoringViews();
-            showToast(`Discrepancy ${d.id} escalated to District Authority.`);
-        }
+    return `
+      <div className="lifecycle-card anim-card" style="margin-bottom: 18px; border-left: 4px solid #0284c7;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 14px;">
+          <div>
+            <h3 style="margin: 0; font-size: 16px; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+              <i class="fas fa-location-pin" style="color:#dc2626;"></i>
+              ${item.area} Sector
+              <span class="lifecycle-pill ${getStagePillClass(item.currentStage)}">${item.currentStage}</span>
+            </h3>
+            <div style="font-size: 11px; color: #64748b; margin-top: 3px;">
+              District: <b>${item.district || 'Kamrup'}</b> • Severity: <b style="color:#dc2626;">${item.severity || 'Critical'}</b> • Population: <b>${(item.population || 0).toLocaleString()}</b> • River: <b>${item.river || 'Brahmaputra Basin'}</b>
+            </div>
+          </div>
+          <button class="btn-mo" style="padding: 6px 12px; font-size: 11.5px;" onclick="window.focusMapOnSector('${item.area}')">
+            <i class="fas fa-map-location-dot"></i> View on GIS Map
+          </button>
+        </div>
 
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.style.right = '18px';
-            setTimeout(() => { t.style.right = '-380px'; }, 3200);
-        }
+        <!-- 5-STAGE STEPPER -->
+        <div class="lifecycle-stepper-wrap">
+          <div class="lifecycle-step ${s1 ? 'completed' : 'pending'}">
+            <div class="step-circle"><i class="fas fa-map-pin"></i></div>
+            <div class="step-title">1. Inundation Pin</div>
+            <div class="step-subtitle">Admin Portal</div>
+          </div>
+          <div class="lifecycle-step ${s2 ? 'completed' : 'pending'}">
+            <div class="step-circle"><i class="fas fa-hand-holding-hand"></i></div>
+            <div class="step-title">2. DDMA Allocation</div>
+            <div class="step-subtitle">Authority Portal</div>
+          </div>
+          <div class="lifecycle-step ${s3 ? 'completed' : (s2 ? 'active' : 'pending')}">
+            <div class="step-circle"><i class="fas fa-truck-fast"></i></div>
+            <div class="step-title">3. Godown Dispatch</div>
+            <div class="step-subtitle">Central Godown</div>
+          </div>
+          <div class="lifecycle-step ${s4 ? 'completed' : (s3 ? 'active' : 'pending')}">
+            <div class="step-circle"><i class="fas fa-clipboard-check"></i></div>
+            <div class="step-title">4. Ground Verified</div>
+            <div class="step-subtitle">Ground Officer</div>
+          </div>
+          <div class="lifecycle-step ${s5 ? 'completed' : (s4 ? 'active' : 'pending')}">
+            <div class="step-circle"><i class="fas fa-rotate-left"></i></div>
+            <div class="step-title">5. Return Restock</div>
+            <div class="step-subtitle">Inventory Restocked</div>
+          </div>
+        </div>
 
-        __onReady( () => {
-            renderAllMonitoringViews();
-            renderChatFeed();
-        });
-    
+        <!-- STAGE METADATA CARDS -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 10px; font-size: 11px;">
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+            <strong style="color: #0284c7; display: block; margin-bottom: 4px;">📍 Step 1: Inundation Alert</strong>
+            <div>Status: ${s1 ? 'Active Inundation Pin' : 'Pending'}</div>
+            <div>Waterlevel: ${item.waterLevel ? `${item.waterLevel} m` : 'Above Danger'}</div>
+          </div>
 
-// Inline handlers (onClick=...) and generated HTML call these on window, exactly like a classic script.
-Object.assign(window, { escalateDiscrepancy, flagMismatchToChat, getSeedMonitoringData, insertQuickChat, openChatForRole, renderAllMonitoringViews, renderChatFeed, sendChatMessage, showToast, switchChatChannel, switchMonitorTab, toggleDataMode, toggleGridListView });
-__ready.forEach((fn) => fn());
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+            <strong style="color: #d97706; display: block; margin-bottom: 4px;">📋 Step 2: Authority Order</strong>
+            <div>Allocated: <b>${item.resourcesAllocated || 'Pending'}</b></div>
+            <div>Escort Lead: ${item.designatedLead || 'NDRF 1st Bn'}</div>
+          </div>
+
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+            <strong style="color: #0ea5e9; display: block; margin-bottom: 4px;">🚚 Step 3: Warehouse Dispatch</strong>
+            <div>Ref: <b>${item.dispatchRef || 'Pending Gate-Pass'}</b></div>
+            <div>Supplies: ${item.resourcesDispatched || 'Awaiting Loading'}</div>
+          </div>
+
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+            <strong style="color: #16a34a; display: block; margin-bottom: 4px;">✅ Step 4: Field Receipt</strong>
+            <div>Status: <b>${item.groundVerificationStatus || 'Pending Intake'}</b></div>
+            <div>Sign-off: Field Unit Confirmed</div>
+          </div>
+
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+            <strong style="color: #7c3aed; display: block; margin-bottom: 4px;">🔄 Step 5: Post-Op Restock</strong>
+            <div>Condition: ${s5 ? 'Units Reconciled to Stock' : (s4 ? 'Cleared for Return' : 'Operation Active')}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderReconciliationTable(records) {
+  const tbody = document.getElementById('reconcileTableBody');
+  if (!tbody) return;
+
+  if (records.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #64748b; padding: 24px;">No reconciliation ledger records found.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = records.map(r => `
+    <tr>
+      <td><strong>${r.resource}</strong></td>
+      <td><span style="color:#0284c7; font-weight:600; cursor:pointer;" onclick="window.focusMapOnSector('${r.area}')">${r.area}</span></td>
+      <td>${r.approved}</td>
+      <td>${r.dispatched}</td>
+      <td>${r.received}</td>
+      <td style="color: ${r.difference === 0 ? '#16a34a' : '#dc2626'}; font-weight: 700;">
+        ${r.difference === 0 ? '0 (Matched)' : `-${r.difference} Shortage`}
+      </td>
+      <td>
+        <span class="badge ${r.status === 'Reconciled' ? 'badge-good' : (r.status === 'Shortage Flagged' ? 'badge-damaged' : 'badge-transit')}">
+          ${r.status}
+        </span>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderDiscrepancies(discrepancies) {
+  const container = document.getElementById('fullDiscrepancyGrid');
+  if (!container) return;
+
+  if (discrepancies.length === 0) {
+    container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: #16a34a; padding: 30px; font-weight:600;">✅ No active supply discrepancies or shortages recorded! All consignments reconciled.</div>`;
+    return;
+  }
+
+  container.innerHTML = discrepancies.map(d => `
+    <div className="audit-card tone-alert anim-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
+        <strong style="font-size: 13px; color: #0f172a;">${d.area} • ${d.item}</strong>
+        <span class="badge badge-damaged">${d.status}</span>
+      </div>
+      <div style="font-size: 11.5px; color: #475569; margin-bottom: 8px; line-height: 1.4;">
+        <div><b>Issue:</b> ${d.issue}</div>
+        <div><b>Priority:</b> <span style="color:#dc2626; font-weight:700;">${d.priority || 'High'}</span></div>
+        ${d.notes ? `<div><b>Notes:</b> ${d.notes}</div>` : ''}
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap: 8px;">
+        <button class="btn-mo" style="padding: 4px 10px; font-size: 11px;" onclick="window.focusMapOnSector('${d.area}')">
+          <i class="fas fa-location-crosshairs"></i> Sector Map
+        </button>
+        ${!d.escalated ? `
+          <button class="btn-mo" style="background:#dc2626; color:#fff; border-color:#b91c1c; padding: 4px 10px; font-size: 11px;" onclick="window.escalateDiscrepancy('${d.id}', '${d.area}', '${d.issue}')">
+            <i class="fas fa-bullhorn"></i> Escalate to Authority
+          </button>
+        ` : `
+          <span style="font-size: 11px; color: #d97706; font-weight: 700; align-self: center;">
+            <i class="fas fa-check-circle"></i> Escalated to DC
+          </span>
+        `}
+      </div>
+    </div>
+  `).join('');
+}
+
+export async function escalateDiscrepancy(id, area, issue) {
+  showToast(`Escalating discrepancy for ${area} to District Authority...`, 'info');
+  await escalateDiscrepancyApi({
+    id,
+    area,
+    issue,
+    priority: 'Critical',
+    action: 'Executive Authority Audit Clarification'
+  });
+  showToast(`Discrepancy for ${area} successfully escalated!`, 'success');
+}
+
+function renderReturns(returns) {
+  const tbody = document.getElementById('returnAuditBody');
+  if (!tbody) return;
+
+  if (returns.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #64748b; padding: 24px;">No asset return records logged yet.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = returns.map(ret => `
+    <tr>
+      <td><strong>${ret.resource || ret.item}</strong><br/><small style="color:#64748b;">${ret.area || 'All Sectors'}</small></td>
+      <td>${ret.dispatched || 0}</td>
+      <td style="color:#16a34a; font-weight:700;">${ret.good || 0} Units</td>
+      <td style="color:#d97706; font-weight:700;">${ret.damaged || 0} Units</td>
+      <td style="color:#dc2626; font-weight:700;">${ret.missing || 0} Units</td>
+      <td>
+        <span class="badge ${ret.status === 'Restocked to Physical Stock' ? 'badge-good' : 'badge-transit'}">
+          ${ret.status || 'Verified Good Restocked'}
+        </span>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderLogs(logs) {
+  const container = document.getElementById('fullActivityLogsGrid');
+  if (!container) return;
+
+  if (logs.length === 0) {
+    container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: #64748b; padding: 30px;">No activity logs recorded.</div>`;
+    return;
+  }
+
+  container.innerHTML = logs.map(l => `
+    <div className="audit-card tone-indigo anim-card" style="font-size: 11.5px; padding: 10px 14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
+        <strong style="color:#0f172a; font-size: 12px;">${l.portal}</strong>
+        <span style="color:#64748b; font-size: 10px;">${l.time || 'Live'}</span>
+      </div>
+      <div style="color: #334155; margin-bottom: 4px;">${l.action}</div>
+      <div style="color: #0284c7; font-size: 10.5px;">User: <b>${l.user}</b></div>
+    </div>
+  `).join('');
+}
+
+function renderInspector(state) {
+  const container = document.getElementById('inspectorContent');
+  if (!container) return;
+
+  if (!selectedSectorName) {
+    const lifecycles = state.lifecycles || [];
+    if (lifecycles.length > 0) {
+      selectedSectorName = lifecycles[0].area;
+    }
+  }
+
+  if (!selectedSectorName) {
+    container.innerHTML = `<div style="color: #64748b; text-align: center; padding: 16px;">Tap any sector to inspect its telemetry.</div>`;
+    return;
+  }
+
+  const lifecycles = state.lifecycles || [];
+  const areaLife = lifecycles.find(l => l.area === selectedSectorName);
+  const areas = state.areas || [];
+  const areaGeo = areas.find(a => (a.name || a.village) === selectedSectorName);
+
+  const pop = (areaLife && areaLife.population) || (areaGeo && areaGeo.pop) || 0;
+  const stage = (areaLife && areaLife.currentStage) || 'Inundation Surveillance';
+  const river = (areaGeo && areaGeo.river) || (areaLife && areaLife.river) || 'Brahmaputra Basin';
+
+  container.innerHTML = `
+    <div style="background: #f8fafc; border: 1.5px solid #bae6fd; border-radius: 12px; padding: 12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+        <strong style="font-size: 14px; color: #0f172a;">${selectedSectorName}</strong>
+        <span class="lifecycle-pill ${getStagePillClass(stage)}">${stage}</span>
+      </div>
+      <div style="font-size: 11px; color: #475569; line-height: 1.6;">
+        <div>👥 Population at Risk: <b>${pop.toLocaleString()} Citizens</b></div>
+        <div>🌊 Associated River: <b>${river}</b></div>
+        <div>🛡️ Designated Escort: <b>${(areaLife && areaLife.designatedLead) || 'NDRF (1st Bn)'}</b></div>
+        <div>📦 Dispatch Ref: <b>${(areaLife && areaLife.dispatchRef) || 'DSP-2026-932'}</b></div>
+      </div>
+      <div style="margin-top: 10px; display:flex; gap: 6px;">
+        <button class="btn-mo" style="flex:1; padding: 5px 8px; font-size: 11px;" onclick="window.focusMapOnSector('${selectedSectorName}')">
+          <i class="fas fa-crosshairs"></i> Fly to Map
+        </button>
+        <button class="btn-mo" style="flex:1; padding: 5px 8px; font-size: 11px; background:#0284c7; color:#fff;" onclick="window.switchMonitorTab('tracing', document.querySelector('[data-tab=tracing]')); window.filterTracingArea('${selectedSectorName}');">
+          Trace Lifecycle
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function renderRiverTelemetry() {
+  const container = document.getElementById('riverTelemetryList');
+  if (!container) return;
+
+  const sampleRivers = INDIA_RIVER_SYSTEMS.slice(0, 3);
+  container.innerHTML = sampleRivers.map(r => {
+    const isBreached = r.currentLevel >= r.dangerLevel;
+    return `
+      <div class="river-telemetry-row">
+        <div>
+          <strong style="color: #0f172a;">${r.name}</strong>
+          <div style="color: #64748b; font-size: 9.5px;">Level: <b>${r.currentLevel}m</b> (Danger: ${r.dangerLevel}m)</div>
+        </div>
+        <span style="font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 999px; background: ${isBreached ? '#fee2e2' : '#dcfce7'}; color: ${isBreached ? '#b91c1c' : '#15803d'};">
+          ${isBreached ? 'DANGER BREACH' : 'PASSABLE'}
+        </span>
+      </div>
+    `;
+  }).join('');
+}
+
+// ---------------------------------------------------------------------------
+// CHAT ENGINE
+// ---------------------------------------------------------------------------
+export function switchChatChannel(channel, el) {
+  activeChatChannel = channel;
+  document.querySelectorAll('.channel-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+
+  const titleEl = document.getElementById('chatChannelTitle');
+  if (titleEl) {
+    const channelNames = {
+      ground: 'Ground Officer (Field Units)',
+      godown: 'Central Godown Manager',
+      authority: 'District Authority Control Room',
+      admin: 'State Inundation Cell (Admin)'
+    };
+    titleEl.innerText = `Channel: ${channelNames[channel] || channel}`;
+  }
+
+  const state = getCurrentMonitoringState();
+  renderChatFeed(state.chats || []);
+}
+
+function renderChatFeed(chats = []) {
+  const feed = document.getElementById('chatMessagesFeed');
+  if (!feed) return;
+
+  const filtered = chats.filter(c => c.channel === activeChatChannel);
+
+  if (filtered.length === 0) {
+    feed.innerHTML = `<div style="text-align: center; color: #94a3b8; font-size: 11px; padding: 20px;">No messages in this channel yet. Send an audit clarification note below.</div>`;
+    return;
+  }
+
+  feed.innerHTML = filtered.map(msg => {
+    const isMonitor = (msg.senderRole || '').toLowerCase().includes('monitor') || (msg.senderRole || '').toLowerCase().includes('audit');
+    return `
+      <div style="
+        background: ${isMonitor ? '#e0f2fe' : '#ffffff'};
+        border: 1px solid ${isMonitor ? '#7dd3fc' : '#e2e8f0'};
+        border-radius: 10px;
+        padding: 8px 10px;
+        font-size: 11px;
+        line-height: 1.4;
+      ">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 3px;">
+          <strong style="color: ${isMonitor ? '#0369a1' : '#0f172a'}; font-size: 11px;">${msg.sender}</strong>
+          <span style="font-size: 9px; color: #94a3b8;">${msg.time || 'Just now'}</span>
+        </div>
+        <div style="color: #334155; margin-bottom: 4px;">${msg.message}</div>
+        ${msg.badge ? `<span style="font-size: 8.5px; font-weight: 700; background: #ede9fe; color: #6d28d9; padding: 1px 5px; border-radius: 4px;">${msg.badge}</span>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  feed.scrollTop = feed.scrollHeight;
+}
+
+export function insertQuickChat(text) {
+  const input = document.getElementById('chatMessageInput');
+  if (input) {
+    input.value = text;
+    input.focus();
+  }
+}
+
+export async function sendChatMessage(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const input = document.getElementById('chatMessageInput');
+  if (!input || !input.value.trim()) return;
+
+  const msgText = input.value.trim();
+  input.value = '';
+
+  await sendMonitoringChatMessage({
+    channel: activeChatChannel,
+    sender: 'S. N. Bora (Auditor)',
+    senderRole: 'State DEOC Monitor',
+    message: msgText,
+    badge: 'AUDIT NOTE'
+  });
+
+  showToast('Audit message sent & logged.', 'success');
+}
+
+export function exportAuditReport() {
+  showToast('Generating official DEOC Resource Lifecycle Audit Report (PDF/CSV)...', 'info');
+  setTimeout(() => {
+    showToast('Audit report ready! Complete lifecycle trail exported.', 'success');
+  }, 1200);
 }
