@@ -110,12 +110,67 @@ export default function initGroundOfficerPage() {
     return 'p-moderate';
   }
 
+  function focusGroundMapByName(destName) {
+    if (!destName) return;
+    const cleanName = String(destName).trim();
+
+    // 1. Switch to dashboard/map tab if not currently active
+    const dashBtn = document.querySelector('.go-nav-btn[data-tab="dashboard"]');
+    switchGroundTab('dashboard', dashBtn);
+
+    // 2. Select this village for right inspector panel
+    selectedVillageName = cleanName;
+
+    // 3. Find coords for this destination
+    const areas = (state && state.areas) || [];
+    const found = areas.find(a => 
+      (a.village && a.village.toLowerCase().includes(cleanName.toLowerCase())) ||
+      (cleanName.toLowerCase().includes((a.village || '').toLowerCase()))
+    );
+
+    let coords = [26.15, 91.55];
+    if (found) {
+      coords = parseAreaCoordinates(found);
+    } else {
+      try {
+        let loggedUser = 'go5142bk';
+        const u = sessionStorage.getItem('neerakshak_user');
+        if (u) loggedUser = u.toLowerCase().trim();
+        const b = resolveUserBasin(loggedUser);
+        if (b && Array.isArray(b.sectors)) {
+          const s = b.sectors.find(sec => 
+            sec.name.toLowerCase().includes(cleanName.toLowerCase()) || 
+            cleanName.toLowerCase().includes(sec.name.toLowerCase())
+          );
+          if (s && s.coords) coords = s.coords;
+          else if (b.sectors[0] && b.sectors[0].coords) coords = b.sectors[0].coords;
+        }
+      } catch (e) {}
+    }
+
+    // 4. Center map and smooth scroll
+    setTimeout(() => {
+      if (window.groundLeafletMapInstance) {
+        window.groundLeafletMapInstance.invalidateSize();
+        focusGroundMap(coords[0], coords[1], 14);
+      }
+      const mapSlot = document.getElementById('groundMapSlot');
+      if (mapSlot) {
+        mapSlot.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 120);
+
+    renderAllGroundViews();
+    showToast(`Focused Map on ${cleanName}`);
+  }
+
   function selectGroundVillageForInspection(vName) {
     selectedVillageName = vName;
     const areas = (state && state.areas) || [];
     const found = areas.find(a => a.village === vName);
-    if (found && found.lat && found.lng) {
-      focusGroundMap(found.lat, found.lng, 14);
+    if (found) {
+      const [lat, lng] = parseAreaCoordinates(found);
+      focusGroundMap(lat, lng, 14);
       showToast(`Map centered on ${found.village}`);
     }
     renderAllGroundViews();
@@ -272,6 +327,9 @@ export default function initGroundOfficerPage() {
             <div class="sub-card-footer" style="flex-wrap:wrap; gap:6px;">
               <span style="font-size:10.5px; color:var(--text-muted);">Linked to Central Godown Dispatch</span>
               <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button type="button" class="btn-go" style="padding:4px 8px; font-size:10.5px;" onclick="window.focusGroundMapByName && window.focusGroundMapByName('${(d.destination || '').replace(/'/g, "\\'")}')" title="Focus destination on GIS Map">
+                  <i class="fas fa-map-location-dot" style="color:var(--river-blue);"></i> Map
+                </button>
                 ${d.status === 'Pending Verification'
                   ? `<button class="btn-go primary" onclick="openVerifyDeliveryModal(${origIdx})"><i class="fas fa-check-double"></i> Verify Physical Delivery</button>`
                   : `<span style="font-size:10.5px; font-weight:700; color:#15803d; padding:2px 6px; background:#f0fdf4; border-radius:4px;"><i class="fas fa-lock"></i> Verified</span>`}
@@ -316,7 +374,7 @@ export default function initGroundOfficerPage() {
             <p style="margin:0; font-size:11.5px; color:var(--text-body);">${a.task}</p>
             <div class="sub-card-footer">
               <span style="font-size:10.5px; color:var(--text-muted);">Due: <strong>${a.deadline}</strong></span>
-              <button class="btn-go" onclick="window.selectGroundVillageForInspection('${(a.village || '').replace(/'/g, "\\'")}')">Focus on Map</button>
+              <button class="btn-go" onclick="window.focusGroundMapByName && window.focusGroundMapByName('${(a.village || '').replace(/'/g, "\\'")}')"><i class="fas fa-crosshairs"></i> Focus on Map</button>
             </div>
           </div>
         `).join('');
@@ -453,7 +511,7 @@ export default function initGroundOfficerPage() {
               <div>Inundation: <strong>${selectedArea.task || 'Surveillance active'}</strong></div>
             </div>
             <div style="display:flex; gap:6px;">
-              <button type="button" class="btn-go primary" style="flex:1; padding:5px 8px; font-size:10.5px;" onclick="window.focusGroundMap && window.focusGroundMap(${selectedArea.lat || 26.132}, ${selectedArea.lng || 91.515}, 14)">
+              <button type="button" class="btn-go primary" style="flex:1; padding:5px 8px; font-size:10.5px;" onclick="window.focusGroundMapByName && window.focusGroundMapByName('${(selectedArea.village || '').replace(/'/g, "\\'")}')">
                 <i class="fas fa-crosshairs"></i> Center Map
               </button>
               <button type="button" class="btn-go" style="flex:1; padding:5px 8px; font-size:10.5px;" onclick="window.switchGroundTab && window.switchGroundTab('field-reports', document.querySelector('[data-tab=field-reports]'))">
@@ -489,14 +547,18 @@ export default function initGroundOfficerPage() {
       godownBox.innerHTML = (!deliveries || deliveries.length === 0)
         ? `<div style="font-size:11.5px; color:var(--text-muted); text-align:center; padding:10px;">No dispatches en-route from Godown.</div>`
         : deliveries.slice(0, 3).map(d => `
-          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 10px; font-size:11px; margin-bottom:6px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
-              <strong style="color:#0f172a;"><i class="fas fa-truck-fast" style="color:#0284c7; margin-right:4px;"></i>${d.destination}</strong>
-              <span class="pill ${getPillClass(d.status)}" style="font-size:9px; padding:1px 6px;">${d.status}</span>
+          <div style="background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:10px; padding:9px 11px; font-size:11px; margin-bottom:8px; cursor:pointer; transition:all 0.2s ease;" onclick="window.focusGroundMapByName && window.focusGroundMapByName('${(d.destination || '').replace(/'/g, "\\'")}')" onmouseover="this.style.borderColor='#0284c7'; this.style.background='#f0f9ff';" onmouseout="this.style.borderColor='#e2e8f0'; this.style.background='#f8fafc';" title="Tap to view & center on GIS Map">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+              <strong style="color:#0f172a; font-size:12px;"><i class="fas fa-truck-fast" style="color:#0284c7; margin-right:5px;"></i>${d.destination}</strong>
+              <span class="pill ${getPillClass(d.status)}" style="font-size:9px; padding:1.5px 6px;">${d.status}</span>
             </div>
-            <div style="font-size:10.5px; color:#475569;">
+            <div style="font-size:10.5px; color:#475569; line-height:1.4;">
               <div>Ref: <strong>${d.dispatchId}</strong> • Supplies: <strong>${d.resource}</strong></div>
               <div>${d.remarks || 'Awaiting Ground Officer Verification'}</div>
+            </div>
+            <div style="margin-top:6px; display:flex; justify-content:space-between; align-items:center; border-top:1px dashed #cbd5e1; padding-top:4px;">
+              <span style="font-size:10px; color:#0284c7; font-weight:700;"><i class="fas fa-map-location-dot"></i> View on Map</span>
+              <span style="font-size:9px; color:#64748b;"><i class="fas fa-crosshairs"></i> Tap to Navigate</span>
             </div>
           </div>
         `).join('');
@@ -787,6 +849,7 @@ export default function initGroundOfficerPage() {
     toggleDataMode,
     toggleGridListView,
     selectGroundVillageForInspection,
+    focusGroundMapByName,
     quickClearFirstActive
   });
 

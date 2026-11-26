@@ -214,7 +214,7 @@ const markup = (
                   <button type="button" className="btn-card-action" style={{ color: "#c2410c" }} onClick={() => window.filterGroundMapSeverity && window.filterGroundMapSeverity('High')}>High Only</button>
                 </div>
               </div>
-              <div id="groundMapSlot" style={{ position: "relative", width: "100%", height: "540px", minHeight: "480px", borderRadius: "14px", overflow: "hidden", border: "1.5px solid #93c5fd", background: "#e2e8f0", boxShadow: "0 4px 18px rgba(2, 132, 199, 0.08)" }}>
+              <div id="groundMapSlot" style={{ position: "relative", width: "100%", height: "360px", minHeight: "320px", borderRadius: "14px", overflow: "hidden", border: "1.5px solid #93c5fd", background: "#e2e8f0", boxShadow: "0 4px 18px rgba(2, 132, 199, 0.08)" }}>
                 <div id="groundLeafletMap" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 1 }}></div>
                 <div className="map-float-search" style={{ zIndex: 500 }}>
                   <i className="fas fa-search" style={{ color: "#64748b" }}></i>
