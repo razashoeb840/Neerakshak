@@ -243,35 +243,7 @@ export default function initAuthorityPage() {
               <div class="dc-meta-box">
                 <span>Affected Pop: <strong>${(v.pop || 0).toLocaleString()}</strong></span>
                 <span>Hydrology: <strong style="${isVOver ? 'color:#dc2626; font-weight:800;' : ''}">${v.waterStatus ? v.waterStatus.split(' (')[0] : 'Monitoring'}</strong></span>
-              </div>
-
-              <!-- 4-Resource Number Allocation Section right inside the card -->
-              <div class="village-res-allocation-box">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span style="font-size:10.5px; font-weight:700; color:var(--navy-deep);"><i class="fas fa-boxes-stacked" style="color:var(--river-blue);"></i> Resource Allocation Numbers:</span>
-                  ${isAllocated
-                    ? `<span style="font-size:10px; color:#15803d; font-weight:700;"><i class="fas fa-circle-check"></i> Dispatched to Godown</span>`
-                    : `<span style="font-size:10px; color:#64748b; font-weight:600;">Edit & Dispatch</span>`
-                  }
-                </div>
-                <div class="card-resource-grid">
-                  <div class="res-num-pill">
-                    <label><i class="fas fa-sailboat" style="color:#0284c7;"></i> Boats</label>
-                    <input type="number" id="cardBoats_${v.id}" class="res-card-input" value="${boats}" min="0" onchange="window.updateVillageResourceNeed('${v.id}', 'boats', this.value)" />
-                  </div>
-                  <div class="res-num-pill">
-                    <label><i class="fas fa-vest-patches" style="color:#ea580c;"></i> Jackets</label>
-                    <input type="number" id="cardJackets_${v.id}" class="res-card-input" value="${jackets}" min="0" onchange="window.updateVillageResourceNeed('${v.id}', 'jackets', this.value)" />
-                  </div>
-                  <div class="res-num-pill">
-                    <label><i class="fas fa-box-open" style="color:#16a34a;"></i> Food</label>
-                    <input type="number" id="cardFood_${v.id}" class="res-card-input" value="${food}" min="0" onchange="window.updateVillageResourceNeed('${v.id}', 'food', this.value)" />
-                  </div>
-                  <div class="res-num-pill">
-                    <label><i class="fas fa-kit-medical" style="color:#dc2626;"></i> Meds</label>
-                    <input type="number" id="cardMeds_${v.id}" class="res-card-input" value="${meds}" min="0" onchange="window.updateVillageResourceNeed('${v.id}', 'meds', this.value)" />
-                  </div>
-                </div>
+                ${isAllocated ? `<span>Allocated: <strong style="color:#0369a1;">${existingAlloc.summary || 'Emergency Relief'}</strong></span>` : ''}
               </div>
 
               <div class="dc-actions" style="margin-top:8px;">
@@ -282,12 +254,12 @@ export default function initAuthorityPage() {
                   <button type="button" class="btn-card-action" style="background:#f0fdf4; color:#15803d; border-color:#86efac; font-weight:700;" onclick="window.switchAuthTab('tracking'); window.openTrackingDetail('${existingAlloc.id}');">
                     <i class="fas fa-check-circle"></i> Allocated (${existingAlloc.id}) • Track →
                   </button>
-                  <button type="button" class="btn-card-action" style="padding:4px 8px; font-size:11px;" title="Update supply numbers for Godown" onclick="window.allocateVillageFromCard('${v.id}')">
+                  <button type="button" class="btn-card-action" style="padding:4px 8px; font-size:11px;" title="Inspect & Update in Calculator" onclick="window.selectVillageForAssessment('${v.id}', false); document.getElementById('areaDetailsPanel')?.scrollIntoView({behavior:'smooth'});">
                     <i class="fas fa-pen"></i> Update
                   </button>
                 ` : `
-                  <button type="button" class="btn-card-action approve" onclick="window.allocateVillageFromCard('${v.id}')">
-                    <i class="fas fa-paper-plane"></i> Direct Allocate to Godown
+                  <button type="button" class="btn-card-action approve" onclick="window.selectVillageForAssessment('${v.id}', false); document.getElementById('areaDetailsPanel')?.scrollIntoView({behavior:'smooth'});">
+                    <i class="fas fa-calculator"></i> Assess & Allocate
                   </button>
                 `}
               </div>
