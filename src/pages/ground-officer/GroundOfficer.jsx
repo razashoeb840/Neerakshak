@@ -198,47 +198,66 @@ const markup = (
           {/* COLORFUL 6-KPI FIELD SUMMARY STRIP */}
           <div className="kpi-grid-6 anim-card" id="groundKpiGrid"></div>
           {/* ===============================================================
-                 TAB 1: DASHBOARD (TASKS + DELIVERY VERIFICATION + FIELD OVERVIEW + RESCUE OPS)
+                 TAB 1: DASHBOARD (REAL LEAFLET GIS MAP HUB + TASKS + DELIVERIES)
                  =============================================================== */}
           <div className="go-tab-pane active" id="tab-dashboard">
-            {/* MY ACTIVE TASKS & COMPACT ASSIGNED LOCATIONS MAP */}
+            {/* REAL LEAFLET GIS FLOOD MAP VIEWPORT */}
+            <div className="aqua-card anim-card" style={{ marginBottom: "14px" }}>
+              <div className="card-head">
+                <h2>
+                  <i className="fas fa-map-location-dot" style={{ color: "var(--river-blue)" }}></i>
+                  {" Ground Flood Command GIS Map – Live Sector Surveillance"}
+                </h2>
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                  <button type="button" className="btn-card-action" onClick={() => window.filterGroundMapSeverity && window.filterGroundMapSeverity('ALL')}>All Zones</button>
+                  <button type="button" className="btn-card-action" style={{ color: "#b91c1c" }} onClick={() => window.filterGroundMapSeverity && window.filterGroundMapSeverity('Critical')}>Critical Only</button>
+                  <button type="button" className="btn-card-action" style={{ color: "#c2410c" }} onClick={() => window.filterGroundMapSeverity && window.filterGroundMapSeverity('High')}>High Only</button>
+                </div>
+              </div>
+              <div id="groundMapSlot" style={{ position: "relative", height: "460px" }}>
+                <div id="groundLeafletMap" style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0, zIndex: 1, borderRadius: "12px" }}></div>
+                <div className="map-float-search" style={{ zIndex: 10 }}>
+                  <i className="fas fa-search" style={{ color: "#64748b" }}></i>
+                  <input type="text" placeholder="Search assigned village, sector, river basin..." onKeyUp={(event) => { if(event.key==='Enter') window.searchGroundMap && window.searchGroundMap(event.currentTarget.value); }} />
+                </div>
+                <div className="map-legend-overlay" style={{ zIndex: 10 }}>
+                  <span><i className="l-dot" style={{ background: "#dc2626" }}></i> Critical / Submerged</span>
+                  <span><i className="l-dot" style={{ background: "#ea580c" }}></i> High Risk</span>
+                  <span><i className="l-dot" style={{ background: "#eab308" }}></i> Moderate</span>
+                  <span><i className="l-dot" style={{ background: "#16a34a" }}></i> Normal Access</span>
+                </div>
+                <div className="map-zoom-controls" style={{ zIndex: 10 }}>
+                  <button type="button" className="map-z-btn" onClick={() => window.groundMapZoomIn && window.groundMapZoomIn()} title="Zoom In">+</button>
+                  <button type="button" className="map-z-btn" onClick={() => window.groundMapZoomOut && window.groundMapZoomOut()} title="Zoom Out">−</button>
+                  <button type="button" className="map-z-btn" onClick={() => window.groundMapRecenter && window.groundMapRecenter()} title="Recenter">
+                    <i className="fas fa-crosshairs"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* MY ACTIVE TASKS & PENDING CONVOYS */}
             <div className="grid-2">
-              {/* My Active Tasks */}
               <div className="aqua-card anim-card">
                 <div className="card-head">
                   <h2>
                     <i className="fas fa-list-check" style={{ color: "var(--teal-field)" }}></i>
-                    {" My Active Field Tasks & Deadlines"}
+                    {" My Active Field Tasks & Directives"}
                   </h2>
-                  <button className="btn-go primary" onClick={(event) => window.switchGroundTab('field-reports', document.querySelector('[data-tab=field-reports]'))}>+ Submit Field Report</button>
+                  <button type="button" className="btn-go primary" onClick={() => window.switchGroundTab('field-reports', document.querySelector('[data-tab=field-reports]'))}>+ Submit Field Report</button>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "9px" }} id="dashActiveTasksList"></div>
               </div>
-              {/* Compact Assigned Locations Map (Orientation Only) */}
+
               <div className="aqua-card anim-card">
                 <div className="card-head">
                   <h2>
-                    <i className="fas fa-location-dot" style={{ color: "var(--river-blue)" }}></i>
-                    {" Assigned Locations Orientation Map"}
+                    <i className="fas fa-truck-ramp-box" style={{ color: "var(--river-blue)" }}></i>
+                    {" Central Godown Dispatches Awaiting Ground Intake"}
                   </h2>
-                  <button className="btn-go" onClick={(event) => window.switchGroundTab('assigned-areas', document.querySelector('[data-tab=assigned-areas]'))}>Area Details →</button>
+                  <button type="button" className="btn-go" onClick={() => window.switchGroundTab('delivery-verify', document.querySelector('[data-tab=delivery-verify]'))}>All Deliveries →</button>
                 </div>
-                <div className="compact-map-box">
-                  <span className="map-pin-chip" style={{ top: "26px", left: "28px", borderColor: "#dc2626" }} onClick={(event) => window.switchGroundTab('assigned-areas', document.querySelector('[data-tab=assigned-areas]'))}>
-                    <i className="fas fa-circle" style={{ color: "#dc2626", fontSize: "8px" }}></i>
-                    {" Palashbari Ward 2 (Critical) "}
-                  </span>
-                  {" "}
-                  <span className="map-pin-chip" style={{ top: "95px", right: "26px", borderColor: "#ea580c" }} onClick={(event) => window.switchGroundTab('assigned-areas', document.querySelector('[data-tab=assigned-areas]'))}>
-                    <i className="fas fa-circle" style={{ color: "#ea580c", fontSize: "8px" }}></i>
-                    {" Chaygaon Lowland (High) "}
-                  </span>
-                  {" "}
-                  <span className="map-pin-chip" style={{ bottom: "24px", left: "95px", borderColor: "#d97706" }} onClick={(event) => window.switchGroundTab('assigned-areas', document.querySelector('[data-tab=assigned-areas]'))}>
-                    <i className="fas fa-circle" style={{ color: "#d97706", fontSize: "8px" }}></i>
-                    {" Goroimari Char (Moderate) "}
-                  </span>
-                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "9px" }} id="dashDeliveryCards"></div>
               </div>
             </div>
           </div>
@@ -477,6 +496,75 @@ const markup = (
             </div>
           </div>
         </main>
+        {/* 4. RIGHT PANEL (QUICK ACTIONS + SELECTED SECTOR + RIVER TELEMETRY + GODOWN SYNC) */}
+        <aside className="right-panel">
+          {/* Quick Actions */}
+          <div className="aqua-card anim-card">
+            <div className="card-head">
+              <h2>
+                <i className="fas fa-bolt" style={{ color: "#f59e0b" }}></i>
+                {" Ground Quick Actions"}
+              </h2>
+            </div>
+            <div className="qa-grid-2x2">
+              <button type="button" className="qa-color-card qa-blue" onClick={() => window.switchGroundTab('field-reports', document.querySelector('[data-tab=field-reports]'))}>
+                <i className="fas fa-house-flood-water"></i>
+                <strong>File SITREP</strong>
+                <span>Submit field flood report</span>
+              </button>
+              <button type="button" className="qa-color-card qa-green" onClick={() => window.switchGroundTab('delivery-verify', document.querySelector('[data-tab=delivery-verify]'))}>
+                <i className="fas fa-truck-ramp-box"></i>
+                <strong>Verify Delivery</strong>
+                <span>Audit physical arrival</span>
+              </button>
+              <button type="button" className="qa-color-card qa-amber" onClick={() => window.quickClearFirstActive && window.quickClearFirstActive()}>
+                <i className="fas fa-shield-check"></i>
+                <strong>Clear for Return</strong>
+                <span>Release equipment</span>
+              </button>
+              <button type="button" className="qa-color-card qa-indigo" onClick={() => window.switchGroundTab('rescue-ops', document.querySelector('[data-tab=rescue-ops]'))}>
+                <i className="fas fa-life-ring"></i>
+                <strong>Rescue Progress</strong>
+                <span>Update evacuated count</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Selected Sector Inspector */}
+          <div className="aqua-card anim-card">
+            <div className="card-head">
+              <h2>
+                <i className="fas fa-location-crosshairs" style={{ color: "#dc2626" }}></i>
+                {" Selected Flood Sector"}
+              </h2>
+              <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--river-blue)", cursor: "pointer" }} onClick={() => window.switchGroundTab('assigned-areas', document.querySelector('[data-tab=assigned-areas]'))}>Details →</span>
+            </div>
+            <div id="rightSelectedGroundVillageBox"></div>
+          </div>
+
+          {/* Live River Basin Hydrological Telemetry */}
+          <div className="aqua-card anim-card">
+            <div className="card-head">
+              <h2>
+                <i className="fas fa-water" style={{ color: "var(--river-blue)" }}></i>
+                {" River Hydrology Telemetry"}
+              </h2>
+            </div>
+            <div id="rightGroundRiverTelemetryBox" style={{ display: "flex", flexDirection: "column", gap: "8px" }}></div>
+          </div>
+
+          {/* Central Godown Dispatch Sync */}
+          <div className="aqua-card anim-card">
+            <div className="card-head">
+              <h2>
+                <i className="fas fa-warehouse" style={{ color: "var(--foliage-mid)" }}></i>
+                {" Central Godown Dispatch Sync"}
+              </h2>
+              <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--river-blue)", cursor: "pointer" }} onClick={() => window.switchGroundTab('delivery-verify', document.querySelector('[data-tab=delivery-verify]'))}>Audit →</span>
+            </div>
+            <div className="right-mini-grid" id="rightGroundGodownSyncBox"></div>
+          </div>
+        </aside>
       </div>
       {/* RIPARIAN PANORAMIC FOOTER (MATCHED TO 2ADMIN, 3AUTHORITY & 1INDEX) */}
       <div className="riparian-footer-wrap">

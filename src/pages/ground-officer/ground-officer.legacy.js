@@ -13,12 +13,25 @@ import {
   startGroundOfficerSync
 } from './groundOfficerApi.js';
 
+import {
+  initGroundFloodMap,
+  updateGroundAreaMarkers,
+  focusGroundMap,
+  renderGroundRivers,
+  filterGroundMapSeverity,
+  searchGroundMap,
+  groundMapZoomIn,
+  groundMapZoomOut,
+  groundMapRecenter
+} from './groundOfficerMap.js';
+
 export default function initGroundOfficerPage() {
   const __ready = [];
   const __onReady = (fn) => __ready.push(fn);
 
   let isDrillMode = true;
   let isListView = false;
+  let selectedVillageName = null;
   let state = getCurrentGroundState();
 
   onGroundSync((fresh) => {
@@ -68,6 +81,13 @@ export default function initGroundOfficerPage() {
     document.querySelectorAll('.go-tab-pane').forEach(p => p.classList.remove('active'));
     const target = document.getElementById(`tab-${tabKey}`);
     if (target) target.classList.add('active');
+
+    // Invalidate map size on switching to dashboard
+    if (tabKey === 'dashboard') {
+      setTimeout(() => {
+        if (window.groundLeafletMapInstance) window.groundLeafletMapInstance.invalidateSize();
+      }, 150);
+    }
   }
 
   function getToneClass(sevOrStatus) {
@@ -83,6 +103,27 @@ export default function initGroundOfficerPage() {
     if (val === 'Verified' || val === 'Approved / Reviewed' || val === 'Completed') return 'p-good';
     if (val === 'Pending Verification' || val === 'Pending Review') return 'p-pending';
     return 'p-moderate';
+  }
+
+  function selectGroundVillageForInspection(vName) {
+    selectedVillageName = vName;
+    const areas = (state && state.areas) || [];
+    const found = areas.find(a => a.village === vName);
+    if (found && found.lat && found.lng) {
+      focusGroundMap(found.lat, found.lng, 14);
+      showToast(`Map centered on ${found.village}`);
+    }
+    renderAllGroundViews();
+  }
+
+  function quickClearFirstActive() {
+    const deliveries = (state && state.deliveries) || [];
+    const activeDeliv = deliveries.find(d => !Boolean(d.groundOfficerCleared || d.reliefClearedForReturn));
+    if (activeDeliv) {
+      confirmSituationControlledOnGround(activeDeliv.dispatchId, activeDeliv.destination);
+    } else {
+      showToast('All active relief consignments are already cleared for return.');
+    }
   }
 
   function renderAllGroundViews() {
@@ -178,10 +219,10 @@ export default function initGroundOfficerPage() {
       activeTasksList.innerHTML = visAreas.length === 0
         ? `<div style="text-align:center; padding:16px; color:var(--text-muted);">No active field assignments recorded.</div>`
         : visAreas.map(a => `
-          <div class="sub-card ${getToneClass(a.severity)}" style="padding:10px 12px;">
+          <div class="sub-card ${getToneClass(a.severity)}" style="padding:10px 12px; cursor:pointer;" onclick="window.selectGroundVillageForInspection('${(a.village || '').replace(/'/g, "\\'")}')">
             <div class="sub-card-top">
               <div>
-                <h4>${a.village}</h4>
+                <h4><i class="fas fa-location-dot" style="color:var(--river-blue); margin-right:4px;"></i>${a.village}</h4>
                 <span style="font-size:10.5px; color:var(--text-muted);">${a.block} • Deadline: <strong>${a.deadline}</strong></span>
               </div>
               <span class="pill ${getPillClass(a.severity)}">${a.severity}</span>
@@ -258,7 +299,7 @@ export default function initGroundOfficerPage() {
           <div class="sub-card ${getToneClass(a.severity)}">
             <div class="sub-card-top">
               <div>
-                <h4>${a.village}</h4>
+                <h4><i class="fas fa-location-dot" style="color:var(--river-blue); margin-right:4px;"></i>${a.village}</h4>
                 <span style="font-size:11px; color:var(--text-muted);">${a.id} • ${a.block}</span>
               </div>
               <span class="pill ${getPillClass(a.severity)}">${a.severity}</span>
@@ -270,7 +311,7 @@ export default function initGroundOfficerPage() {
             <p style="margin:0; font-size:11.5px; color:var(--text-body);">${a.task}</p>
             <div class="sub-card-footer">
               <span style="font-size:10.5px; color:var(--text-muted);">Due: <strong>${a.deadline}</strong></span>
-              <button class="btn-go" onclick="switchGroundTab('field-reports', document.querySelector('[data-tab=field-reports]'))">File Field Report</button>
+              <button class="btn-go" onclick="window.selectGroundVillageForInspection('${(a.village || '').replace(/'/g, "\\'")}')">Focus on Map</button>
             </div>
           </div>
         `).join('');
@@ -386,6 +427,79 @@ export default function initGroundOfficerPage() {
           </div>
         `).join('');
     }
+
+    // 9. RIGHT PANEL: Selected Flood Sector Inspector
+    const rightVBox = document.getElementById('rightSelectedGroundVillageBox');
+    if (rightVBox) {
+      const selectedArea = areas.find(a => a.village === selectedVillageName) || areas[0];
+      if (!selectedArea) {
+        rightVBox.innerHTML = `<div style="font-size:11.5px; color:var(--text-muted); text-align:center; padding:10px;">No sector selected. Tap any sector on the map or list.</div>`;
+      } else {
+        const isCrit = selectedArea.severity === 'Critical';
+        rightVBox.innerHTML = `
+          <div class="decision-card" style="padding:10px 12px; border-left:3.5px solid ${isCrit ? '#dc2626' : '#0284c7'};">
+            <div class="dc-top" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <h4 style="margin:0; font-size:13px; color:#0f172a;"><i class="fas fa-location-dot" style="color:${isCrit ? '#dc2626' : '#0284c7'}; margin-right:4px;"></i>${selectedArea.village}</h4>
+              <span class="pill ${getPillClass(selectedArea.severity)}" style="font-size:9.5px;">${selectedArea.severity}</span>
+            </div>
+            <div style="font-size:11px; color:#475569; margin-bottom:6px;">
+              <div>Circle: <strong>${selectedArea.block}</strong> • Status: <strong>${selectedArea.status}</strong></div>
+              <div>Coords: <strong>${selectedArea.coords}</strong></div>
+              <div>Inundation: <strong>${selectedArea.task || 'Surveillance active'}</strong></div>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button type="button" class="btn-go primary" style="flex:1; padding:5px 8px; font-size:10.5px;" onclick="window.focusGroundMap && window.focusGroundMap(${selectedArea.lat || 26.132}, ${selectedArea.lng || 91.515}, 14)">
+                <i class="fas fa-crosshairs"></i> Center Map
+              </button>
+              <button type="button" class="btn-go" style="flex:1; padding:5px 8px; font-size:10.5px;" onclick="window.switchGroundTab && window.switchGroundTab('field-reports', document.querySelector('[data-tab=field-reports]'))">
+                <i class="fas fa-pen"></i> File SITREP
+              </button>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // 10. RIGHT PANEL: Live River Hydrology Telemetry Feed
+    const riverBox = document.getElementById('rightGroundRiverTelemetryBox');
+    if (riverBox) {
+      riverBox.innerHTML = `
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 10px; font-size:11px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+            <strong style="color:#0369a1;"><i class="fas fa-water"></i> Brahmaputra River Basin</strong>
+            <span class="pill p-good" style="font-size:9px; padding:1px 5px;">Passable</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; color:#475569; font-size:10.5px;">
+            <span>Current: <strong>17.42 m</strong></span>
+            <span>Danger: <strong>18.00 m</strong></span>
+          </div>
+          <div style="font-size:10px; color:#15803d; margin-top:2px;">Trend: Falling discharge • Normal river flow</div>
+        </div>
+      `;
+    }
+
+    // 11. RIGHT PANEL: Central Godown Dispatch Sync
+    const godownBox = document.getElementById('rightGroundGodownSyncBox');
+    if (godownBox) {
+      godownBox.innerHTML = (!deliveries || deliveries.length === 0)
+        ? `<div style="font-size:11.5px; color:var(--text-muted); text-align:center; padding:10px;">No dispatches en-route from Godown.</div>`
+        : deliveries.slice(0, 3).map(d => `
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 10px; font-size:11px; margin-bottom:6px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+              <strong style="color:#0f172a;"><i class="fas fa-truck-fast" style="color:#0284c7; margin-right:4px;"></i>${d.destination}</strong>
+              <span class="pill ${getPillClass(d.status)}" style="font-size:9px; padding:1px 6px;">${d.status}</span>
+            </div>
+            <div style="font-size:10.5px; color:#475569;">
+              <div>Ref: <strong>${d.dispatchId}</strong> • Supplies: <strong>${d.resource}</strong></div>
+              <div>${d.remarks || 'Awaiting Ground Officer Verification'}</div>
+            </div>
+          </div>
+        `).join('');
+    }
+
+    // 12. Update live markers on real Leaflet GIS map
+    window.groundState = state;
+    updateGroundAreaMarkers(areas);
   }
 
   // --- MODALS & SUBMISSIONS ---
@@ -612,7 +726,12 @@ export default function initGroundOfficerPage() {
     // 1. Initial render from cached state
     renderAllGroundViews();
 
-    // 2. Fetch fresh live state from backend and start real-time sync
+    // 2. Initialize Real Leaflet GIS Map
+    const initialArea = (state.areas && state.areas[0]) || { lat: 26.132, lng: 91.515 };
+    const map = initGroundFloodMap('groundLeafletMap', [initialArea.lat, initialArea.lng], 11, 'bk');
+    window.groundLeafletMapInstance = map;
+
+    // 3. Fetch fresh live state from backend and sync map markers
     try {
       await fetchFullGroundState();
       renderAllGroundViews();
@@ -639,7 +758,9 @@ export default function initGroundOfficerPage() {
     submitReturnVerification,
     switchGroundTab,
     toggleDataMode,
-    toggleGridListView
+    toggleGridListView,
+    selectGroundVillageForInspection,
+    quickClearFirstActive
   });
 
   __ready.forEach((fn) => fn());
