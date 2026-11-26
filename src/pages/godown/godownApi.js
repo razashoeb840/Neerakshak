@@ -261,24 +261,34 @@ export async function confirmDispatchApi(dispatchData) {
     alloc.refNo = refNo;
     alloc.progress = 65;
 
-    // Deduct stock for all allocated supplies
-    const needs = alloc.needs || { boats: 2, jackets: 40, food: 350, meds: 50 };
-    const deductions = [
-      { cat: 'Rescue Boats', qty: needs.boats || 0 },
-      { cat: 'Life Jackets', qty: needs.jackets || 0 },
-      { cat: 'Food Packets', qty: needs.food || 0 },
-      { cat: 'Medicines', qty: needs.meds || 0 }
-    ];
-
-    deductions.forEach(d => {
-      const invItem = (cachedState.inventory || []).find(i => i.category.toLowerCase().includes(d.cat.toLowerCase().slice(0, 5)));
-      if (invItem && d.qty > 0) {
-        invItem.available = Math.max(0, invItem.available - d.qty);
-        invItem.allocated = Math.max(0, invItem.allocated - d.qty);
-        invItem.dispatched = (invItem.dispatched || 0) + d.qty;
-        if (invItem.available <= invItem.minLimit) invItem.condition = 'Low Stock';
+    // Deduct stock safely across all matching items (never negative, deduct from stock with avail > 0)
+    const deductResource = (keywords, neededQty) => {
+      let rem = Number(neededQty) || 0;
+      if (rem <= 0 || !cachedState.inventory) return;
+      for (const item of cachedState.inventory) {
+        if (rem <= 0) break;
+        const cat = ((item.category || '') + ' ' + (item.name || '')).toLowerCase();
+        const match = keywords.some(k => cat.includes(k.toLowerCase()));
+        if (match && Number(item.available) > 0) {
+          const avail = Number(item.available);
+          const take = Math.min(avail, rem);
+          item.available = Math.max(0, avail - take);
+          item.allocated = Math.max(0, (Number(item.allocated) || 0) - take);
+          item.dispatched = (Number(item.dispatched) || 0) + take;
+          if (item.available <= 0) {
+            item.condition = 'Out of Stock';
+          } else if (item.available <= (Number(item.minLimit) || 10)) {
+            item.condition = 'Low Stock';
+          }
+          rem -= take;
+        }
       }
-    });
+    };
+
+    deductResource(['boat'], dispatchData.boats !== undefined ? dispatchData.boats : (alloc.needs?.boats || 0));
+    deductResource(['jacket'], dispatchData.jackets !== undefined ? dispatchData.jackets : (alloc.needs?.jackets || 0));
+    deductResource(['food', 'ration'], dispatchData.food !== undefined ? dispatchData.food : (alloc.needs?.food || 0));
+    deductResource(['medicine', 'med', 'kit'], dispatchData.meds !== undefined ? dispatchData.meds : (alloc.needs?.meds || 0));
 
     if (!cachedState.movements) cachedState.movements = [];
     cachedState.movements.unshift({

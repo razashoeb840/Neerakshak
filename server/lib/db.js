@@ -141,15 +141,32 @@ export const adminDb = {
   },
 
   async deleteArea(id) {
-    const db = await getDatabase();
     const targetArea = (cache.admin.areas || []).find(a => a.id === id || a.name === id);
     const areaName = targetArea ? targetArea.name : id;
     const nameClean = String(areaName || '').trim().toLowerCase();
 
+    // Strict Lock: Check in-memory authority state first
+    const isLockedInMemory = (cache.authority?.allocations || []).some(a => 
+      (a.village && a.village.trim().toLowerCase() === nameClean) ||
+      (a.destination && a.destination.trim().toLowerCase() === nameClean) ||
+      (a.targetLocation && a.targetLocation.trim().toLowerCase() === nameClean)
+    ) || (cache.authority?.requests || []).some(r => 
+      (r.village && r.village.trim().toLowerCase() === nameClean) ||
+      (r.targetLocation && r.targetLocation.trim().toLowerCase() === nameClean)
+    ) || (cache.authority?.coordinations || []).some(c => 
+      (c.operationLocation && c.operationLocation.trim().toLowerCase() === nameClean) ||
+      (c.sector && c.sector.trim().toLowerCase() === nameClean)
+    );
+
+    if (isLockedInMemory) {
+      throw new Error(`Cannot delete area "${areaName}": A relief request or allocation is currently active with District Authority.`);
+    }
+
+    const db = await getDatabase();
     // Block deletion if active request or allocation exists with District Authority
     if (db) {
       try {
-        const [allocExists, reqExists] = await Promise.all([
+        const [allocExists, reqExists, coordExists] = await Promise.all([
           db.collection('resourceallocations').findOne({
             $or: [
               { village: { $regex: new RegExp(`^${nameClean}$`, 'i') } },
@@ -162,10 +179,16 @@ export const adminDb = {
               { village: { $regex: new RegExp(`^${nameClean}$`, 'i') } },
               { targetLocation: { $regex: new RegExp(`^${nameClean}$`, 'i') } }
             ]
+          }),
+          db.collection('coordinationrecords').findOne({
+            $or: [
+              { operationLocation: { $regex: new RegExp(`^${nameClean}$`, 'i') } },
+              { sector: { $regex: new RegExp(`^${nameClean}$`, 'i') } }
+            ]
           })
         ]);
 
-        if (allocExists || reqExists) {
+        if (allocExists || reqExists || coordExists) {
           throw new Error(`Cannot delete area "${areaName}": A relief request or allocation is currently active with District Authority.`);
         }
       } catch (err) {
@@ -301,30 +324,27 @@ export const authorityDb = {
       }
     }
 
-    // Map real admin areas into authority villages
-    adminAreas.forEach(area => {
-      const exists = cache.authority.villages.find(v => v.id === area.id || v.name.toLowerCase() === area.name.toLowerCase());
-      if (!exists) {
-        const pop = Number(area.pop) || 2000;
-        const isCrit = area.severity === 'Critical';
-        const isHigh = area.severity === 'High';
-        cache.authority.villages.push({
-          id: area.id,
-          name: area.name,
-          block: area.block || 'Assigned Circle',
-          severity: area.severity || 'Moderate',
-          pop: pop,
-          waterStatus: area.notes || (isCrit ? 'Embankment overflow watch' : 'Approach road monitored'),
-          assessedNeed: {
-            boats: isCrit ? Math.max(3, Math.round(pop / 1000)) : (isHigh ? Math.max(1, Math.round(pop / 1500)) : 1),
-            jackets: Math.round(pop * 0.015),
-            food: Math.round(pop * 0.12),
-            meds: Math.round(pop * 0.02)
-          },
-          lat: Number(area.lat) || 26.15,
-          lng: Number(area.lng) || 91.60
-        });
-      }
+    // Map real admin areas into authority villages (adminAreas from affectedareas is single source of truth)
+    cache.authority.villages = (adminAreas || []).map(area => {
+      const pop = Number(area.pop) || 2000;
+      const isCrit = area.severity === 'Critical';
+      const isHigh = area.severity === 'High';
+      return {
+        id: area.id,
+        name: area.name,
+        block: area.block || 'Assigned Circle',
+        severity: area.severity || 'Moderate',
+        pop: pop,
+        waterStatus: area.notes || (isCrit ? 'Embankment overflow watch' : 'Approach road monitored'),
+        assessedNeed: {
+          boats: isCrit ? Math.max(3, Math.round(pop / 1000)) : (isHigh ? Math.max(1, Math.round(pop / 1500)) : 1),
+          jackets: Math.round(pop * 0.015),
+          food: Math.round(pop * 0.12),
+          meds: Math.round(pop * 0.02)
+        },
+        lat: Number(area.lat) || 26.15,
+        lng: Number(area.lng) || 91.60
+      };
     });
 
     return cache.authority;
@@ -761,38 +781,75 @@ export const godownDb = {
       }
     }
 
-    // Deduct provided quantities from inventoryitems
-    if (dispatchData.boats || dispatchData.jackets || dispatchData.food || dispatchData.meds) {
-      const db = await getDatabase();
-      if (db) {
+    // Deduct provided quantities from inventoryitems safely (never negative, from stock with avail > 0)
+    const deductResource = async (dbInstance, keywords, qty) => {
+      let rem = Number(qty) || 0;
+      if (rem <= 0) return;
+
+      if (dbInstance) {
         try {
-          if (dispatchData.boats) {
-            await db.collection('inventoryitems').updateOne(
-              { category: 'Rescue Boats' },
-              { $inc: { available: -Number(dispatchData.boats), dispatched: Number(dispatchData.boats) } }
-            );
+          const items = await dbInstance.collection('inventoryitems').find({
+            $or: keywords.map(k => ({
+              $or: [
+                { category: { $regex: new RegExp(k, 'i') } },
+                { name: { $regex: new RegExp(k, 'i') } }
+              ]
+            }))
+          }).toArray();
+
+          for (const item of items) {
+            if (rem <= 0) break;
+            const avail = Number(item.available) || 0;
+            if (avail > 0) {
+              const take = Math.min(avail, rem);
+              rem -= take;
+              const newAvail = Math.max(0, avail - take);
+              await dbInstance.collection('inventoryitems').updateOne(
+                { _id: item._id },
+                { 
+                  $set: { 
+                    available: newAvail,
+                    condition: newAvail <= 0 ? 'Out of Stock' : (newAvail <= (item.minLimit || 10) ? 'Low Stock' : 'Good')
+                  },
+                  $inc: { dispatched: take }
+                }
+              );
+            }
           }
-          if (dispatchData.jackets) {
-            await db.collection('inventoryitems').updateOne(
-              { category: 'Life Jackets' },
-              { $inc: { available: -Number(dispatchData.jackets), dispatched: Number(dispatchData.jackets) } }
-            );
-          }
-          if (dispatchData.food) {
-            await db.collection('inventoryitems').updateOne(
-              { category: 'Food Packets' },
-              { $inc: { available: -Number(dispatchData.food), dispatched: Number(dispatchData.food) } }
-            );
-          }
-          if (dispatchData.meds) {
-            await db.collection('inventoryitems').updateOne(
-              { category: 'Medicines' },
-              { $inc: { available: -Number(dispatchData.meds), dispatched: Number(dispatchData.meds) } }
-            );
-          }
-        } catch (e) {}
+        } catch (e) {
+          console.warn('deductResource MongoDB notice:', e.message);
+        }
       }
-    }
+
+      // Also update in-memory cache
+      if (cache.godown && cache.godown.inventory) {
+        let remCache = Number(qty) || 0;
+        for (const item of cache.godown.inventory) {
+          if (remCache <= 0) break;
+          const isMatch = keywords.some(k => 
+            (item.category && item.category.toLowerCase().includes(k.toLowerCase())) ||
+            (item.name && item.name.toLowerCase().includes(k.toLowerCase()))
+          );
+          if (isMatch) {
+            const avail = Number(item.available) || 0;
+            if (avail > 0) {
+              const take = Math.min(avail, remCache);
+              remCache -= take;
+              item.available = Math.max(0, avail - take);
+              item.dispatched = (Number(item.dispatched) || 0) + take;
+              if (item.available <= 0) item.condition = 'Out of Stock';
+              else if (item.available <= (item.minLimit || 10)) item.condition = 'Low Stock';
+            }
+          }
+        }
+      }
+    };
+
+    const db = await getDatabase();
+    if (dispatchData.boats) await deductResource(db, ['boat'], dispatchData.boats);
+    if (dispatchData.jackets) await deductResource(db, ['jacket'], dispatchData.jackets);
+    if (dispatchData.food) await deductResource(db, ['food', 'ration'], dispatchData.food);
+    if (dispatchData.meds) await deductResource(db, ['med', 'kit'], dispatchData.meds);
 
     const movement = {
       time: `Today, ${nowTime}`,
@@ -804,7 +861,6 @@ export const godownDb = {
     if (!cache.godown.movements) cache.godown.movements = [];
     cache.godown.movements.unshift(movement);
 
-    const db = await getDatabase();
     if (db) {
       try {
         await db.collection('dispatchrecords').insertOne({ ...movement });

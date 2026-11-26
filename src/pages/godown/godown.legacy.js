@@ -134,7 +134,7 @@ export default function initGodownPage() {
 
   function getStatusPill(s) {
     if (s === 'Dispatched' || s === 'Good') return 'p-good';
-    if (s === 'Shortage Flagged' || s === 'Low Stock' || s === 'Damaged / Expired') return 'p-critical';
+    if (s === 'Shortage Flagged' || s === 'Low Stock' || s === 'Out of Stock' || s === 'Damaged / Expired') return 'p-critical';
     return 'p-pending';
   }
 
@@ -295,7 +295,11 @@ export default function initGodownPage() {
       }
       return items.map(i => {
         const origIdx = inventory.indexOf(i);
-        const tone = i.available <= i.minLimit ? 'tone-critical' : 'tone-good';
+        const avail = Math.max(0, Number(i.available) || 0);
+        const isOutOfStock = avail <= 0;
+        const tone = isOutOfStock ? 'tone-critical' : (avail <= (Number(i.minLimit) || 10) ? 'tone-critical' : 'tone-good');
+        const condText = isOutOfStock ? 'Out of Stock' : (i.condition || 'Good');
+        const pillClass = isOutOfStock ? 'p-critical' : getStatusPill(condText);
         return `
           <div class="sub-card ${tone}">
             <div class="sub-card-top">
@@ -303,11 +307,11 @@ export default function initGodownPage() {
                 <h4>${i.name}</h4>
                 <span style="font-size:11px; color:var(--text-muted); font-weight:600;">${i.category} • ${i.warehouse}</span>
               </div>
-              <span class="pill ${getStatusPill(i.condition)}">${i.condition}</span>
+              <span class="pill ${pillClass}">${condText}</span>
             </div>
             <div class="meta-box-4">
               <div><span>Total</span><strong>${i.total}</strong></div>
-              <div><span>Avail</span><strong style="color:#15803d;">${i.available}</strong></div>
+              <div><span>Avail</span><strong style="color:${isOutOfStock ? '#dc2626' : '#15803d'}; font-weight:700;">${avail}</strong></div>
               <div><span>Alloc</span><strong style="color:#4338ca;">${i.allocated}</strong></div>
               <div><span>Disp</span><strong style="color:#0f766e;">${i.dispatched}</strong></div>
             </div>
@@ -829,16 +833,23 @@ export default function initGodownPage() {
     if (offIdEl) offIdEl.textContent = alloc.leadOfficerId || 'NDRF-1BN-842';
     if (offAgencyPill) offAgencyPill.textContent = (alloc.leadAgency || 'NDRF (1st Bn)') + ' Verified';
 
-    // Look up present available warehouse stock for each resource
-    const boatsItem = (state.inventory || []).find(i => (i.category || '').toLowerCase().includes('boat'));
-    const jacketsItem = (state.inventory || []).find(i => (i.category || '').toLowerCase().includes('jacket'));
-    const foodItem = (state.inventory || []).find(i => (i.category || '').toLowerCase().includes('food'));
-    const medsItem = (state.inventory || []).find(i => (i.category || '').toLowerCase().includes('medicine'));
+    // Look up present available warehouse stock across ALL matching items in category
+    const getCategoryAvailableStock = (keywords) => {
+      const inv = (state && state.inventory) || [];
+      return inv.reduce((sum, item) => {
+        const cat = ((item.category || '') + ' ' + (item.name || '')).toLowerCase();
+        const match = keywords.some(k => cat.includes(k.toLowerCase()));
+        if (match) {
+          return sum + Math.max(0, Number(item.available) || 0);
+        }
+        return sum;
+      }, 0);
+    };
 
-    const availBoats = boatsItem ? Number(boatsItem.available) : 30;
-    const availJackets = jacketsItem ? Number(jacketsItem.available) : 500;
-    const availFood = foodItem ? Number(foodItem.available) : 3500;
-    const availMeds = medsItem ? Number(medsItem.available) : 750;
+    const availBoats = getCategoryAvailableStock(['boat']);
+    const availJackets = getCategoryAvailableStock(['jacket']);
+    const availFood = getCategoryAvailableStock(['food', 'ration']);
+    const availMeds = getCategoryAvailableStock(['medicine', 'med', 'kit']);
 
     // Pre-fill resource quantities from summary
     const sum = String(alloc.summary || '');
@@ -948,11 +959,23 @@ export default function initGodownPage() {
     const alloc = (state.allocations || [])[idx];
     const officerVerified = document.getElementById('dispOfficerVerifiedCheck')?.checked ?? true;
 
-    // Check available stock
-    const boatsItem = (state.inventory || []).find(i => (i.category || '').toLowerCase().includes('boat'));
-    const jacketsItem = (state.inventory || []).find(i => (i.category || '').toLowerCase().includes('jacket'));
-    const availB = boatsItem ? Number(boatsItem.available) : 999;
-    const availJ = jacketsItem ? Number(jacketsItem.available) : 999;
+    // Check available stock across all matching items in inventory
+    const getCategoryAvailableStock = (keywords) => {
+      const inv = (state && state.inventory) || [];
+      return inv.reduce((sum, item) => {
+        const cat = ((item.category || '') + ' ' + (item.name || '')).toLowerCase();
+        const match = keywords.some(k => cat.includes(k.toLowerCase()));
+        if (match) {
+          return sum + Math.max(0, Number(item.available) || 0);
+        }
+        return sum;
+      }, 0);
+    };
+
+    const availB = getCategoryAvailableStock(['boat']);
+    const availJ = getCategoryAvailableStock(['jacket']);
+    const availF = getCategoryAvailableStock(['food', 'ration']);
+    const availM = getCategoryAvailableStock(['medicine', 'med', 'kit']);
 
     if (boatsDisp > availB) {
       showToast(`Cannot dispatch ${boatsDisp} Boats. Only ${availB} available in warehouse!`);
@@ -960,6 +983,14 @@ export default function initGodownPage() {
     }
     if (jacketsDisp > availJ) {
       showToast(`Cannot dispatch ${jacketsDisp} Jackets. Only ${availJ} available in warehouse!`);
+      return;
+    }
+    if (foodDisp > availF) {
+      showToast(`Cannot dispatch ${foodDisp} Food Packets. Only ${availF} available in warehouse!`);
+      return;
+    }
+    if (medsDisp > availM) {
+      showToast(`Cannot dispatch ${medsDisp} Medicine Kits. Only ${availM} available in warehouse!`);
       return;
     }
 
@@ -984,15 +1015,18 @@ export default function initGodownPage() {
         officerVerified
       });
 
+      state = getCurrentGodownState();
+      window.godownState = state;
       if (alloc) {
         alloc.status = 'Dispatched';
         alloc.summary = providedSummary;
-        alloc.godownStatus = `Dispatched (${res.refNo || 'DSP-2026'}) • En-Route`;
+        alloc.godownStatus = `Dispatched (${res?.refNo || 'DSP-2026'}) • En-Route`;
+        alloc.refNo = res?.refNo || 'DSP-2026';
       }
       renderAllGodownViews();
       updateGodownMapAllocations(state.allocations || []);
       renderSelectedAllocBox(allocId);
-      showToast(`Convoy Dispatched for ${dest} with: ${providedSummary} • Handed to ${alloc?.leadOfficerName || 'Lead Officer'} (Ref: ${res.refNo || 'DSP-2026'}).`);
+      showToast(`Convoy Dispatched for ${dest} with: ${providedSummary} • Handed to ${alloc?.leadOfficerName || 'Lead Officer'} (Ref: ${res?.refNo || 'DSP-2026'}).`);
     } catch (err) {
       console.error('Dispatch error:', err);
       showToast('Dispatch recorded locally.');

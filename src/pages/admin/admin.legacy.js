@@ -80,6 +80,8 @@ export default function initAdminPage() {
   }
 
   const TAB_MAP = {
+    'overview': 'tab-map-hub',
+    'map': 'tab-map-hub',
     'map-hub': 'tab-map-hub',
     'zones-hub': 'tab-areas-grid',
     'areas-grid': 'tab-areas-grid',
@@ -95,18 +97,26 @@ export default function initAdminPage() {
 
   function switchTab(tabId, btnEl) {
     document.querySelectorAll('.rail-btn').forEach(b => b.classList.remove('active'));
-    if (btnEl) btnEl.classList.add('active');
+    if (btnEl) {
+      btnEl.classList.add('active');
+    } else {
+      const activeRail = document.querySelectorAll('.rail-btn')[0];
+      if (tabId === 'map-hub' || tabId === 'overview') {
+        if (activeRail) activeRail.classList.add('active');
+      }
+    }
     document.querySelectorAll('.tab-view-pane').forEach(v => v.classList.remove('active'));
     const resolvedId = TAB_MAP[tabId] || (tabId.startsWith('tab-') ? tabId : `tab-${tabId}`);
-    const targetPane = document.getElementById(resolvedId);
+    const targetPane = document.getElementById(resolvedId) || document.getElementById('tab-map-hub');
     if (targetPane) targetPane.classList.add('active');
 
     // Trigger map resize if switching to map tab
-    if (tabId === 'map-hub' || resolvedId === 'tab-map-hub') {
+    if (tabId === 'map-hub' || resolvedId === 'tab-map-hub' || tabId === 'overview') {
       setTimeout(() => {
         const mapContainer = document.getElementById('leafletMap');
-        if (mapContainer && window.leafletMapInstance) {
-          window.leafletMapInstance.invalidateSize();
+        if (mapContainer) {
+          if (window.adminLeafletMapInstance) window.adminLeafletMapInstance.invalidateSize();
+          if (window.leafletMapInstance) window.leafletMapInstance.invalidateSize();
         }
       }, 150);
     }
@@ -770,7 +780,8 @@ export default function initAdminPage() {
 
   function focusAdminMapOnCoords(lat, lng, areaName, areaId) {
     if (typeof switchTab === 'function') {
-      switchTab('overview');
+      const railBtn = document.querySelectorAll('.rail-btn')[0];
+      switchTab('map-hub', railBtn);
     }
     setTimeout(() => {
       if (window.adminLeafletMapInstance) {

@@ -16,7 +16,7 @@ export async function OPTIONS() {
 export async function POST(req) {
   try {
     const body = await req.json();
-    const result = godownService.dispatchConsignment(body);
+    const result = await godownService.confirmDispatch(body);
     return NextResponse.json({ success: true, data: result }, { headers: corsHeaders() });
   } catch (err) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders() });

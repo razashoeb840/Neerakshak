@@ -26,6 +26,10 @@ export const godownService = {
     return godownDb.dispatchConvoy(dispatchData);
   },
 
+  dispatchConsignment(dispatchData) {
+    return godownDb.dispatchConvoy(dispatchData);
+  },
+
   flagShortage(allocId, reason) {
     return godownDb.reportShortage(allocId, reason);
   },
