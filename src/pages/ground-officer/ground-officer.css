@@ -743,10 +743,11 @@
         }
 
         .kpi-lbl {
-            font-size: 10.5px;
+            font-size: 11px;
             font-weight: 600;
-            color: rgba(255, 255, 255, 0.92);
+            color: #475569;
             margin-top: 2px;
+            line-height: 1.25;
         }
 
         /* Aqua-Bordered Section Shell */

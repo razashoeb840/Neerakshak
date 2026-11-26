@@ -13,6 +13,7 @@ import {
 let mapInstance = null;
 let riverLayerGroup = null;
 let areaLayerGroup = null;
+let markerMap = new Map();
 let activeSeverityFilter = 'ALL';
 let currentCenter = [26.15, 91.55];
 let currentZoom = 11;
@@ -116,9 +117,41 @@ export function initGroundFloodMap(containerId = 'groundLeafletMap', initialCoor
   return mapInstance;
 }
 
-export function focusGroundMap(lat, lng, zoom = 14) {
+export function focusGroundMap(lat, lng, zoom = 14, villageName = null) {
   if (mapInstance && lat && lng) {
     mapInstance.flyTo([Number(lat), Number(lng)], zoom, { duration: 1.2 });
+    if (villageName) {
+      setTimeout(() => {
+        const m = markerMap.get(villageName.toLowerCase());
+        if (m) m.openPopup();
+      }, 700);
+    }
+  }
+}
+
+export function autoCenterGroundMapOnAreas(areas = []) {
+  if (!mapInstance || !Array.isArray(areas) || areas.length === 0) return;
+  
+  if (areas.length === 1) {
+    const [lat, lng] = parseAreaCoordinates(areas[0]);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      focusGroundMap(lat, lng, 13, areas[0].village);
+      return;
+    }
+  }
+
+  const bounds = L.latLngBounds();
+  let validCount = 0;
+  areas.forEach(a => {
+    const [lat, lng] = parseAreaCoordinates(a);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      bounds.extend([lat, lng]);
+      validCount++;
+    }
+  });
+
+  if (validCount > 0 && bounds.isValid()) {
+    mapInstance.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
   }
 }
 
@@ -201,6 +234,7 @@ export function updateGroundAreaMarkers(areas = []) {
   if (!areaLayerGroup || !mapInstance) return;
   try {
     areaLayerGroup.clearLayers();
+    markerMap.clear();
 
     areas.forEach(a => {
       if (!a) return;
@@ -242,6 +276,9 @@ export function updateGroundAreaMarkers(areas = []) {
       });
 
       const marker = L.marker([lat, lng], { icon }).addTo(areaLayerGroup);
+      if (a.village) {
+        markerMap.set(a.village.toLowerCase(), marker);
+      }
 
       // Popup with Live Actions
       const popupHtml = `
@@ -320,6 +357,7 @@ export function groundMapRecenter() {
 Object.assign(window, {
   initGroundFloodMap,
   focusGroundMap,
+  autoCenterGroundMapOnAreas,
   updateGroundAreaMarkers,
   filterGroundMapSeverity,
   searchGroundMap,

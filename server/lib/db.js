@@ -989,18 +989,53 @@ export const groundDb = {
       const isHigh = a.severity === 'High';
       return {
         id: a.id || `ASN-${String(idx + 1).padStart(2, '0')}`,
-        village: a.name,
+        village: (a.name || a.village || 'Affected Sector').trim(),
         block: a.block || 'Assigned Circle',
-        severity: a.severity || 'Moderate',
+        severity: a.severity || 'Critical',
         priority: isCrit ? 'Urgent' : (isHigh ? 'High' : 'Normal'),
         status: isCrit ? 'Active Emergency Zone' : 'Active Field Duty',
-        coords: `${Number(a.lat || 26.15).toFixed(4)}° N, ${Number(a.lng || 91.50).toFixed(4)}° E`,
-        lat: Number(a.lat || 26.15),
-        lng: Number(a.lng || 91.50),
-        pop: a.pop || 2000,
+        coords: `${Number(a.lat || 25.7799).toFixed(4)}° N, ${Number(a.lng || 87.4751).toFixed(4)}° E`,
+        lat: Number(a.lat || 25.7799),
+        lng: Number(a.lng || 87.4751),
+        pop: a.pop || 2500,
         deadline: isCrit ? 'Immediate Action' : 'Today, 04:00 PM',
-        task: a.notes || `Monitor inundation depth & verify relief consignments for ${a.name}.`
+        task: a.notes || `Monitor inundation depth & verify relief consignments for ${a.name || a.village}.`
       };
+    });
+
+    // Also include any active destination from Authority allocations that Ground Officer oversees
+    authAllocations.forEach((alc, aIdx) => {
+      const vName = (alc.village || alc.destination || '').trim();
+      if (!vName) return;
+      const already = areas.some(ar => ar.village.toLowerCase() === vName.toLowerCase());
+      if (!already) {
+        let lat = 26.15;
+        let lng = 86.60;
+        let blk = 'Supaul Sector';
+        if (vName.toLowerCase().includes('nirmali')) {
+          lat = 26.15;
+          lng = 86.60;
+          blk = 'Nirmali Circle, Supaul';
+        } else if (vName.toLowerCase().includes('flood sector') || vName.toLowerCase().includes('purnia')) {
+          lat = 25.78;
+          lng = 87.47;
+          blk = 'Krityanand Nagar, Purnia';
+        }
+        areas.push({
+          id: alc.id || `ASN-ALC-${aIdx + 1}`,
+          village: vName,
+          block: blk,
+          severity: 'Critical',
+          priority: 'Urgent',
+          status: 'Active Relief Operation',
+          coords: `${lat.toFixed(4)}° N, ${lng.toFixed(4)}° E`,
+          lat: lat,
+          lng: lng,
+          pop: alc.citizens || 2200,
+          deadline: 'Immediate Action',
+          task: `Relief consignment assigned (${alc.summary || 'Emergency Relief'}). Conduct field verification.`
+        });
+      }
     });
 
     // 3. Map real Godown Dispatches into Ground Officer Delivery Verifications
@@ -1014,6 +1049,7 @@ export const groundDb = {
     const deliveries = dispatchedAllocations.map(a => {
       const dispatchId = a.refNo && a.refNo !== '—' ? a.refNo : (a.id || 'DSP-2026');
       const savedVerif = dbVerifications.find(v => v.dispatchId === dispatchId || v.allocId === a.id);
+      const isCleared = Boolean(a.groundOfficerCleared || a.reliefClearedForReturn || savedVerif?.status === 'Verified');
 
       return {
         dispatchId,
@@ -1021,26 +1057,36 @@ export const groundDb = {
         destination: (a.village || a.destination || 'Assigned Sector').trim(),
         resource: a.summary || 'Emergency Relief Buffer',
         dispatched: a.summary || 'Consignment Dispatched',
-        received: savedVerif ? savedVerif.received : null,
+        received: savedVerif ? savedVerif.received : (isCleared ? (a.summary || 'Consignment Verified') : null),
         damaged: savedVerif ? Number(savedVerif.damaged) || 0 : 0,
         shortage: savedVerif ? Number(savedVerif.shortage) || 0 : 0,
-        status: savedVerif ? savedVerif.status : 'Pending Verification',
+        status: savedVerif ? savedVerif.status : (isCleared ? 'Verified' : 'Pending Verification'),
         remarks: savedVerif ? savedVerif.remarks : `Escort: ${a.leadOfficerName ? `${a.leadAgency || 'NDRF'} ${a.leadOfficerName}` : (a.driver || 'Field Convoy')}. Vehicle: ${a.vehicle || 'Relief Truck'}.`,
-        groundOfficerCleared: Boolean(a.groundOfficerCleared || a.reliefClearedForReturn),
-        reliefClearedForReturn: Boolean(a.reliefClearedForReturn || a.groundOfficerCleared),
-        verifiedAt: savedVerif?.verifiedAt || null,
-        verifiedBy: savedVerif?.verifiedBy || null
+        groundOfficerCleared: isCleared,
+        reliefClearedForReturn: isCleared,
+        verifiedAt: savedVerif?.verifiedAt || (isCleared ? a.clearedAt : null),
+        verifiedBy: savedVerif?.verifiedBy || (isCleared ? a.clearedByOfficer : null)
       };
     });
 
-    // 4. Map real multi-agency coordination & operations
-    const operations = authCoordinations.map((c, idx) => {
+    // 4. Map real multi-agency coordination & operations (deduplicate duplicate transmissions)
+    const uniqueOpsMap = new Map();
+    authCoordinations.forEach(c => {
+      const loc = (c.operationLocation || c.sector || 'Ramnagar').trim();
+      const agency = (c.agency || 'NDRF').trim();
+      const key = `${loc}__${agency}`;
+      if (!uniqueOpsMap.has(key)) {
+        uniqueOpsMap.set(key, c);
+      }
+    });
+
+    const operations = Array.from(uniqueOpsMap.values()).map((c, idx) => {
       const opId = c.recordNumber || `OP-${idx + 1}`;
-      const savedOp = dbOperations.find(o => o.opId === opId || o.location === c.operationLocation);
+      const savedOp = dbOperations.find(o => o.opId === opId || o.location === (c.operationLocation || c.sector));
 
       return {
         opId,
-        location: c.operationLocation || c.sector || 'Assigned District Sector',
+        location: c.operationLocation || c.sector || 'Ramnagar',
         agency: `${c.agency || 'NDRF'} (${c.unitDesignation || 'Tactical Team'})`,
         rescued: savedOp ? Number(savedOp.rescued) : (c.evacuatedCitizensCount && !isNaN(Number(c.evacuatedCitizensCount)) ? Number(c.evacuatedCitizensCount) : 48),
         stranded: savedOp ? Number(savedOp.stranded) : 15,
@@ -1050,13 +1096,21 @@ export const groundDb = {
     });
 
     // 5. Notifications from real flood alerts
-    const notifications = alerts.map((alt, idx) => ({
-      id: alt.id || `notif-${idx}`,
-      title: `${alt.severity.toUpperCase()} ALERT: ${alt.location} — ${alt.title}`,
-      priority: alt.severity === 'Critical' ? 'Critical' : (alt.severity === 'High' ? 'High' : 'Moderate'),
-      detail: alt.desc || `River hydrological telemetry indicates alert status at ${alt.location}.`,
-      time: alt.timestamp || 'Live Telemetry'
-    }));
+    const notifications = alerts.length > 0 
+      ? alerts.map((alt, idx) => ({
+          id: alt.id || `notif-${idx}`,
+          title: `${(alt.severity || 'Critical').toUpperCase()} ALERT: ${alt.location} — ${alt.title}`,
+          detail: alt.desc || alt.notes || 'Emergency flood monitoring alert.',
+          priority: alt.severity || 'Critical',
+          time: 'Just now'
+        }))
+      : areas.filter(a => a.severity === 'Critical').map((a, idx) => ({
+          id: `crit-alert-${idx}`,
+          title: `CRITICAL FLOOD ALERT: ${a.village}`,
+          detail: `Inundation alert active in ${a.block}. Estimated population at risk: ${a.pop} citizens.`,
+          priority: 'Critical',
+          time: 'Active Now'
+        }));
 
     // 6. Returns from Godown and Ground verifications
     const returns = (godownState.returns || []).map(r => ({

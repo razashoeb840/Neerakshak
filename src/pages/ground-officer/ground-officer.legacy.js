@@ -17,6 +17,7 @@ import {
   initGroundFloodMap,
   updateGroundAreaMarkers,
   focusGroundMap,
+  autoCenterGroundMapOnAreas,
   renderGroundRivers,
   filterGroundMapSeverity,
   searchGroundMap,
@@ -152,7 +153,7 @@ export default function initGroundOfficerPage() {
     setTimeout(() => {
       if (window.groundLeafletMapInstance) {
         window.groundLeafletMapInstance.invalidateSize();
-        focusGroundMap(coords[0], coords[1], 14);
+        focusGroundMap(coords[0], coords[1], 14, cleanName);
       }
       const mapSlot = document.getElementById('groundMapSlot');
       if (mapSlot) {
@@ -170,7 +171,7 @@ export default function initGroundOfficerPage() {
     const found = areas.find(a => a.village === vName);
     if (found) {
       const [lat, lng] = parseAreaCoordinates(found);
-      focusGroundMap(lat, lng, 14);
+      focusGroundMap(lat, lng, 14, vName);
       showToast(`Map centered on ${found.village}`);
     }
     renderAllGroundViews();
@@ -824,6 +825,10 @@ export default function initGroundOfficerPage() {
     try {
       await fetchFullGroundState();
       renderAllGroundViews();
+
+      if (state.areas && state.areas.length > 0) {
+        autoCenterGroundMapOnAreas(state.areas);
+      }
     } catch (e) {}
 
     startGroundOfficerSync(12000);
