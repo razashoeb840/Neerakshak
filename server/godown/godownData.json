@@ -1,0 +1,276 @@
+{
+  "inventory": [
+    {
+      "id": "INV-01",
+      "name": "Inflatable Rescue Boats with OBM",
+      "category": "Rescue Boats",
+      "warehouse": "Central Relief Godown – Mirza",
+      "total": 18,
+      "available": 11,
+      "allocated": 4,
+      "dispatched": 3,
+      "minLimit": 5,
+      "condition": "Good"
+    },
+    {
+      "id": "INV-02",
+      "name": "High-Buoyancy Life Jackets",
+      "category": "Life Jackets",
+      "warehouse": "Central Relief Godown – Mirza",
+      "total": 420,
+      "available": 290,
+      "allocated": 60,
+      "dispatched": 70,
+      "minLimit": 100,
+      "condition": "Good"
+    },
+    {
+      "id": "INV-03",
+      "name": "Dry Ration Food Packets",
+      "category": "Food Packets",
+      "warehouse": "Central Relief Godown – Mirza",
+      "total": 3500,
+      "available": 2150,
+      "allocated": 500,
+      "dispatched": 850,
+      "minLimit": 800,
+      "condition": "Good"
+    },
+    {
+      "id": "INV-04",
+      "name": "20L Drinking Water Canisters",
+      "category": "Drinking Water",
+      "warehouse": "North Sector Warehouse – Rangia",
+      "total": 600,
+      "available": 110,
+      "allocated": 150,
+      "dispatched": 340,
+      "minLimit": 150,
+      "condition": "Low Stock"
+    },
+    {
+      "id": "INV-05",
+      "name": "Essential Flood Medicine Kits",
+      "category": "Medicines",
+      "warehouse": "Central Relief Godown – Mirza",
+      "total": 450,
+      "available": 280,
+      "allocated": 80,
+      "dispatched": 90,
+      "minLimit": 100,
+      "condition": "Good"
+    },
+    {
+      "id": "INV-06",
+      "name": "Trauma First-Aid Kits",
+      "category": "First Aid Kits",
+      "warehouse": "North Sector Warehouse – Rangia",
+      "total": 160,
+      "available": 28,
+      "allocated": 30,
+      "dispatched": 102,
+      "minLimit": 40,
+      "condition": "Low Stock"
+    },
+    {
+      "id": "INV-07",
+      "name": "Solar Searchlights & Rope Kits",
+      "category": "Rescue Equipment",
+      "warehouse": "Central Relief Godown – Mirza",
+      "total": 95,
+      "available": 65,
+      "allocated": 10,
+      "dispatched": 20,
+      "minLimit": 25,
+      "condition": "Good"
+    },
+    {
+      "id": "INV-08",
+      "name": "Heavy Dewatering Submersible Pumps",
+      "category": "Rescue Equipment",
+      "warehouse": "North Sector Warehouse – Rangia",
+      "total": 24,
+      "available": 16,
+      "allocated": 4,
+      "dispatched": 4,
+      "minLimit": 6,
+      "condition": "Good"
+    },
+    {
+      "id": "INV-09",
+      "name": "Family Relief Tarpaulin Tents",
+      "category": "Rescue Equipment",
+      "warehouse": "Central Relief Godown – Mirza",
+      "total": 120,
+      "available": 85,
+      "allocated": 20,
+      "dispatched": 15,
+      "minLimit": 30,
+      "condition": "Good"
+    }
+  ],
+  "allocations": [
+    {
+      "id": "ALC-575",
+      "destination": "Police Colony",
+      "block": "Kahara, Saharsa",
+      "severity": "Normal",
+      "lat": 25.8828,
+      "lng": 86.5896,
+      "summary": "1 Boats, 33 Jackets, 264 Food, 44 Meds",
+      "needs": {
+        "boats": 1,
+        "jackets": 33,
+        "food": 264,
+        "meds": 44
+      },
+      "assignedGodown": "Central Relief Godown – Mirza",
+      "status": "Pending Dispatch",
+      "vehicle": "Heavy Truck AS-01-EC-4210",
+      "driver": "Rajesh Das (+91 98640-21943)",
+      "escortOfficer": "ASI D. Kalita (District Police)",
+      "refNo": "—",
+      "dispatchTime": "—",
+      "progress": 20
+    },
+    {
+      "id": "ALC-501",
+      "destination": "Palashbari Riverside Ward 2",
+      "block": "Palashbari Circle",
+      "severity": "Critical",
+      "lat": 26.132,
+      "lng": 91.515,
+      "summary": "5 Boats, 70 Jackets, 600 Food, 100 Meds",
+      "needs": {
+        "boats": 5,
+        "jackets": 70,
+        "food": 600,
+        "meds": 100
+      },
+      "assignedGodown": "Central Relief Godown – Mirza",
+      "status": "Dispatched",
+      "vehicle": "Heavy Truck AS-01-EC-4210",
+      "driver": "Rajesh Das (+91 98640-21943)",
+      "escortOfficer": "ASI D. Kalita (District Police)",
+      "refNo": "DSP-2026-941",
+      "dispatchTime": "Just now",
+      "progress": 75
+    },
+    {
+      "id": "ALC-502",
+      "destination": "Chaygaon Lowland Belt",
+      "block": "Chaygaon Circle",
+      "severity": "High",
+      "lat": 26.052,
+      "lng": 91.225,
+      "summary": "2 Boats, 30 Jackets, 450 Food, 65 Meds",
+      "needs": {
+        "boats": 2,
+        "jackets": 30,
+        "food": 450,
+        "meds": 65
+      },
+      "assignedGodown": "Central Relief Godown – Mirza (Bay 1)",
+      "status": "Dispatched",
+      "vehicle": "Medium Truck AS-01-GC-4821",
+      "driver": "Biren Barman (+91 94351-78201)",
+      "escortOfficer": "Constable N. Sarma",
+      "refNo": "DSP-2026-884",
+      "dispatchTime": "Today, 09:40 AM",
+      "progress": 75
+    },
+    {
+      "id": "ALC-503",
+      "destination": "Goroimari Char Cluster",
+      "block": "Goroimari Circle",
+      "severity": "Moderate",
+      "lat": 26.095,
+      "lng": 91.34,
+      "summary": "1 Boat, 15 Jackets, 250 Food, 40 Meds",
+      "needs": {
+        "boats": 1,
+        "jackets": 15,
+        "food": 250,
+        "meds": 40
+      },
+      "assignedGodown": "North Sector Warehouse – Rangia",
+      "status": "Dispatched",
+      "vehicle": "Pickup AS-14-B-9912 & Motorized Barge",
+      "driver": "Abdul Munnaf (+91 97060-44129)",
+      "escortOfficer": "Home Guard J. Medhi",
+      "refNo": "DSP-2026-884",
+      "dispatchTime": "Today, 08:15 AM",
+      "progress": 75
+    }
+  ],
+  "returns": [
+    {
+      "id": "RET-301",
+      "resourceId": "INV-01",
+      "resourceName": "Inflatable Rescue Boats",
+      "from": "Boko Relief Sector",
+      "good": 2,
+      "damaged": 0,
+      "missing": 0,
+      "date": "Yesterday, 06:15 PM"
+    }
+  ],
+  "movements": [
+    {
+      "time": "Just now",
+      "type": "DISPATCH",
+      "item": "undefined undefined",
+      "party": "To: Palashbari Riverside Ward 2",
+      "note": "Ref: DSP-2026-941 • Vehicle Heavy Truck AS-01-EC-4210"
+    },
+    {
+      "time": "Today, 09:40 AM",
+      "type": "DISPATCH",
+      "item": "450 Food Packets, 30 Jackets, 2 Boats",
+      "party": "To: Chaygaon Lowland Belt",
+      "note": "Ref: DSP-2026-884 • Vehicle: AS-01-GC-4821 (Awaiting Ground Officer Receipt)"
+    },
+    {
+      "time": "Today, 08:30 AM",
+      "type": "STOCK IN",
+      "item": "150 Essential Flood Medicine Kits",
+      "party": "From: State SDMA Supply",
+      "note": "Received at Central Relief Godown – Mirza (Bay 2)"
+    },
+    {
+      "time": "Yesterday, 06:15 PM",
+      "type": "RETURN",
+      "item": "2 Inflatable Rescue Boats (Good)",
+      "party": "From: Boko Relief Sector",
+      "note": "Condition verified Good; restocked to Available"
+    }
+  ],
+  "warehouses": [
+    {
+      "id": "WH-MIRZA",
+      "name": "Central Relief Godown – Mirza",
+      "manager": "Kamal Sarma (Depot Custodian)",
+      "phone": "+91 94350-11204",
+      "address": "NH-17 Logistics Corridor, Mirza, Kamrup",
+      "coords": [
+        26.082,
+        91.531
+      ],
+      "bays": 4,
+      "capacity": "12,000 m³"
+    },
+    {
+      "id": "WH-RANGIA",
+      "name": "North Sector Warehouse – Rangia",
+      "manager": "Pranjal Deka (Sub-depot Officer)",
+      "phone": "+91 98641-44589",
+      "address": "Industrial Area, Rangia, Kamrup",
+      "coords": [
+        26.435,
+        91.618
+      ],
+      "bays": 2,
+      "capacity": "6,500 m³"
+    }
+  ]
+}

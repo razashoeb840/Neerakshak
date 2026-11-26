@@ -157,7 +157,18 @@ export const authorityService = {
         village: req.village,
         summary: req.items,
         godownStatus: 'Sent to Godown Manager • Preparing Dispatch',
-        deliveryProgress: 35,
+        deliveryProgress: 25,
+        assignedGodown: 'Central Relief Godown – Mirza (Bay 1)',
+        vehicle: 'Heavy Relief Truck AS-01-EC-4210',
+        driver: 'Rajesh Das (+91 98640-21943)',
+        escortOfficer: 'District Police Escort Assigned',
+        timeline: [
+          { step: 'Field Request Approved', time: 'Just now', status: 'done', detail: `Request ${req.id} for ${req.village} approved per flood assessment.` },
+          { step: 'Godown Stock Picking', time: 'Pending', status: 'active', detail: 'Picking verified relief inventory at Central Godown.' },
+          { step: 'Vehicle Loading & Gatepass', time: 'Pending', status: 'pending', detail: 'Pallets loading & weighbridge inspection.' },
+          { step: 'Route Transit', time: 'Pending', status: 'pending', detail: 'Moving towards destination sector.' },
+          { step: 'Camp Delivery Receipt', time: 'Pending', status: 'pending', detail: 'Handover to Ground Officer.' }
+        ],
         timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
       };
       if (!store.allocations) store.allocations = [];
@@ -180,12 +191,51 @@ export const authorityService = {
 
   createAllocation(allocData) {
     if (!store.allocations) store.allocations = [];
+    const villageClean = String(allocData.village || '').trim().toLowerCase();
+    const existing = store.allocations.find(a => a.village && a.village.trim().toLowerCase() === villageClean);
+
+    if (existing) {
+      existing.summary = allocData.summary || existing.summary;
+      if (allocData.itemsDetail && allocData.itemsDetail.length > 0) {
+        existing.itemsDetail = allocData.itemsDetail;
+      }
+      existing.godownStatus = 'Updated by Authority • Preparing Dispatch';
+      existing.timestamp = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      if (!existing.timeline) existing.timeline = [];
+      existing.timeline.unshift({
+        step: 'Allocation Order Adjusted',
+        time: 'Just now',
+        status: 'done',
+        detail: `Emergency supplies updated by District Authority to: ${existing.summary}`
+      });
+
+      this.addLog({
+        actor: 'District Authority (DDMA)',
+        note: `Updated allocation (${existing.summary}) for ${existing.village} (${existing.id}); notified Godown Manager.`
+      });
+
+      writeData(store);
+      return existing;
+    }
+
     const newAlloc = {
       id: allocData.id || `ALC-${Math.floor(530 + Math.random() * 70)}`,
       village: allocData.village || 'Sector Village',
       summary: allocData.summary || 'Emergency Ration & Equipment Buffer',
       godownStatus: allocData.godownStatus || 'Sent to Godown Manager • Awaiting Dispatch',
-      deliveryProgress: allocData.deliveryProgress || 35,
+      deliveryProgress: allocData.deliveryProgress || 25,
+      assignedGodown: allocData.assignedGodown || 'Central Relief Godown – Mirza (Bay 2)',
+      vehicle: allocData.vehicle || 'Heavy Truck AS-01-EC-4210 (6-Ton Swaraj)',
+      driver: allocData.driver || 'Rajesh Das (Ph: +91 98640-21943)',
+      escortOfficer: allocData.escortOfficer || 'ASI D. Kalita (District Police Escort)',
+      itemsDetail: allocData.itemsDetail || [],
+      timeline: allocData.timeline || [
+        { step: 'DDMA Allocation Approved', time: 'Just now', status: 'done', detail: `Direct allocation approved by Authority & transmitted to Godown Manager.` },
+        { step: 'Stock Verification & Staging', time: 'In Progress', status: 'active', detail: 'Godown warehouse crew picking verified stock from storage racks.' },
+        { step: 'Vehicle Dispatch & Gate Pass', time: 'Pending', status: 'pending', detail: 'Pallets loading & security checkpoint clearance.' },
+        { step: 'Route Checkpoint Crossing', time: 'Pending', status: 'pending', detail: 'Transit via high-water bypass bridge towards destination.' },
+        { step: 'Camp Intake & Final Distribution', time: 'Pending', status: 'pending', detail: 'Handover to Ground Officer and receipt acknowledgement.' }
+      ],
       timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
     };
     store.allocations.unshift(newAlloc);
@@ -208,16 +258,22 @@ export const authorityService = {
     if (!store.coordinations) store.coordinations = [];
     const record = {
       id: coordData.id || `CORD-${Math.floor(105 + Math.random() * 90)}`,
-      agency: coordData.agency || 'NDRF (1st Bn)',
-      sector: coordData.sector || 'District Lowland',
-      update: coordData.update || 'Coordinated emergency deployment.',
+      agency: coordData.agency || 'NDRF (1st Battalion)',
+      commander: coordData.commander || 'Field Incident Commander',
+      designation: coordData.designation || 'Unit Operations Lead',
+      contact: coordData.contact || 'VHF Ch-07 / DEOC Hotline',
+      strength: coordData.strength || '24 Deep-Water Personnel • Inflatables',
+      sector: coordData.sector || 'District Sector',
+      status: coordData.status || 'Deployed On Water',
+      update: coordData.update || coordData.callLog || 'Coordinated emergency deployment.',
+      callLog: coordData.callLog || coordData.update || 'Coordinated emergency deployment.',
       timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
     };
     store.coordinations.unshift(record);
 
     this.addLog({
       actor: 'District Authority (DDMA)',
-      note: `Logged ${record.agency} deployment update for ${record.sector}.`
+      note: `Logged ${record.agency} (${record.commander}) deployment update for ${record.sector}.`
     });
 
     writeData(store);

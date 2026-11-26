@@ -103,24 +103,18 @@ const markup = (
         {" "}
         {/* LEFT VERTICAL ICON RAIL: MATCHED TO 2ADMIN.HTML (70px, EXTENDED HEIGHT & FLUSH ALIGNMENT) */}
         <aside className="left-rail">
-          <button className="rail-btn auth-nav-btn active" data-tab="dashboard" onClick={(event) => window.switchAuthTab('dashboard', event.currentTarget)} title="DDMA Authority Dashboard">
-            <i className="fas fa-gauge-high"></i>
-            {" "}
-            <span>Dashboard</span>
-          </button>
-          {" "}
-          <button className="rail-btn auth-nav-btn" data-tab="map-critical" onClick={(event) => window.switchAuthTab('map-critical', event.currentTarget)} title={"Flood Map & Critical Villages"}>
+          <button className="rail-btn auth-nav-btn active" data-tab="dashboard" onClick={(event) => window.switchAuthTab('dashboard', event.currentTarget)} title="District Flood Map & Live Resource Assessment">
             <i className="fas fa-map-location-dot"></i>
             {" "}
             <span>Flood Map</span>
-            {" "}
-            <span className="rail-badge-count" id="navCriticalBadge">0</span>
           </button>
           {" "}
-          <button className="rail-btn auth-nav-btn" data-tab="area-details" onClick={(event) => window.switchAuthTab('area-details', event.currentTarget)} title={"Area Details & Resource Assessment"}>
-            <i className="fas fa-house-flood-water"></i>
+          <button className="rail-btn auth-nav-btn" data-tab="map-critical" onClick={(event) => window.switchAuthTab('map-critical', event.currentTarget)} title="Village Flood Severity Assessment Matrix">
+            <i className="fas fa-table-cells"></i>
             {" "}
             <span>Assess</span>
+            {" "}
+            <span className="rail-badge-count" id="navCriticalBadge">0</span>
           </button>
           {" "}
           <button className="rail-btn auth-nav-btn" data-tab="requests" onClick={(event) => window.switchAuthTab('requests', event.currentTarget)} title="Field Resource Requests & Approval Desk">
@@ -129,12 +123,6 @@ const markup = (
             <span>Requests</span>
             {" "}
             <span className="rail-badge-count" id="navReqBadge">0</span>
-          </button>
-          {" "}
-          <button className="rail-btn auth-nav-btn" data-tab="allocation" onClick={(event) => window.switchAuthTab('allocation', event.currentTarget)} title="Resource Allocation to Godown">
-            <i className="fas fa-boxes-packing"></i>
-            {" "}
-            <span>Allocate</span>
           </button>
           {" "}
           <button className="rail-btn auth-nav-btn" data-tab="tracking" onClick={(event) => window.switchAuthTab('tracking', event.currentTarget)} title="Godown Delivery Tracking">
@@ -206,7 +194,7 @@ const markup = (
                   <button className="btn-card-action" style={{ color: "#c2410c" }} onClick={() => window.filterAuthorityMapSeverity && window.filterAuthorityMapSeverity('High')}>High Only</button>
                 </div>
               </div>
-              <div id="authorityMapSlot" style={{ position: "relative" }}>
+              <div id="authorityMapSlot" style={{ position: "relative", height: "480px" }}>
                 <div id="authorityLeafletMap" style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0, zIndex: 1, borderRadius: "12px" }}></div>
                 <div className="map-float-search" style={{ zIndex: 10 }}>
                   <i className="fas fa-search" style={{ color: "#64748b" }}></i>
@@ -216,7 +204,7 @@ const markup = (
                 <div className="map-legend-overlay" style={{ zIndex: 10 }}>
                   <span>
                     <i className="l-dot" style={{ background: "#dc2626" }}></i>
-                    Critical
+                    Critical / Above Danger
                   </span>
                   {" "}
                   <span>
@@ -245,29 +233,21 @@ const markup = (
                 </div>
               </div>
             </div>
-            {/* Critical Affected Villages Grid */}
-            <div className="aqua-card anim-card">
-              <div className="card-head">
-                <h2>
-                  <i className="fas fa-triangle-exclamation" style={{ color: "#dc2626" }}></i>
-                  {" Critical & High Affected Villages (Click to Open Area Details)"}
-                </h2>
-                <button className="btn-card-action" onClick={(event) => window.switchAuthTab('map-critical', document.querySelector('[data-tab=map-critical]'))}>Full Area Matrix →</button>
-              </div>
-              <div className="cards-grid-2" id="dashCriticalVillagesGrid"></div>
-            </div>
           </div>
           {/* ===============================================================
-                 SECTION 2: FLOOD MAP & CRITICAL AREAS
+                 SECTION 2: VILLAGE FLOOD SEVERITY MATRIX (ASSESS MATRIX & DIRECT ALLOCATION)
                  =============================================================== */}
           <div className="tab-view-pane" id="tab-map-critical">
+            {/* INTEGRATED AREA DETAILS & RESOURCE ASSESSMENT CALCULATOR (DIRECT GODOWN ALLOCATION - 4TH IMAGE) */}
+            <div className="aqua-card anim-card" id="areaDetailsPanel" style={{ marginBottom: "14px" }}></div>
+
             <div className="aqua-card">
               <div className="card-head">
                 <h2>
-                  <i className="fas fa-map-marked-alt" style={{ color: "var(--river-blue)" }}></i>
-                  {" Flood Map & Critical Village Identification"}
+                  <i className="fas fa-table-cells" style={{ color: "var(--river-blue)" }}></i>
+                  {" Village Flood Severity Assessment Matrix (Recent & Critical First)"}
                 </h2>
-                <select id="mapSevSelect" className="form-control" style={{ padding: "4px 10px", fontSize: "11.5px", width: "auto" }} onChange={(event) => window.renderAllAuthorityViews()}>
+                <select id="mapSevSelect" className="form-control" style={{ padding: "4px 10px", fontSize: "11.5px", width: "auto" }} onChange={(event) => window.renderAllAuthorityViews && window.renderAllAuthorityViews()}>
                   <option value="ALL">All Severity Zones</option>
                   <option value="Critical">Critical Zones</option>
                   <option value="High">High Risk Zones</option>
@@ -278,13 +258,7 @@ const markup = (
             </div>
           </div>
           {/* ===============================================================
-                 SECTION 3: AREA DETAILS & RESOURCE ASSESSMENT CALCULATOR
-                 =============================================================== */}
-          <div className="tab-view-pane" id="tab-area-details">
-            <div className="aqua-card" id="areaDetailsPanel"></div>
-          </div>
-          {/* ===============================================================
-                 SECTION 4: FIELD RESOURCE REQUESTS & APPROVAL DESK (MERGED)
+                 SECTION 3: FIELD RESOURCE REQUESTS & APPROVAL DESK (MERGED)
                  =============================================================== */}
           <div className="tab-view-pane" id="tab-requests">
             <div className="aqua-card">
@@ -306,31 +280,7 @@ const markup = (
             </div>
           </div>
           {/* ===============================================================
-                 SECTION 6: RESOURCE ALLOCATION & GODOWN COORDINATION
-                 =============================================================== */}
-          <div className="tab-view-pane" id="tab-allocation">
-            <div className="aqua-card">
-              <div className="card-head">
-                <h2>
-                  <i className="fas fa-boxes-packing" style={{ color: "var(--river-blue)" }}></i>
-                  {" Direct Resource Allocation & Godown Manager Dispatch Directive"}
-                </h2>
-                <button className="btn-card-action approve" onClick={(event) => window.openDirectAllocModal()}>
-                  <i className="fas fa-plus"></i>
-                  {" Allocate to Village"}
-                </button>
-              </div>
-              <div style={{ background: "#eef6fd", borderLeft: "3.5px solid var(--river-blue)", padding: "8px 12px", borderRadius: "8px", fontSize: "11.5px", color: "var(--navy-deep)", marginBottom: "12px" }}>
-                <strong>Godown Coordination Protocol:</strong>
-                {" Approved allocations are automatically transmitted to the "}
-                <strong>Godown Manager Portal</strong>
-                {" for physical stock verification, packing, and vehicle dispatch. "}
-              </div>
-              <div className="cards-grid-2" id="allocatedVillagesGrid"></div>
-            </div>
-          </div>
-          {/* ===============================================================
-                 SECTION 7: ALLOCATION TRACKING (DISPATCH & DELIVERY MONITOR)
+                 SECTION 4: ALLOCATION TRACKING (GODOWN DISPATCH & DELIVERY MONITOR)
                  =============================================================== */}
           <div className="tab-view-pane" id="tab-tracking">
             <div className="aqua-card">
@@ -339,6 +289,7 @@ const markup = (
                   <i className="fas fa-truck-fast" style={{ color: "var(--river-blue)" }}></i>
                   {" Allocation, Godown Dispatch & Ground Delivery Tracking"}
                 </h2>
+                <span style={{ fontSize: "11.5px", color: "var(--text-muted)" }}>Tap any area card to view step-by-step convoy transit & checkpoints</span>
               </div>
               <div className="cards-grid-2" id="trackingGrid"></div>
             </div>
@@ -563,9 +514,12 @@ const markup = (
         </div>
       </div>
       <div className="modal-overlay" id="coordModal" onClick={(event) => window.closeModal('coordModal')}>
-        <div className="modal-box" onClick={(event) => event.stopPropagation()}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-            <h3 style={{ margin: "0", fontSize: "16px", color: "var(--navy-deep)" }}>Record NDRF / SDRF Official Coordination</h3>
+        <div className="modal-box" style={{ maxWidth: "560px" }} onClick={(event) => event.stopPropagation()}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+            <h3 style={{ margin: "0", fontSize: "16px", color: "var(--navy-deep)" }}>
+              <i className="fas fa-life-ring" style={{ color: "var(--river-blue)", marginRight: "6px" }}></i>
+              {"Record NDRF / SDRF Official Coordination & SITREP"}
+            </h3>
             <button onClick={(event) => window.closeModal('coordModal')} style={{ border: "none", background: "#e2e8f0", width: "28px", height: "28px", borderRadius: "50%", cursor: "pointer" }}>
               <i className="fas fa-times"></i>
             </button>
@@ -573,27 +527,77 @@ const markup = (
           <form onSubmit={(event) => window.submitCoordRecord(event)}>
             <div className="form-grid-2">
               <div className="form-group">
-                <label>Response Force *</label>
+                <label>Response Force Agency *</label>
                 {" "}
                 <select id="coordAgency" className="form-control">
-                  <option value="NDRF (1st Bn)">NDRF (1st Bn)</option>
-                  <option value="SDRF District Unit">SDRF District Unit</option>
+                  <option value="NDRF (1st Battalion, Patgaon)">NDRF (1st Battalion, Patgaon)</option>
+                  <option value="SDRF District Unit (Guwahati Central)">SDRF District Unit (Guwahati Central)</option>
+                  <option value="Indian Army (Red Horns Division)">Indian Army (Red Horns Division)</option>
                   <option value={"River Police & Civil Defence"}>{"River Police & Civil Defence"}</option>
                 </select>
               </div>
               <div className="form-group">
-                <label>Affected Sector *</label>
+                <label>Affected Sector / Location *</label>
                 {" "}
-                <input type="text" id="coordSector" className="form-control" placeholder="e.g. Palashbari Ward 2" required />
+                <input type="text" id="coordSector" className="form-control" placeholder="e.g. Palashbari Riverside Ward 2" required />
+              </div>
+            </div>
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label>Incident Commander / Officer Name *</label>
+                {" "}
+                <input type="text" id="coordCommander" className="form-control" placeholder="e.g. Inspector Vikram Rathore" required />
+              </div>
+              <div className="form-group">
+                <label>Officer Designation / Role *</label>
+                {" "}
+                <input type="text" id="coordDesignation" className="form-control" placeholder="e.g. Team Alpha Commander" required />
+              </div>
+            </div>
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label>Communication Channel / Contact *</label>
+                {" "}
+                <input type="text" id="coordContact" className="form-control" placeholder="e.g. VHF Ch-07 / +91 94350-11234" required />
+              </div>
+              <div className="form-group">
+                <label>Operational Status *</label>
+                {" "}
+                <select id="coordStatus" className="form-control">
+                  <option value="Deployed On Water">Deployed On Water</option>
+                  <option value="Active Rescue Sortie">Active Rescue Sortie</option>
+                  <option value="On Standby at Staging Area">On Standby at Staging Area</option>
+                  <option value="Mission Successful">Mission Successful</option>
+                </select>
               </div>
             </div>
             <div className="form-group">
-              <label>{"Official Channel & Status Update *"}</label>
+              <label>Force Strength & Assets Deployed</label>
               {" "}
-              <input type="text" id="coordUpdate" className="form-control" placeholder="e.g. Coordinated via DEOC Hotline; 2 boat teams active" required />
+              <input type="text" id="coordStrength" className="form-control" placeholder="e.g. 28 Deep-Water Personnel • 4 Zodiacs • 2 OBMs" />
             </div>
-            <button type="submit" className="btn-save-primary">Save Official Coordination Record</button>
+            <div className="form-group">
+              <label>Official Call / SITREP Dialogue & Tactical Action Taken *</label>
+              {" "}
+              <textarea id="coordUpdate" className="form-control" rows="3" placeholder="e.g. Spoke with Insp. Rathore on VHF. Agreed to deploy 2 boat teams immediately behind primary school..." required />
+            </div>
+            <button type="submit" className="btn-save-primary">Save Multi-Agency Coordination Record</button>
           </form>
+        </div>
+      </div>
+      {/* INTERACTIVE TRACKING DOSSIER MODAL */}
+      <div className="modal-overlay" id="trackingDetailModal" onClick={() => window.closeModal('trackingDetailModal')}>
+        <div className="modal-box" style={{ maxWidth: "600px", maxHeight: "90vh", overflowY: "auto" }} onClick={(event) => event.stopPropagation()}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", borderBottom: "1px solid #e2e8f0", paddingBottom: "8px" }}>
+            <div>
+              <h3 id="trackModalHeading" style={{ margin: "0", fontSize: "16px", color: "var(--navy-deep)" }}>Allocation Dispatch Live Journey</h3>
+              <span id="trackModalSub" style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: "600" }}></span>
+            </div>
+            <button onClick={() => window.closeModal('trackingDetailModal')} style={{ border: "none", background: "#e2e8f0", width: "28px", height: "28px", borderRadius: "50%", cursor: "pointer" }}>
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+          <div id="trackModalBody"></div>
         </div>
       </div>
       <div className="modal-overlay" id="opModal" onClick={(event) => window.closeModal('opModal')}>

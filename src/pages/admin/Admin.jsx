@@ -225,20 +225,6 @@ const markup = (
                 </div>
               </div>
             </div>
-            {/* MAP DATA MAINTENANCE GRID CARDS */}
-            <div className="aqua-card anim-card">
-              <div className="card-head">
-                <h2>
-                  <i className="fas fa-layer-group" style={{ color: "var(--foliage-mid)" }}></i>
-                  {" Map Data Maintenance – Marked Flood Zones & Severity"}
-                </h2>
-                <button className="card-action-btn" onClick={(event) => window.openAreaModal()}>
-                  <i className="fas fa-plus-circle"></i>
-                  {" Mark New Area"}
-                </button>
-              </div>
-              <div className="cards-grid-2" id="mapZonesCardGrid"></div>
-            </div>
           </div>
           {/* TAB 2: ALL FLOOD ZONES & SEVERITY GRID */}
           <div className="tab-view-pane" id="tab-areas-grid">

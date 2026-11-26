@@ -241,38 +241,6 @@ const markup = (
                 </div>
               </div>
             </div>
-            {/* DELIVERY VERIFICATION CARDS (Linked to Godown Dispatches) */}
-            <div className="aqua-card anim-card">
-              <div className="card-head">
-                <h2>
-                  <i className="fas fa-truck-ramp-box" style={{ color: "var(--river-blue)" }}></i>
-                  {" Delivery Verification Queue (Godown Dispatched Consignments)"}
-                </h2>
-                <button className="btn-go" onClick={(event) => window.switchGroundTab('delivery-verify', document.querySelector('[data-tab=delivery-verify]'))}>Full Verification Desk →</button>
-              </div>
-              <div className="grid-2 switchable-collection" id="dashDeliveryCards"></div>
-            </div>
-            {/* FIELD SITUATION & RESCUE OPERATIONS OVERVIEW */}
-            <div className="grid-2">
-              <div className="aqua-card anim-card">
-                <div className="card-head">
-                  <h2>
-                    <i className="fas fa-house-flood-water" style={{ color: "#dc2626" }}></i>
-                    {" Latest Field Situation Observations"}
-                  </h2>
-                </div>
-                <div className="grid-2 switchable-collection" id="dashFieldSitCards"></div>
-              </div>
-              <div className="aqua-card anim-card">
-                <div className="card-head">
-                  <h2>
-                    <i className="fas fa-life-ring" style={{ color: "var(--foliage-mid)" }}></i>
-                    {" Assigned Rescue Operations Progress"}
-                  </h2>
-                </div>
-                <div className="grid-2 switchable-collection" id="dashRescueOpsCards"></div>
-              </div>
-            </div>
           </div>
           {/* ===============================================================
                  TAB 2: MY ASSIGNED AREAS (READ-ONLY ASSIGNMENT SCOPE)

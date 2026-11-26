@@ -380,26 +380,37 @@ export function updateMapLayers(areas = [], facilities = [], rivers = []) {
       return;
     }
 
-    const color = getSeverityColor(area.severity);
-    const radius = getSeverityRadius(area.severity);
+    // Check if river waterlevel is above danger or critical breach
+    const nearest = detectNearestRiver(lat, lng);
+    const riverName = area.river || nearest.name;
+    const riverCur = area.riverCurrent !== undefined ? Number(area.riverCurrent) : (nearest.current || 18.2);
+    const riverDang = area.riverDanger !== undefined ? Number(area.riverDanger) : (nearest.danger || 18.0);
+    const isOver = (riverCur >= riverDang) ||
+                   String(area.notes || '').toLowerCase().includes('above danger') ||
+                   area.severity === 'Critical';
 
-    // Inundation Risk Buffer Circle
+    const color = isOver ? '#dc2626' : getSeverityColor(area.severity);
+    const radius = getSeverityRadius(isOver ? 'Critical' : area.severity);
+
+    // Inundation Risk Buffer Circle (RED for above danger)
     L.circle([lat, lng], {
       color: color,
       fillColor: color,
-      fillOpacity: area.severity === 'Critical' ? 0.28 : 0.18,
-      weight: area.severity === 'Critical' ? 2.5 : 1.5,
+      fillOpacity: isOver ? 0.32 : 0.18,
+      weight: isOver ? 2.8 : 1.5,
       radius: radius
     }).addTo(zonesLayerGroup);
 
     // Custom HTML Marker Icon
     const iconHtml = `
-      <div class="custom-flood-pin ${area.severity.toLowerCase()}">
+      <div class="custom-flood-pin ${isOver ? 'critical' : area.severity.toLowerCase()}">
         <span class="pin-pulse" style="background:${color};"></span>
         <div class="pin-head" style="background:${color};">
           <i class="fas fa-triangle-exclamation"></i>
         </div>
-        <div class="pin-title">${area.name}</div>
+        <div class="pin-title" style="${isOver ? 'background:#dc2626; color:#fff; border:1px solid #fee2e2;' : ''}">
+          ${area.name} ${isOver ? '<span style="font-size:8px; display:block; color:#fef08a;">⚠️ ABOVE DANGER</span>' : ''}
+        </div>
       </div>
     `;
 
@@ -412,12 +423,6 @@ export function updateMapLayers(areas = [], facilities = [], rivers = []) {
     });
 
     const marker = L.marker([lat, lng], { icon: customIcon }).addTo(zonesLayerGroup);
-
-    // River danger detail
-    const riverName = area.river || detectNearestRiver(lat, lng).name;
-    const riverCur = area.riverCurrent !== undefined ? area.riverCurrent : '18.2';
-    const riverDang = area.riverDanger !== undefined ? area.riverDanger : '18.0';
-    const isOver = Number(riverCur) >= Number(riverDang);
 
     const popupContent = `
       <div class="map-rich-popup">

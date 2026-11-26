@@ -77,6 +77,12 @@ export default function initAuthorityPage() {
   function switchAuthTab(tabKey, btnEl) {
     try {
       if (tabKey === 'approval') tabKey = 'requests';
+      if (tabKey === 'area-details' || tabKey === 'allocation') {
+        tabKey = 'dashboard';
+        const panel = document.getElementById('areaDetailsPanel');
+        if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
       document.querySelectorAll('.auth-nav-btn').forEach(b => b.classList.remove('active'));
       if (btnEl) {
         btnEl.classList.add('active');
@@ -112,8 +118,17 @@ export default function initAuthorityPage() {
   function selectVillageForAssessment(villageId, openDetailsTab = false) {
     selectedVillageId = villageId;
     renderAllAuthorityViews();
-    if (openDetailsTab) {
-      switchAuthTab('area-details', document.querySelector('[data-tab=area-details]'));
+
+    const panel = document.getElementById('areaDetailsPanel');
+    if (panel) {
+      panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      panel.style.boxShadow = '0 0 0 3px #38bdf8';
+      setTimeout(() => { panel.style.boxShadow = ''; }, 1400);
+    }
+
+    const v = (state.villages || []).find(item => item.id === villageId);
+    if (v && v.lat && v.lng && window.authorityLeafletMapInstance) {
+      window.authorityLeafletMapInstance.setView([Number(v.lat), Number(v.lng)], 13, { animate: true });
     }
   }
 
@@ -161,14 +176,57 @@ export default function initAuthorityPage() {
         `).join('');
       }
 
-      // 2. Village Cards Helper
+      // 2. Village Cards Helper (with Embedded 4-Resource Number Allocation & Deduplication)
+      // Sort villages: Recent & Critical First
+      const severityRank = { 'Critical': 4, 'High': 3, 'Moderate': 2, 'Normal': 1 };
+      const sortedVillages = [...villages].sort((a, b) => {
+        const isDangerA = String(a.waterStatus || '').toLowerCase().includes('above danger') ||
+                          String(a.waterStatus || '').toLowerCase().includes('overflow') ||
+                          String(a.waterStatus || '').toLowerCase().includes('breach') ||
+                          a.severity === 'Critical';
+        const isDangerB = String(b.waterStatus || '').toLowerCase().includes('above danger') ||
+                          String(b.waterStatus || '').toLowerCase().includes('overflow') ||
+                          String(b.waterStatus || '').toLowerCase().includes('breach') ||
+                          b.severity === 'Critical';
+
+        if (isDangerA && !isDangerB) return -1;
+        if (!isDangerA && isDangerB) return 1;
+
+        const rankA = severityRank[a.severity] || 0;
+        const rankB = severityRank[b.severity] || 0;
+        if (rankA !== rankB) return rankB - rankA;
+
+        // Numeric timestamp in ID if created via Admin (area-1795...)
+        const timeA = String(a.id || '').startsWith('area-') ? Number(a.id.replace('area-', '')) : 0;
+        const timeB = String(b.id || '').startsWith('area-') ? Number(b.id.replace('area-', '')) : 0;
+        if (timeA !== timeB) return timeB - timeA;
+
+        return String(b.id || '').localeCompare(String(a.id || ''));
+      });
+
+      if (!selectedVillageId || !sortedVillages.find(v => v.id === selectedVillageId)) {
+        selectedVillageId = sortedVillages[0]?.id;
+      }
+
       const renderVillageCards = (list) => {
         if (!list || list.length === 0) {
           return `<div style="grid-column:1/-1; text-align:center; padding:18px; border:1.5px dashed #9cc3e6; border-radius:12px; color:var(--text-muted);">No flood-affected villages loaded from Admin telemetry.</div>`;
         }
         return list.map(v => {
-          const boats = (v.assessedNeed && v.assessedNeed.boats) || 2;
-          const food = (v.assessedNeed && v.assessedNeed.food) || 300;
+          const boats = (v.assessedNeed && v.assessedNeed.boats) !== undefined ? v.assessedNeed.boats : 2;
+          const jackets = (v.assessedNeed && v.assessedNeed.jackets) !== undefined ? v.assessedNeed.jackets : 30;
+          const food = (v.assessedNeed && v.assessedNeed.food) !== undefined ? v.assessedNeed.food : 300;
+          const meds = (v.assessedNeed && v.assessedNeed.meds) !== undefined ? v.assessedNeed.meds : 50;
+
+          // Check if this village already has an allocation in state
+          const vClean = String(v.name || '').trim().toLowerCase();
+          const existingAlloc = (allocations || []).find(a => a.village && a.village.trim().toLowerCase() === vClean);
+          const isAllocated = !!existingAlloc;
+          const isVOver = String(v.waterStatus || '').toLowerCase().includes('above danger') ||
+                          String(v.waterStatus || '').toLowerCase().includes('overflow') ||
+                          String(v.waterStatus || '').toLowerCase().includes('breach') ||
+                          v.severity === 'Critical';
+
           return `
             <div class="decision-card" style="${v.id === selectedVillageId ? 'border-color:#0284c7; background:#ffffff; box-shadow:0 4px 14px rgba(2,132,199,0.15);' : ''}">
               <div class="dc-top">
@@ -176,16 +234,62 @@ export default function initAuthorityPage() {
                   <h4>${v.name}</h4>
                   <span style="font-size:11px; color:var(--text-muted); font-weight:600;">${v.block || 'Revenue Circle'}</span>
                 </div>
-                <span class="status-pill ${getSevPill(v.severity)}">${v.severity}</span>
+                <div style="display:flex; gap:5px; align-items:center;">
+                  ${isVOver ? `<span class="status-pill st-critical" style="font-size:9.5px; padding:2px 7px;"><i class="fas fa-triangle-exclamation"></i> ABOVE DANGER</span>` : ''}
+                  ${isAllocated ? `<span class="status-pill st-normal" style="font-size:9.5px; padding:2px 7px;"><i class="fas fa-check"></i> ${existingAlloc.id} Allocated</span>` : ''}
+                  <span class="status-pill ${getSevPill(v.severity)}">${v.severity}</span>
+                </div>
               </div>
               <div class="dc-meta-box">
                 <span>Affected Pop: <strong>${(v.pop || 0).toLocaleString()}</strong></span>
-                <span>Need: <strong>${boats} Boats, ${food} Food</strong></span>
+                <span>Hydrology: <strong style="${isVOver ? 'color:#dc2626; font-weight:800;' : ''}">${v.waterStatus ? v.waterStatus.split(' (')[0] : 'Monitoring'}</strong></span>
               </div>
-              <p style="margin:0; font-size:11.5px; color:var(--text-body);">${v.waterStatus || 'Water level monitoring in progress'}</p>
-              <div class="dc-actions">
-                <button type="button" class="btn-card-action" onclick="window.selectVillageForAssessment('${v.id}', true)"><i class="fas fa-eye"></i> Area Details & Assess</button>
-                <button type="button" class="btn-card-action approve" onclick="window.quickSendVillageToGodown('${v.id}')"><i class="fas fa-paper-plane"></i> Allocate to Godown</button>
+
+              <!-- 4-Resource Number Allocation Section right inside the card -->
+              <div class="village-res-allocation-box">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span style="font-size:10.5px; font-weight:700; color:var(--navy-deep);"><i class="fas fa-boxes-stacked" style="color:var(--river-blue);"></i> Resource Allocation Numbers:</span>
+                  ${isAllocated
+                    ? `<span style="font-size:10px; color:#15803d; font-weight:700;"><i class="fas fa-circle-check"></i> Dispatched to Godown</span>`
+                    : `<span style="font-size:10px; color:#64748b; font-weight:600;">Edit & Dispatch</span>`
+                  }
+                </div>
+                <div class="card-resource-grid">
+                  <div class="res-num-pill">
+                    <label><i class="fas fa-sailboat" style="color:#0284c7;"></i> Boats</label>
+                    <input type="number" id="cardBoats_${v.id}" class="res-card-input" value="${boats}" min="0" onchange="window.updateVillageResourceNeed('${v.id}', 'boats', this.value)" />
+                  </div>
+                  <div class="res-num-pill">
+                    <label><i class="fas fa-vest-patches" style="color:#ea580c;"></i> Jackets</label>
+                    <input type="number" id="cardJackets_${v.id}" class="res-card-input" value="${jackets}" min="0" onchange="window.updateVillageResourceNeed('${v.id}', 'jackets', this.value)" />
+                  </div>
+                  <div class="res-num-pill">
+                    <label><i class="fas fa-box-open" style="color:#16a34a;"></i> Food</label>
+                    <input type="number" id="cardFood_${v.id}" class="res-card-input" value="${food}" min="0" onchange="window.updateVillageResourceNeed('${v.id}', 'food', this.value)" />
+                  </div>
+                  <div class="res-num-pill">
+                    <label><i class="fas fa-kit-medical" style="color:#dc2626;"></i> Meds</label>
+                    <input type="number" id="cardMeds_${v.id}" class="res-card-input" value="${meds}" min="0" onchange="window.updateVillageResourceNeed('${v.id}', 'meds', this.value)" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="dc-actions" style="margin-top:8px;">
+                <button type="button" class="btn-card-action" onclick="window.selectVillageForAssessment('${v.id}', true)">
+                  <i class="fas fa-crosshairs"></i> Tap to Assess on Map
+                </button>
+                ${isAllocated ? `
+                  <button type="button" class="btn-card-action" style="background:#f0fdf4; color:#15803d; border-color:#86efac; font-weight:700;" onclick="window.switchAuthTab('tracking'); window.openTrackingDetail('${existingAlloc.id}');">
+                    <i class="fas fa-check-circle"></i> Allocated (${existingAlloc.id}) • Track →
+                  </button>
+                  <button type="button" class="btn-card-action" style="padding:4px 8px; font-size:11px;" title="Update supply numbers for Godown" onclick="window.allocateVillageFromCard('${v.id}')">
+                    <i class="fas fa-pen"></i> Update
+                  </button>
+                ` : `
+                  <button type="button" class="btn-card-action approve" onclick="window.allocateVillageFromCard('${v.id}')">
+                    <i class="fas fa-paper-plane"></i> Direct Allocate to Godown
+                  </button>
+                `}
               </div>
             </div>
           `;
@@ -195,7 +299,7 @@ export default function initAuthorityPage() {
       const dashCritGrid = document.getElementById('dashCriticalVillagesGrid');
       if (dashCritGrid) {
         dashCritGrid.innerHTML = renderVillageCards(
-          villages.filter(v => v.severity === 'Critical' || v.severity === 'High')
+          sortedVillages.filter(v => v.severity === 'Critical' || v.severity === 'High')
         );
       }
 
@@ -203,44 +307,87 @@ export default function initAuthorityPage() {
       const fullCritGrid = document.getElementById('fullCriticalAreasGrid');
       if (fullCritGrid) {
         fullCritGrid.innerHTML = renderVillageCards(
-          villages.filter(v => mapSev === 'ALL' || v.severity === mapSev)
+          sortedVillages.filter(v => mapSev === 'ALL' || v.severity === mapSev)
         );
       }
 
-      // 3. Area Details & Resource Assessment Calculator
-      const selectedV = villages.find(v => v.id === selectedVillageId) || villages[0];
+      // 3. Integrated Area Details & Resource Assessment Calculator (4th Image - Assess View)
+      const selectedV = sortedVillages.find(v => v.id === selectedVillageId) || sortedVillages[0];
       const areaBox = document.getElementById('areaDetailsPanel');
       if (areaBox) {
         if (!selectedV) {
-          areaBox.innerHTML = `<div style="text-align:center; padding:24px; color:var(--text-muted);">Select an affected village to inspect population, severity, and resource requirements.</div>`;
+          areaBox.innerHTML = `<div style="text-align:center; padding:24px; color:var(--text-muted);">Select or tap any affected village on the Flood Map to calculate and allocate required emergency supplies.</div>`;
         } else {
-          const b = (selectedV.assessedNeed && selectedV.assessedNeed.boats) || 2;
-          const j = (selectedV.assessedNeed && selectedV.assessedNeed.jackets) || 30;
-          const f = (selectedV.assessedNeed && selectedV.assessedNeed.food) || 300;
-          const m = (selectedV.assessedNeed && selectedV.assessedNeed.meds) || 50;
+          const b = (selectedV.assessedNeed && selectedV.assessedNeed.boats) !== undefined ? selectedV.assessedNeed.boats : 2;
+          const j = (selectedV.assessedNeed && selectedV.assessedNeed.jackets) !== undefined ? selectedV.assessedNeed.jackets : 30;
+          const f = (selectedV.assessedNeed && selectedV.assessedNeed.food) !== undefined ? selectedV.assessedNeed.food : 300;
+          const m = (selectedV.assessedNeed && selectedV.assessedNeed.meds) !== undefined ? selectedV.assessedNeed.meds : 50;
+
+          const isAboveDanger = String(selectedV.waterStatus || '').toLowerCase().includes('above danger') ||
+                                String(selectedV.waterStatus || '').toLowerCase().includes('overflow') ||
+                                String(selectedV.waterStatus || '').toLowerCase().includes('breach') ||
+                                selectedV.severity === 'Critical';
+
+          const vClean = String(selectedV.name || '').trim().toLowerCase();
+          const existingAlloc = (allocations || []).find(a => a.village && a.village.trim().toLowerCase() === vClean);
 
           areaBox.innerHTML = `
             <div class="card-head">
-              <h2><i class="fas fa-house-flood-water" style="color: var(--river-blue);"></i> Area Details & Resource Assessment – ${selectedV.name}</h2>
-              <span class="status-pill ${getSevPill(selectedV.severity)}">${selectedV.severity} Severity</span>
-            </div>
-            <div class="cards-grid-3" style="margin-bottom:12px;">
-              <div class="decision-card"><span>Revenue Circle</span><strong>${selectedV.block || 'District Sector'}</strong></div>
-              <div class="decision-card"><span>Affected Population</span><strong>${(selectedV.pop || 0).toLocaleString()} Citizens</strong></div>
-              <div class="decision-card"><span>Hydrological Status</span><strong>${selectedV.waterStatus || 'River gauge elevated'}</strong></div>
-            </div>
-            <div style="background:#f4fafe; border:1.5px solid #bde0f7; border-radius:12px; padding:12px;">
-              <strong style="font-size:13px; color:var(--navy-deep);"><i class="fas fa-calculator" style="color:var(--river-blue); margin-right:6px;"></i> Resource Assessment & Godown Dispatch Allocation</strong>
-              <p style="margin:3px 0 10px; font-size:11.5px; color:var(--text-muted);">Adjust required quantities below and transmit approved allocation directly to the Godown Manager:</p>
-              <div class="assessment-form-grid">
-                <div class="res-qty-card"><label>Rescue Boats</label><input type="number" id="assessBoats" value="${b}" min="0" /></div>
-                <div class="res-qty-card"><label>Life Jackets</label><input type="number" id="assessJackets" value="${j}" min="0" /></div>
-                <div class="res-qty-card"><label>Food Packets</label><input type="number" id="assessFood" value="${f}" min="0" /></div>
-                <div class="res-qty-card"><label>Medicine Kits</label><input type="number" id="assessMeds" value="${m}" min="0" /></div>
+              <h2><i class="fas fa-house-flood-water" style="color: var(--river-blue);"></i> Selected Area Assessment & Direct Godown Allocation – ${selectedV.name}</h2>
+              <div style="display:flex; gap:6px; align-items:center;">
+                ${isAboveDanger ? `<span class="status-pill st-critical" style="font-size:10.5px; padding:3px 9px;"><i class="fas fa-triangle-exclamation"></i> ABOVE DANGER MARK</span>` : ''}
+                <span class="status-pill ${getSevPill(selectedV.severity)}">${selectedV.severity} Severity</span>
               </div>
-              <div style="margin-top:12px; display:flex; justify-content:flex-end;">
-                <button type="button" class="btn-card-action approve" style="padding:8px 16px; font-size:12px;" onclick="window.confirmAssessedAllocation('${selectedV.name.replace(/'/g, "\\'")}')">
-                  <i class="fas fa-paper-plane"></i> Approve & Send Allocation to Godown Manager
+            </div>
+
+            ${isAboveDanger ? `
+              <div style="background:#fef2f2; border:1px solid #fecaca; border-left:4px solid #dc2626; padding:10px 14px; border-radius:8px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-size:12px; color:#991b1b; font-weight:700;">
+                  <i class="fas fa-triangle-exclamation" style="margin-right:6px; color:#dc2626;"></i>
+                  CRITICAL HYDROLOGY ALERT: River waterlevel exceeds danger threshold! Immediate emergency priority allocation required.
+                </div>
+                <span class="status-pill st-critical" style="font-size:10px; padding:3px 8px;">DANGER THRESHOLD EXCEEDED</span>
+              </div>
+            ` : ''}
+
+            <div class="cards-grid-3" style="margin-bottom:12px;">
+              <div class="decision-card">
+                <span>Revenue Circle / District</span>
+                <strong>${selectedV.block || 'District Sector'}</strong>
+              </div>
+              <div class="decision-card">
+                <span>Affected Citizens</span>
+                <strong>${(selectedV.pop || 0).toLocaleString()} Pop.</strong>
+              </div>
+              <div class="decision-card" style="${isAboveDanger ? 'border:1.5px solid #dc2626; background:#fff5f5;' : ''}">
+                <span style="${isAboveDanger ? 'color:#dc2626; font-weight:700;' : ''}">
+                  <i class="fas ${isAboveDanger ? 'fa-triangle-exclamation' : 'fa-water'}"></i> River Hydrological Status
+                </span>
+                <strong style="${isAboveDanger ? 'color:#b91c1c; font-size:12.5px;' : ''}">
+                  ${isAboveDanger ? `<span style="background:#dc2626; color:#fff; font-size:9px; padding:2px 5px; border-radius:4px; margin-right:4px;">ABOVE DANGER</span>` : ''}
+                  ${selectedV.waterStatus || 'River gauge elevated'}
+                </strong>
+              </div>
+            </div>
+
+            <div style="background:#f4fafe; border:1.5px solid #bde0f7; border-radius:12px; padding:14px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <strong style="font-size:13px; color:var(--navy-deep);"><i class="fas fa-calculator" style="color:var(--river-blue); margin-right:6px;"></i> Emergency Relief Supply Calculator:</strong>
+                <span style="font-size:11px; color:var(--text-muted);">Adjust quantities below and transmit directly to Central Godown</span>
+              </div>
+              <div class="assessment-form-grid" style="margin-top:10px;">
+                <div class="res-qty-card"><label><i class="fas fa-sailboat" style="color:#0284c7;"></i> Rescue Boats</label><input type="number" id="assessBoats" value="${b}" min="0" /></div>
+                <div class="res-qty-card"><label><i class="fas fa-vest-patches" style="color:#f97316;"></i> Life Jackets</label><input type="number" id="assessJackets" value="${j}" min="0" /></div>
+                <div class="res-qty-card"><label><i class="fas fa-box-open" style="color:#16a34a;"></i> Food Packets</label><input type="number" id="assessFood" value="${f}" min="0" /></div>
+                <div class="res-qty-card"><label><i class="fas fa-kit-medical" style="color:#dc2626;"></i> Medicine Kits</label><input type="number" id="assessMeds" value="${m}" min="0" /></div>
+              </div>
+              <div style="margin-top:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <span style="font-size:11.5px; color:#0369a1;">
+                  <i class="fas fa-paper-plane"></i>
+                  ${existingAlloc ? `Allocation order <strong>${existingAlloc.id}</strong> active at Godown Manager. Any adjustments sync in real time.` : `Allocation order will immediately dispatch to Godown Manager & generate live tracking dossier.`}
+                </span>
+                <button type="button" class="btn-card-action approve" style="padding:9px 18px; font-size:12.5px;" onclick="window.confirmAssessedAllocation('${selectedV.name.replace(/'/g, "\\'")}')">
+                  <i class="fas fa-paper-plane"></i> ${existingAlloc ? `Update & Transmit Allocation (${existingAlloc.id})` : `Approve & Send Allocation to Godown Manager`}
                 </button>
               </div>
             </div>
@@ -289,36 +436,50 @@ export default function initAuthorityPage() {
       const allReqsGrid = document.getElementById('allRequestsGrid');
       if (allReqsGrid) allReqsGrid.innerHTML = renderMergedReqCards(filteredRequests);
 
-      const appDeskGrid = document.getElementById('approvalDeskGrid');
-      if (appDeskGrid) appDeskGrid.innerHTML = renderMergedReqCards(filteredRequests);
-
-      // 5. Resource Allocation & Allocation Tracking
-      const allocHtml = (!allocations || allocations.length === 0)
-        ? `<div style="grid-column:1/-1; text-align:center; padding:18px; color:var(--text-muted);">No allocations dispatched to Godown Manager yet.</div>`
-        : allocations.map(a => `
-          <div class="decision-card">
-            <div class="dc-top">
-              <div>
-                <h4>${a.id} • ${a.village}</h4>
-                <span style="font-size:11px; color:var(--text-muted); font-weight:600;">${a.summary}</span>
-              </div>
-              <span class="status-pill st-dispatched">${a.godownStatus || 'Sent to Godown'}</span>
-            </div>
-            <div class="progress-track"><div class="progress-fill" style="width:${a.deliveryProgress || 35}%;"></div></div>
-            <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted);">
-              <span>Godown Coordination: <strong>Transmitted</strong></span>
-              <span>Delivery Progress: <strong>${a.deliveryProgress || 35}%</strong></span>
-            </div>
-          </div>
-        `).join('');
-
-      const allocGrid = document.getElementById('allocatedVillagesGrid');
-      if (allocGrid) allocGrid.innerHTML = allocHtml;
-
+      // 5. Enhanced Interactive Godown Dispatch & Ground Delivery Tracking
       const trackGrid = document.getElementById('trackingGrid');
-      if (trackGrid) trackGrid.innerHTML = allocHtml;
+      if (trackGrid) {
+        if (!allocations || allocations.length === 0) {
+          trackGrid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:24px; border:1.5px dashed #9cc3e6; border-radius:12px; color:var(--text-muted);"><i class="fas fa-truck" style="font-size:24px; color:#94a3b8; margin-bottom:8px; display:block;"></i>No allocations dispatched to Godown Manager yet. Tap an area on the Flood Map to allocate.</div>`;
+        } else {
+          trackGrid.innerHTML = allocations.map(a => {
+            const timeline = a.timeline || [];
+            const latestStep = timeline.find(t => t.status === 'active' || t.status === 'in_progress') || timeline[timeline.length - 1] || { step: 'Dispatch in transit', time: 'Active' };
+            const vehicleTag = a.vehicle ? a.vehicle.split(' (')[0] : 'Relief Truck';
+            return `
+              <div class="decision-card" style="cursor:pointer;" onclick="window.openTrackingDetail('${a.id}')">
+                <div class="dc-top">
+                  <div>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <h4>${a.id} • ${a.village}</h4>
+                      <span class="transit-badge"><i class="fas fa-truck"></i> ${vehicleTag}</span>
+                    </div>
+                    <span style="font-size:11px; color:var(--text-muted); font-weight:600;">Depot: ${a.assignedGodown || 'Central Relief Godown – Mirza'}</span>
+                  </div>
+                  <span class="status-pill ${a.deliveryProgress >= 100 ? 'st-normal' : 'st-dispatched'}">${a.godownStatus || 'Sent to Godown'}</span>
+                </div>
+                <div class="dc-meta-box">
+                  <span>Supplies: <strong>${a.summary}</strong></span>
+                  <span>Driver: <strong>${a.driver || 'Rajesh Das (+91 98640-21943)'}</strong></span>
+                </div>
+                <div class="progress-track" style="margin:8px 0 4px;"><div class="progress-fill" style="width:${a.deliveryProgress || 35}%;"></div></div>
+                <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted);">
+                  <span><i class="fas fa-route"></i> Current Stage: <strong style="color:var(--river-blue);">${latestStep.step}</strong></span>
+                  <span>Progress: <strong>${a.deliveryProgress || 35}%</strong></span>
+                </div>
+                <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+                  <span style="font-size:10.5px; color:#64748b;"><i class="fas fa-shield"></i> Escort: ${a.escortOfficer || 'District Police Escort'}</span>
+                  <button type="button" class="btn-card-action" style="font-size:11px; padding:4px 10px;" onclick="event.stopPropagation(); window.openTrackingDetail('${a.id}')">
+                    <i class="fas fa-timeline"></i> View Full Convoy Transit →
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      }
 
-      // 6. NDRF / SDRF Coordination
+      // 6. Upgraded Multi-Agency NDRF / SDRF Tactical Coordination & SITREP
       const coordGrid = document.getElementById('coordRecordsGrid');
       if (coordGrid) {
         coordGrid.innerHTML = (!coordinations || coordinations.length === 0)
@@ -326,10 +487,26 @@ export default function initAuthorityPage() {
           : coordinations.map(c => `
             <div class="decision-card">
               <div class="dc-top">
-                <h4>${c.agency} • ${c.sector}</h4>
-                <span class="status-pill st-approved">Official Channel</span>
+                <div>
+                  <h4>${c.agency}</h4>
+                  <span style="font-size:11px; color:var(--text-muted); font-weight:600;"><i class="fas fa-location-dot" style="color:#ef4444;"></i> Sector: ${c.sector}</span>
+                </div>
+                <span class="status-pill ${c.status === 'Mission Successful' ? 'st-normal' : (c.status === 'On Standby at Staging Area' ? 'st-moderate' : 'st-approved')}">${c.status || 'Active Deployment'}</span>
               </div>
-              <p style="margin:0; font-size:12px; color:var(--text-body);">${c.update}</p>
+              <div class="dc-meta-box">
+                <span>Commander: <strong>${c.commander || 'Incident Commander'}</strong> (${c.designation || 'Lead'})</span>
+                <span>Contact: <strong>${c.contact || 'VHF Ch-07'}</strong></span>
+              </div>
+              <div style="font-size:11px; color:var(--text-body); margin-top:4px;">
+                Tactical Assets: <strong>${c.strength || 'Rescue Boats & Deep-Water Personnel'}</strong>
+              </div>
+              <div class="officer-call-box">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                  <strong style="color:var(--navy-deep); font-size:11px;"><i class="fas fa-headset" style="color:var(--river-blue);"></i> Official Radio / SITREP Log:</strong>
+                  <span style="font-size:10px; color:#64748b; font-weight:700;">${c.timestamp || 'Live'}</span>
+                </div>
+                <p style="margin:0; font-size:11.5px; color:var(--text-body); line-height:1.45;">${c.callLog || c.update}</p>
+              </div>
             </div>
           `).join('');
       }
@@ -342,7 +519,10 @@ export default function initAuthorityPage() {
           : operations.map(op => `
             <div class="decision-card">
               <div class="dc-top">
-                <h4>${op.title}</h4>
+                <div>
+                  <h4>${op.title}</h4>
+                  ${op.officer ? `<span style="font-size:10.5px; color:var(--text-muted); font-weight:600;"><i class="fas fa-user-shield"></i> Lead: ${op.officer}</span>` : ''}
+                </div>
                 <span class="status-pill ${getSevPill(op.status)}">${op.status}</span>
               </div>
               <p style="margin:0; font-size:12px; color:var(--text-body);">${op.summary}</p>
@@ -390,7 +570,7 @@ export default function initAuthorityPage() {
                 Pop: <strong>${(selectedV.pop || 0).toLocaleString()}</strong> • Need: <strong>${b} Boats, ${f} Food</strong>
               </div>
               <button type="button" class="btn-card-action approve" style="justify-content:center; margin-top:8px;" onclick="window.selectVillageForAssessment('${selectedV.id}', true)">
-                Open Area Details & Allocate
+                Inspect & Allocate on Map
               </button>
             </div>
           `;
@@ -402,7 +582,7 @@ export default function initAuthorityPage() {
         rightGodown.innerHTML = (!allocations || allocations.length === 0)
           ? `<div style="font-size:11.5px; color:var(--text-muted); text-align:center; padding:10px;">No dispatches queued at Godown.</div>`
           : allocations.slice(0, 2).map(a => `
-            <div class="mini-status-tile" style="flex-direction:column; align-items:stretch;">
+            <div class="mini-status-tile" style="flex-direction:column; align-items:stretch; cursor:pointer;" onclick="window.switchAuthTab('tracking'); window.openTrackingDetail('${a.id}');">
               <div style="display:flex; justify-content:space-between;">
                 <strong style="font-size:11.5px; color:var(--navy-deep);">${a.village}</strong>
                 <span style="font-size:10.5px; font-weight:700; color:var(--river-blue);">${a.deliveryProgress || 35}%</span>
@@ -422,32 +602,133 @@ export default function initAuthorityPage() {
   /* =====================================================================
      ACTIONS & BACKEND SYNCHRONIZATION
      ===================================================================== */
-  async function quickSendVillageToGodown(vId) {
+  function openTrackingDetail(allocId) {
+    const a = (state.allocations || []).find(item => item.id === allocId);
+    if (!a) return;
+
+    const heading = document.getElementById('trackModalHeading');
+    if (heading) heading.innerHTML = `<i class="fas fa-truck-moving" style="color:var(--river-blue); margin-right:6px;"></i> ${a.id} • ${a.village}`;
+
+    const sub = document.getElementById('trackModalSub');
+    if (sub) sub.textContent = `Assigned Depot: ${a.assignedGodown || 'Central Relief Godown – Mirza'} | Status: ${a.godownStatus}`;
+
+    const body = document.getElementById('trackModalBody');
+    if (body) {
+      const timeline = a.timeline && a.timeline.length ? a.timeline : [
+        { step: 'DDMA Allocation Approved', time: '08:50 AM', status: 'done', detail: 'Allocation approved by Authority & transmitted to Godown.' },
+        { step: 'Stock Verified & Staged', time: '09:20 AM', status: 'done', detail: 'Godown crew verified and loaded pallets.' },
+        { step: 'Vehicle Dispatched', time: '09:45 AM', status: 'done', detail: 'Gatepass issued; vehicle departed with security escort.' },
+        { step: 'Sector Transit & Checkpoint', time: '10:20 AM', status: 'active', detail: 'Crossed bypass bridge towards destination.' },
+        { step: 'Camp Intake & Handover', time: '10:55 AM (ETA)', status: 'pending', detail: 'Relief camp receiving team verification.' }
+      ];
+
+      const timelineHtml = timeline.map(t => {
+        const dotClass = t.status === 'done' || t.status === 'completed' ? 'done' : (t.status === 'active' || t.status === 'in_progress' ? 'active' : 'pending');
+        return `
+          <div class="track-step-item">
+            <div class="track-step-dot ${dotClass}"></div>
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                <strong style="font-size:12.5px; color:${dotClass === 'active' ? '#0284c7' : '#0f172a'};">${t.step}</strong>
+                <span style="font-size:10.5px; font-weight:700; color:${dotClass === 'active' ? '#0284c7' : '#64748b'};">${t.time}</span>
+              </div>
+              <p style="margin:2px 0 0; font-size:11.5px; color:var(--text-muted); line-height:1.4;">${t.detail || ''}</p>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      body.innerHTML = `
+        <div class="cards-grid-3" style="margin-bottom:12px;">
+          <div class="decision-card"><span>Vehicle Assigned</span><strong>${a.vehicle || 'Heavy Truck AS-01-EC-4210'}</strong></div>
+          <div class="decision-card"><span>Driver & Contact</span><strong>${a.driver || 'Rajesh Das (+91 98640-21943)'}</strong></div>
+          <div class="decision-card"><span>Police Escort</span><strong>${a.escortOfficer || 'ASI D. Kalita'}</strong></div>
+        </div>
+        <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:10px; padding:10px; margin-bottom:14px;">
+          <strong style="font-size:12px; color:#0369a1;"><i class="fas fa-boxes-stacked"></i> Dispatched Emergency Supplies Manifest:</strong>
+          <div style="margin-top:4px; font-size:12px; font-weight:600; color:var(--navy-deep);">${a.summary}</div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <strong style="font-size:13px; color:var(--navy-deep);"><i class="fas fa-route" style="color:var(--river-blue);"></i> Step-by-Step Dispatch Transit Timeline:</strong>
+          <span style="font-size:11px; font-weight:700; color:var(--river-blue);">${a.deliveryProgress || 35}% Completed</span>
+        </div>
+        <div class="progress-track" style="margin-bottom:14px;"><div class="progress-fill" style="width:${a.deliveryProgress || 35}%;"></div></div>
+        <div class="track-timeline">
+          ${timelineHtml}
+        </div>
+      `;
+    }
+
+    const modal = document.getElementById('trackingDetailModal');
+    if (modal) modal.classList.add('open');
+  }
+
+  function updateVillageResourceNeed(villageId, field, val) {
+    const v = (state.villages || []).find(item => item.id === villageId);
+    if (!v) return;
+    if (!v.assessedNeed) v.assessedNeed = {};
+    v.assessedNeed[field] = Math.max(0, Number(val) || 0);
+  }
+
+  async function allocateVillageFromCard(vId) {
     const v = (state.villages || []).find(item => item.id === vId);
     if (!v) return;
-    const boats = (v.assessedNeed && v.assessedNeed.boats) || 2;
-    const jackets = (v.assessedNeed && v.assessedNeed.jackets) || 30;
-    const food = (v.assessedNeed && v.assessedNeed.food) || 300;
-    const meds = (v.assessedNeed && v.assessedNeed.meds) || 50;
-    const summary = `${boats} Boats, ${jackets} Jackets, ${food} Food, ${meds} Meds`;
 
-    showToast(`Transmitting allocation for ${v.name} to Godown Manager...`);
+    const b = Number(document.getElementById(`cardBoats_${vId}`)?.value || v.assessedNeed?.boats || 0);
+    const j = Number(document.getElementById(`cardJackets_${vId}`)?.value || v.assessedNeed?.jackets || 0);
+    const f = Number(document.getElementById(`cardFood_${vId}`)?.value || v.assessedNeed?.food || 0);
+    const m = Number(document.getElementById(`cardMeds_${vId}`)?.value || v.assessedNeed?.meds || 0);
+
+    v.assessedNeed = { boats: b, jackets: j, food: f, meds: m };
+    const summary = `${b} Boats, ${j} Jackets, ${f} Food, ${m} Meds`;
+
+    const vClean = String(v.name || '').trim().toLowerCase();
+    const existing = (state.allocations || []).find(a => a.village && a.village.trim().toLowerCase() === vClean);
+
+    if (existing) {
+      showToast(`Updating supplies for ${v.name} (${existing.id})...`);
+    } else {
+      showToast(`Transmitting direct allocation for ${v.name} to Godown Manager...`);
+    }
+
     await allocateDirectResourcesApi(v.name, summary);
     renderAllAuthorityViews();
-    showToast(`Approved resources sent to Godown Manager for ${v.name}.`);
+
+    if (existing) {
+      showToast(`Allocation ${existing.id} updated & synced with Godown Manager.`);
+    } else {
+      showToast(`Approved supplies sent to Godown Manager for ${v.name}.`);
+    }
+  }
+
+  async function quickSendVillageToGodown(vId) {
+    return allocateVillageFromCard(vId);
   }
 
   async function confirmAssessedAllocation(villageName) {
-    const b = document.getElementById('assessBoats')?.value || 2;
-    const j = document.getElementById('assessJackets')?.value || 30;
-    const f = document.getElementById('assessFood')?.value || 300;
-    const m = document.getElementById('assessMeds')?.value || 50;
+    const b = Number(document.getElementById('assessBoats')?.value || 2);
+    const j = Number(document.getElementById('assessJackets')?.value || 30);
+    const f = Number(document.getElementById('assessFood')?.value || 300);
+    const m = Number(document.getElementById('assessMeds')?.value || 50);
     const summary = `${b} Boats, ${j} Jackets, ${f} Food, ${m} Meds`;
+
+    const vClean = String(villageName || '').trim().toLowerCase();
+    const vObj = (state.villages || []).find(v => v.name && v.name.trim().toLowerCase() === vClean);
+    if (vObj) {
+      vObj.assessedNeed = { boats: b, jackets: j, food: f, meds: m };
+    }
+
+    const existing = (state.allocations || []).find(a => a.village && a.village.trim().toLowerCase() === vClean);
 
     showToast(`Forwarding assessed allocation to Godown Manager...`);
     await allocateDirectResourcesApi(villageName, summary);
     renderAllAuthorityViews();
-    showToast(`Allocation for ${villageName} sent to Godown Manager.`);
+
+    if (existing) {
+      showToast(`Allocation ${existing.id} updated to (${summary}) for ${villageName}.`);
+    } else {
+      showToast(`Allocation for ${villageName} sent to Godown Manager.`);
+    }
   }
 
   function openDecisionModal(idx, type) {
@@ -515,6 +796,14 @@ export default function initAuthorityPage() {
   function openCoordModal() {
     const s = document.getElementById('coordSector');
     if (s) s.value = '';
+    const c = document.getElementById('coordCommander');
+    if (c) c.value = '';
+    const des = document.getElementById('coordDesignation');
+    if (des) des.value = '';
+    const con = document.getElementById('coordContact');
+    if (con) con.value = '';
+    const str = document.getElementById('coordStrength');
+    if (str) str.value = '';
     const u = document.getElementById('coordUpdate');
     if (u) u.value = '';
     const modal = document.getElementById('coordModal');
@@ -523,14 +812,20 @@ export default function initAuthorityPage() {
 
   async function submitCoordRecord(e) {
     if (e && e.preventDefault) e.preventDefault();
-    const agency = document.getElementById('coordAgency')?.value || 'NDRF';
-    const sector = (document.getElementById('coordSector')?.value || '').trim() || 'Assigned Sector';
-    const update = (document.getElementById('coordUpdate')?.value || '').trim() || 'Coordinating relief deployment';
+    const agency = document.getElementById('coordAgency')?.value || 'NDRF (1st Battalion, Patgaon)';
+    const sector = (document.getElementById('coordSector')?.value || '').trim() || 'Assigned District Sector';
+    const commander = (document.getElementById('coordCommander')?.value || '').trim() || 'Incident Officer';
+    const designation = (document.getElementById('coordDesignation')?.value || '').trim() || 'Unit Commander';
+    const contact = (document.getElementById('coordContact')?.value || '').trim() || 'VHF Ch-07 / Radio';
+    const status = document.getElementById('coordStatus')?.value || 'Deployed On Water';
+    const strength = (document.getElementById('coordStrength')?.value || '').trim() || 'Deep-Water Rescue Personnel';
+    const update = (document.getElementById('coordUpdate')?.value || '').trim() || 'Radio SITREP logged.';
 
     closeModal('coordModal');
-    await logCoordinationApi(agency, sector, update);
+    showToast(`Logging multi-agency update with ${agency}...`);
+    await logCoordinationApi(agency, sector, update, commander, contact, strength, status);
     renderAllAuthorityViews();
-    showToast(`Recorded ${agency} coordination update.`);
+    showToast(`Recorded official SITREP with ${commander} (${agency}).`);
   }
 
   function openOperationModal() {
@@ -632,6 +927,7 @@ export default function initAuthorityPage() {
       window.authMapRecenter = authMapRecenter;
       window.filterAuthorityMapSeverity = filterAuthorityMapSeverity;
       window.searchAuthorityMap = searchAuthorityMap;
+      window.openTrackingDetail = openTrackingDetail;
 
       // 7. Initial render from local state
       renderAllAuthorityViews();
@@ -676,7 +972,10 @@ export default function initAuthorityPage() {
     openDecisionModal,
     openDirectAllocModal,
     openOperationModal,
+    openTrackingDetail,
     quickSendVillageToGodown,
+    allocateVillageFromCard,
+    updateVillageResourceNeed,
     renderAllAuthorityViews,
     selectVillageForAssessment,
     showToast,

@@ -162,15 +162,20 @@ export function updateAuthorityVillageMarkers(villages = []) {
 
       const lat = Number(v.lat) || (26.05 + Math.random() * 0.15);
       const lng = Number(v.lng) || (91.20 + Math.random() * 0.40);
-      const color = getSeverityColor(v.severity);
+      const isAboveDanger = String(v.waterStatus || '').toLowerCase().includes('above danger') ||
+                            String(v.waterStatus || '').toLowerCase().includes('overflow') ||
+                            String(v.waterStatus || '').toLowerCase().includes('breach') ||
+                            v.severity === 'Critical';
 
-      // Inundation buffer circle
+      const color = isAboveDanger ? '#dc2626' : getSeverityColor(v.severity);
+
+      // Inundation buffer circle (RED if waterlevel above danger)
       L.circle([lat, lng], {
         color: color,
         fillColor: color,
-        fillOpacity: v.severity === 'Critical' ? 0.28 : 0.18,
-        weight: v.severity === 'Critical' ? 2.5 : 1.5,
-        radius: v.severity === 'Critical' ? 2200 : 1500
+        fillOpacity: isAboveDanger ? 0.32 : 0.18,
+        weight: isAboveDanger ? 2.8 : 1.5,
+        radius: isAboveDanger ? 2400 : 1500
       }).addTo(villageLayerGroup);
 
       // Custom Pin Marker
@@ -180,8 +185,8 @@ export function updateAuthorityVillageMarkers(villages = []) {
           <div style="width:26px; height:26px; border-radius:50%; background:${color}; color:#fff; display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 2px 7px rgba(0,0,0,0.3); font-size:11px;">
             <i class="fas fa-house-flood-water"></i>
           </div>
-          <div style="position:absolute; top:28px; background:rgba(15,23,42,0.9); color:#fff; font-size:9.5px; font-weight:700; padding:1.5px 6px; border-radius:6px; white-space:nowrap; border:1px solid rgba(255,255,255,0.2);">
-            ${v.name}
+          <div style="position:absolute; top:28px; background:${isAboveDanger ? '#dc2626' : 'rgba(15,23,42,0.9)'}; color:#fff; font-size:9.5px; font-weight:700; padding:1.5px 6px; border-radius:6px; white-space:nowrap; border:1px solid ${isAboveDanger ? '#fecaca' : 'rgba(255,255,255,0.2)'};">
+            ${v.name} ${isAboveDanger ? '<span style="color:#fef08a; margin-left:3px;">● DANGER</span>' : ''}
           </div>
         </div>
       `;

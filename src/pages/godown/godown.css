@@ -384,18 +384,182 @@
         }
 
         /* =====================================================================
-           WORKSPACE SHELL & 70px VERTICAL ICON RAIL (MATCHED TO 2ADMIN.HTML)
+           WORKSPACE SHELL & 70px VERTICAL ICON RAIL (MATCHED TO 2ADMIN.HTML & 3AUTHORITY.HTML)
            ===================================================================== */
         .workspace-shell {
             width: 100%;
             max-width: 100%;
             margin: 0;
-            padding: 10px 14px 24px;
+            padding: 14px 16px 24px 12px;
             display: grid;
-            grid-template-columns: 70px minmax(0, 1fr);
+            grid-template-columns: 70px minmax(0, 1fr) 375px;
             gap: 14px;
             align-items: start;
             box-sizing: border-box;
+        }
+
+        .center-stage {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            min-width: 0;
+        }
+
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .qa-grid-2x2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 9px;
+        }
+
+        .qa-color-card {
+            border: none;
+            border-radius: 13px;
+            padding: 11px 10px;
+            color: #ffffff;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .qa-color-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(6, 37, 74, 0.16);
+        }
+
+        .qa-color-card i {
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .qa-color-card strong {
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .qa-color-card span {
+            font-size: 9.5px;
+            opacity: 0.9;
+        }
+
+        .qa-blue { background: linear-gradient(135deg, #0284c7, #0369a1); }
+        .qa-green { background: linear-gradient(135deg, #16a34a, #15803d); }
+        .qa-amber { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .qa-indigo { background: linear-gradient(135deg, #4f46e5, #3730a3); }
+
+        .btn-card-action {
+            background: #ffffff;
+            border: 1px solid #bde0f7;
+            border-radius: 8px;
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--navy-deep);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-card-action:hover {
+            background: var(--navy-deep);
+            color: #ffffff;
+            border-color: var(--navy-deep);
+        }
+
+        /* 4-KPI Overview Strip */
+        .kpi-grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        /* Map Float HUD Controls */
+        .map-float-search {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 5;
+            background: #ffffff;
+            border: 1px solid #bde0f7;
+            border-radius: 20px;
+            padding: 5px 12px;
+            width: 245px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            box-shadow: 0 3px 10px rgba(6, 37, 74, 0.08);
+        }
+
+        .map-float-search input {
+            border: none;
+            outline: none;
+            width: 100%;
+            font-size: 11.5px;
+            font-family: inherit;
+        }
+
+        .map-zoom-controls {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 5;
+            display: flex;
+            gap: 4px;
+        }
+
+        .map-z-btn {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            border: 1px solid #bde0f7;
+            background: #ffffff;
+            color: var(--navy-deep);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 2px 7px rgba(6, 37, 74, 0.1);
+            transition: all 0.2s ease;
+        }
+
+        .map-z-btn:hover {
+            background: var(--navy-deep);
+            color: #ffffff;
+        }
+
+        .map-legend-overlay {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 5;
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid #bde0f7;
+            border-radius: 10px;
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--navy-deep);
+            box-shadow: 0 3px 10px rgba(6, 37, 74, 0.08);
+        }
+
+        .l-dot {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            margin-right: 5px;
         }
 
         .left-rail {
@@ -1008,7 +1172,7 @@
             }
             .sidebar-header-badge, .nav-group-label, .sidebar-rule-box { display: none; }
             .gd-nav-btn { width: auto; }
-            .kpi-grid-6 { grid-template-columns: repeat(3, 1fr); }
+            .kpi-grid-6, .kpi-grid-4 { grid-template-columns: repeat(2, 1fr); }
             .grid-2, .grid-3, .form-grid-3 { grid-template-columns: 1fr; }
             body.list-mode .switchable-collection .sub-card {
                 flex-direction: column;
@@ -1017,6 +1181,146 @@
         }
 
         @media (max-width: 680px) {
-            .kpi-grid-6 { grid-template-columns: repeat(2, 1fr); }
+            .kpi-grid-6, .kpi-grid-4 { grid-template-columns: 1fr; }
             .form-grid-2 { grid-template-columns: 1fr; }
+        }
+
+        /* =========================================================================
+           REUSABLE RIVER TELEMETRY & LOGISTICS GIS MAP STYLES (Admin & Authority Parity)
+           ========================================================================= */
+        .godown-map-card {
+            background: #ffffff;
+            border: 1.5px solid #bde0f7;
+            border-radius: 14px;
+            padding: 14px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 18px rgba(2, 132, 199, 0.08);
+            position: relative;
+        }
+
+        .godown-map-container {
+            width: 100%;
+            height: 380px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1.5px solid #bde0f7;
+            position: relative;
+            z-index: 10;
+        }
+
+        .map-hud-ctrls {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            display: flex;
+            gap: 6px;
+            z-index: 500;
+        }
+
+        .map-hud-btn {
+            background: #ffffff;
+            border: 1.5px solid #9cc3e6;
+            color: var(--navy-deep);
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 2px 7px rgba(0, 0, 0, 0.15);
+            transition: all 0.2s ease;
+        }
+
+        .map-hud-btn:hover {
+            background: var(--navy-deep);
+            color: #ffffff;
+            border-color: var(--navy-deep);
+        }
+
+        /* REUSABLE RIVER WATER-LEVEL vs DANGER CARDS (MATCHED TO SCREENSHOT & ADMIN) */
+        .river-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 992px) {
+            .river-grid-3 { grid-template-columns: 1fr; }
+        }
+
+        .eco-data-card {
+            background: linear-gradient(180deg, #f6fbff 0%, #eaf5fc 100%);
+            border: 1.5px solid #bde0f7;
+            border-radius: 13px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 8px;
+            transition: all 0.25s ease;
+        }
+
+        .eco-data-card:hover {
+            background: #ffffff;
+            border-color: var(--river-cyan);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 18px rgba(2, 132, 199, 0.13);
+        }
+
+        .eco-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .eco-card-top h4 {
+            margin: 0;
+            font-size: 13.5px;
+            font-weight: 800;
+            color: var(--navy-deep);
+        }
+
+        .eco-meta-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            background: #ffffff;
+            border: 1px solid #d5e8f8;
+            border-radius: 8px;
+            padding: 6px 8px;
+            font-size: 11px;
+            color: var(--text-body);
+        }
+
+        .sev-pill {
+            display: inline-block;
+            padding: 2.5px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .sev-pill.sev-normal {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
+
+        .sev-pill.sev-moderate {
+            background: #ffedd5;
+            color: #c2410c;
+            border: 1px solid #fed7aa;
+        }
+
+        .sev-pill.sev-critical {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
         }

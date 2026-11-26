@@ -7,15 +7,12 @@ import { setupRouteGuard } from '../../auth';
 const markup = (
   <>
       {/* 1. DIAGONAL SPLIT WAREHOUSE & LOGISTICS BANNER */}
-      {" "}
-      {/* COMMAND HERO BANNER (EXACT SAME IMAGE & APPEARANCE MATCHING 2ADMIN & SCREENSHOT) */}
+      {/* COMMAND HERO BANNER (MATCHING ADMIN & AUTHORITY APPEARANCE) */}
       <header className="gd-hero-banner anim-card">
-        {/* 1. Full Panoramic Artwork matching 2admin.html & image.png */}
         <div className="gd-banner-img-wrap">
           <img src="/image.png" alt={"NEERAKSHAK District Flood Relief Supply Central Godown & Logistics Hub"} className="gd-banner-img" />
         </div>
         <div className="gd-banner-vignette"></div>
-        {/* 2. Single-Row Balanced Content Inner (Exact same appearance as Admin / Screenshot) */}
         <div className="gd-hero-inner">
           <div className="banner-top-bar">
             {/* Brand Lockup with Godown Manager badge */}
@@ -43,12 +40,12 @@ const markup = (
                 </div>
               </div>
             </div>
-            {/* Right HUD Action Controls matching Screenshot & 2admin.html */}
+            {/* Right HUD Action Controls matching Admin & Authority */}
             <div className="hero-action-controls">
               <div className="hero-ctrl-pill">
                 <i className="fas fa-warehouse" style={{ color: "#38bdf8" }}></i>
                 {" "}
-                <select className="hero-district-select" id="warehouseSelector" onChange={(event) => window.renderAllGodownViews()}>
+                <select className="hero-district-select" id="warehouseSelector" onChange={(event) => window.renderAllGodownViews && window.renderAllGodownViews()}>
                   <option value="ALL">All District Godowns (Kamrup)</option>
                   <option value="Central Relief Godown – Mirza">Central Relief Godown – Mirza</option>
                   <option value="North Sector Warehouse – Rangia">North Sector Warehouse – Rangia</option>
@@ -60,7 +57,7 @@ const markup = (
                 <span id="telemetryStatusText">Depot Active</span>
               </div>
               {/* SMOOTH SLIDE SWITCH FOR GRID VIEW vs LIST VIEW */}
-              <div className="view-slide-switch" id="viewSlideSwitch" onClick={(event) => window.toggleGridListView()} title="Toggle Grid vs List View">
+              <div className="view-slide-switch" id="viewSlideSwitch" onClick={(event) => window.toggleGridListView && window.toggleGridListView()} title="Toggle Grid vs List View">
                 <div className="slide-thumb"></div>
                 <span className="slide-option opt-grid">
                   <i className="fas fa-grip"></i>
@@ -86,18 +83,18 @@ const markup = (
           </div>
         </div>
       </header>
+
+      {/* 2. THREE-COLUMN WORKSPACE SHELL (MATCHING ADMIN & AUTHORITY) */}
       <div className="workspace-shell">
-        {/* LEFT 10-SECTION SIDEBAR */}
-        {" "}
-        {/* 70px VERTICAL ICON RAIL: MATCHED TO 2ADMIN.HTML & 3AUTHORITY.HTML */}
+        {/* LEFT 70px VERTICAL ICON RAIL */}
         <aside className="left-rail">
-          <button className="rail-btn gd-nav-btn active" data-tab="dashboard" onClick={(event) => window.switchGodownTab('dashboard', event.currentTarget)} title="Depot Dashboard">
+          <button className="rail-btn gd-nav-btn active" data-tab="dashboard" onClick={(event) => window.switchGodownTab('dashboard', event.currentTarget)} title="Depot Dashboard & Convoy Map">
             <i className="fas fa-gauge-high"></i>
             {" "}
             <span>Dashboard</span>
           </button>
           {" "}
-          <button className="rail-btn gd-nav-btn" data-tab="inventory" onClick={(event) => window.switchGodownTab('inventory', event.currentTarget)} title="Inventory Management">
+          <button className="rail-btn gd-nav-btn" data-tab="inventory" onClick={(event) => window.switchGodownTab('inventory', event.currentTarget)} title="Warehouse Inventory">
             <i className="fas fa-boxes-stacked"></i>
             {" "}
             <span>Inventory</span>
@@ -105,32 +102,12 @@ const markup = (
             <span className="rail-badge-count" id="navInvCount">0</span>
           </button>
           {" "}
-          <button className="rail-btn gd-nav-btn" data-tab="add-stock" onClick={(event) => window.switchGodownTab('add-stock', event.currentTarget)} title="Add New Stock">
-            <i className="fas fa-plus-circle"></i>
-            {" "}
-            <span>Add Stock</span>
-          </button>
-          {" "}
-          <button className="rail-btn gd-nav-btn" data-tab="approved-req" onClick={(event) => window.switchGodownTab('approved-req', event.currentTarget)} title="Approved Requests">
+          <button className="rail-btn gd-nav-btn" data-tab="approved-req" onClick={(event) => window.switchGodownTab('approved-req', event.currentTarget)} title="Authority-Approved Allocations, Stock Verification & Convoy Dispatch">
             <i className="fas fa-clipboard-check"></i>
             {" "}
             <span>Approved</span>
             {" "}
             <span className="rail-badge-count count-amber" id="navApprovedCount">0</span>
-          </button>
-          {" "}
-          <button className="rail-btn gd-nav-btn" data-tab="verification" onClick={(event) => window.switchGodownTab('verification', event.currentTarget)} title="Verify Stock Quality">
-            <i className="fas fa-magnifying-glass-check"></i>
-            {" "}
-            <span>Verify</span>
-          </button>
-          {" "}
-          <button className="rail-btn gd-nav-btn" data-tab="dispatch" onClick={(event) => window.switchGodownTab('dispatch', event.currentTarget)} title="Dispatch Management">
-            <i className="fas fa-truck-fast"></i>
-            {" "}
-            <span>Dispatch</span>
-            {" "}
-            <span className="rail-badge-count count-red" id="navPendingDispCount">0</span>
           </button>
           {" "}
           <button className="rail-btn gd-nav-btn" data-tab="returns" onClick={(event) => window.switchGodownTab('returns', event.currentTarget)} title="Relief Returns Log">
@@ -162,7 +139,7 @@ const markup = (
           {/* Bottom Tools & Telemetry Sync Anchor */}
           <div className="rail-bottom-cluster">
             <div className="rail-divider"></div>
-            <button className="rail-btn" onClick={(event) => { window.renderAllGodownViews(); window.showToast('Warehouse stock & dispatch telemetry synced'); }} title="Sync All Records">
+            <button className="rail-btn" onClick={(event) => { if (window.renderAllGodownViews) window.renderAllGodownViews(); if (window.showToast) window.showToast('Warehouse stock & dispatch telemetry synced'); }} title="Sync All Records">
               <i className="fas fa-arrows-rotate"></i>
               {" "}
               <span>Sync</span>
@@ -174,120 +151,92 @@ const markup = (
             </div>
           </div>
         </aside>
-        <main className="main-content-col">
-          {/* COLORFUL 6-KPI STOCK OVERVIEW STRIP */}
-          <div className="kpi-grid-6 anim-card" id="stockOverviewKpis"></div>
+
+        {/* CENTER STAGE (MATCHING ADMIN & AUTHORITY) */}
+        <main className="center-stage">
+          {/* 4-KPI OVERVIEW STRIP */}
+          <div className="kpi-grid-4 anim-card" id="stockOverviewKpis"></div>
+
           {/* ===============================================================
-                 TAB 1: PORTAL DASHBOARD
+                 TAB 1: PORTAL DASHBOARD (MAP + DISPATCH MANAGEMENT)
                  =============================================================== */}
           <div className="gd-tab-pane active" id="tab-dashboard">
-            {/* DISPATCH MANAGEMENT CARDS */}
-            <div className="aqua-card anim-card">
-              <div className="card-head">
+            {/* COMPACT MAP VIEWPORT (310px HEIGHT - EXACT MATCH TO AUTHORITY/ADMIN) */}
+            <div className="aqua-card anim-card" style={{ padding: "12px 14px", marginBottom: "14px" }}>
+              <div className="card-head" style={{ marginBottom: "10px" }}>
                 <h2>
-                  <i className="fas fa-truck-fast" style={{ color: "var(--river-blue)" }}></i>
-                  {" Dispatch Management – Authority-Approved Destination Allocations"}
+                  <i className="fas fa-map-location-dot" style={{ color: "var(--river-blue)" }}></i>
+                  {" District Relief Logistics & Convoy Route GIS Map"}
                 </h2>
-                <div style={{ display: "flex", gap: "7px", flexWrap: "wrap" }}>
-                  <button className="btn-gd" onClick={(event) => window.switchGodownTab('verification', document.querySelector('[data-tab=verification]'))}>
-                    <i className="fas fa-check-double"></i>
-                    {" Verify Stock"}
-                  </button>
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                  <button className="btn-card-action" onClick={() => window.filterGodownMap && window.filterGodownMap('ALL')}>All Zones</button>
                   {" "}
-                  <button className="btn-gd primary" onClick={(event) => window.switchGodownTab('add-stock', document.querySelector('[data-tab=add-stock]'))}>
-                    <i className="fas fa-plus"></i>
-                    {" Add New Stock"}
+                  <button className="btn-card-action" style={{ color: "#b91c1c" }} onClick={() => window.filterGodownMap && window.filterGodownMap('PENDING')}>Pending Dispatch</button>
+                  {" "}
+                  <button className="btn-card-action" style={{ color: "#15803d" }} onClick={() => window.filterGodownMap && window.filterGodownMap('DISPATCHED')}>Dispatched Convoys</button>
+                  {" "}
+                  <button className="btn-card-action" style={{ color: "#c2410c" }} onClick={() => window.filterGodownMap && window.filterGodownMap('CRITICAL')}>Critical Needs</button>
+                </div>
+              </div>
+              <div id="godownMapSlot" style={{ position: "relative", height: "480px", borderRadius: "12px", overflow: "hidden", border: "1.5px solid var(--border-aqua)" }}>
+                <div id="godownLeafletMap" style={{ width: "100%", height: "100%", position: "absolute", top: 0, left: 0, zIndex: 1 }}></div>
+                <div className="map-float-search" style={{ zIndex: 10 }}>
+                  <i className="fas fa-search" style={{ color: "#64748b" }}></i>
+                  {" "}
+                  <input type="text" placeholder="Search destination village, convoy..." onKeyUp={(event) => { if(event.key==='Enter' && window.searchGodownMap) window.searchGodownMap(event.currentTarget.value); }} />
+                </div>
+                <div className="map-legend-overlay" style={{ zIndex: 10 }}>
+                  <span>
+                    <i className="l-dot" style={{ background: "#0284c7" }}></i>
+                    Depot Hubs
+                  </span>
+                  {" "}
+                  <span>
+                    <i className="l-dot" style={{ background: "#16a34a" }}></i>
+                    Dispatched Convoy
+                  </span>
+                  {" "}
+                  <span>
+                    <i className="l-dot" style={{ background: "#dc2626" }}></i>
+                    Admin/Authority Area
+                  </span>
+                </div>
+                <div className="map-zoom-controls" style={{ zIndex: 10 }}>
+                  <button className="map-z-btn" onClick={() => window.godownMapZoomIn && window.godownMapZoomIn()} title="Zoom In">+</button>
+                  {" "}
+                  <button className="map-z-btn" onClick={() => window.godownMapZoomOut && window.godownMapZoomOut()} title="Zoom Out">−</button>
+                  {" "}
+                  <button className="map-z-btn" onClick={() => window.godownMapRecenter && window.godownMapRecenter()} title="Recenter">
+                    <i className="fas fa-crosshairs"></i>
                   </button>
                 </div>
-              </div>
-              <div className="grid-2 switchable-collection" id="dashDispatchCardGrid"></div>
-            </div>
-            {/* WAREHOUSE INVENTORY CARDS */}
-            <div className="aqua-card anim-card">
-              <div className="card-head">
-                <h2>
-                  <i className="fas fa-boxes-stacked" style={{ color: "var(--navy-deep)" }}></i>
-                  {" Warehouse Stock Overview (Available, Allocated & Dispatched)"}
-                </h2>
-                <button className="btn-gd" onClick={(event) => window.switchGodownTab('inventory', document.querySelector('[data-tab=inventory]'))}>Full Inventory →</button>
-              </div>
-              <div className="grid-3 switchable-collection" id="dashInventoryCardGrid"></div>
-            </div>
-            {/* LOW STOCK & RECENT MOVEMENTS */}
-            <div className="grid-2">
-              <div className="aqua-card anim-card">
-                <div className="card-head">
-                  <h2>
-                    <i className="fas fa-triangle-exclamation" style={{ color: "#dc2626" }}></i>
-                    {" Low Stock Alerts"}
-                  </h2>
-                  <button className="btn-gd" onClick={(event) => window.switchGodownTab('low-stock', document.querySelector('[data-tab=low-stock]'))}>Thresholds →</button>
-                </div>
-                <div className="grid-2 switchable-collection" id="dashLowStockGrid"></div>
-              </div>
-              <div className="aqua-card anim-card">
-                <div className="card-head">
-                  <h2>
-                    <i className="fas fa-clock-rotate-left" style={{ color: "var(--river-blue)" }}></i>
-                    {" Recent Stock Movements"}
-                  </h2>
-                </div>
-                <div className="grid-2 switchable-collection" id="dashRecentActivityGrid"></div>
               </div>
             </div>
           </div>
+
           {/* ===============================================================
-                 TAB 2: INVENTORY MANAGEMENT & UPDATE INVENTORY
+                 TAB 2: INVENTORY MANAGEMENT & INLINE ADD STOCK
                  =============================================================== */}
           <div className="gd-tab-pane" id="tab-inventory">
-            <div className="aqua-card">
-              <div className="card-head">
-                <h2>
-                  <i className="fas fa-boxes-stacked" style={{ color: "var(--river-blue)" }}></i>
-                  {" Complete Warehouse Inventory & Stock Corrections"}
-                </h2>
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                  <select id="invCategoryFilter" className="form-control" style={{ padding: "5px 10px", fontSize: "11.5px", width: "auto" }} onChange={(event) => window.renderAllGodownViews()}>
-                    <option value="ALL">All Categories</option>
-                    <option value="Rescue Boats">Rescue Boats</option>
-                    <option value="Life Jackets">Life Jackets</option>
-                    <option value="Food Packets">Food Packets</option>
-                    <option value="Drinking Water">Drinking Water</option>
-                    <option value="Medicines">Medicines</option>
-                    <option value="First Aid Kits">First Aid Kits</option>
-                    <option value="Rescue Equipment">Rescue Equipment</option>
-                  </select>
-                  {" "}
-                  <button className="btn-gd primary" onClick={(event) => window.switchGodownTab('add-stock', document.querySelector('[data-tab=add-stock]'))}>
-                    <i className="fas fa-plus"></i>
-                    {" Add New Stock"}
-                  </button>
-                </div>
-              </div>
-              <div className="grid-3 switchable-collection" id="fullInventoryCardGrid"></div>
-            </div>
-          </div>
-          {/* ===============================================================
-                 TAB 3: ADD NEW STOCK
-                 =============================================================== */}
-          <div className="gd-tab-pane" id="tab-add-stock">
-            <div className="aqua-card">
+            {/* INLINE COLLAPSIBLE ADD NEW STOCK CARD */}
+            <div className="aqua-card anim-card" id="addNewStockCard" style={{ marginBottom: "14px", display: "none" }}>
               <div className="card-head">
                 <h2>
                   <i className="fas fa-plus-circle" style={{ color: "var(--foliage-mid)" }}></i>
                   {" Add New Emergency Stock to Warehouse Inventory"}
                 </h2>
+                <button className="btn-gd" onClick={() => { const el = document.getElementById('addNewStockCard'); if (el) el.style.display = 'none'; }}>
+                  <i className="fas fa-times"></i> Close Form
+                </button>
               </div>
-              <form onSubmit={(event) => window.handleAddNewStock(event)}>
+              <form onSubmit={(event) => window.handleAddNewStock && window.handleAddNewStock(event)}>
                 <div className="form-grid-3">
                   <div className="form-group">
                     <label>Resource Name *</label>
-                    {" "}
                     <input type="text" id="newStockName" className="form-control" placeholder="e.g. Inflatable Motorized Rescue Boat" required />
                   </div>
                   <div className="form-group">
                     <label>Resource Category *</label>
-                    {" "}
                     <select id="newStockCat" className="form-control">
                       <option value="Rescue Boats">Rescue Boats</option>
                       <option value="Life Jackets">Life Jackets</option>
@@ -300,14 +249,12 @@ const markup = (
                   </div>
                   <div className="form-group">
                     <label>Quantity Received *</label>
-                    {" "}
                     <input type="number" id="newStockQty" className="form-control" min="1" placeholder="e.g. 50" required />
                   </div>
                 </div>
                 <div className="form-grid-3">
                   <div className="form-group">
                     <label>Warehouse / Godown Location *</label>
-                    {" "}
                     <select id="newStockWarehouse" className="form-control">
                       <option value="Central Relief Godown – Mirza">Central Relief Godown – Mirza</option>
                       <option value="North Sector Warehouse – Rangia">North Sector Warehouse – Rangia</option>
@@ -315,82 +262,84 @@ const markup = (
                   </div>
                   <div className="form-group">
                     <label>Received Date *</label>
-                    {" "}
                     <input type="date" id="newStockDate" className="form-control" required />
                   </div>
                   <div className="form-group">
                     <label>Supplier / Government Source *</label>
-                    {" "}
                     <input type="text" id="newStockSupplier" className="form-control" placeholder="e.g. State SDMA Central Supply" required />
                   </div>
                 </div>
                 <div className="form-grid-2">
                   <div className="form-group">
                     <label>Minimum Low-Stock Alert Limit *</label>
-                    {" "}
                     <input type="number" id="newStockMin" className="form-control" min="1" defaultValue="20" required />
                   </div>
                   <div className="form-group">
                     <label>Batch / Equipment ID Notes</label>
-                    {" "}
-                    <input type="text" id="newStockNotes" className="form-control" placeholder={"e.g. Inspected & sealed in Bay B-4"} />
+                    <input type="text" id="newStockNotes" className="form-control" placeholder="e.g. Inspected & sealed in Bay B-4" />
                   </div>
                 </div>
                 <button type="submit" className="btn-gd primary" style={{ padding: "10px 18px", fontSize: "12.5px" }}>
                   <i className="fas fa-check-circle"></i>
-                  {" Record Stock Entry & Update Inventory "}
+                  {" Record Stock Entry & Update Inventory"}
                 </button>
               </form>
             </div>
+
+            <div className="aqua-card">
+              <div className="card-head">
+                <h2>
+                  <i className="fas fa-boxes-stacked" style={{ color: "var(--river-blue)" }}></i>
+                  {" Complete Warehouse Inventory & Stock Corrections"}
+                </h2>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  <select id="invCategoryFilter" className="form-control" style={{ padding: "5px 10px", fontSize: "11.5px", width: "auto" }} onChange={(event) => window.renderAllGodownViews && window.renderAllGodownViews()}>
+                    <option value="ALL">All Categories</option>
+                    <option value="Rescue Boats">Rescue Boats</option>
+                    <option value="Life Jackets">Life Jackets</option>
+                    <option value="Food Packets">Food Packets</option>
+                    <option value="Drinking Water">Drinking Water</option>
+                    <option value="Medicines">Medicines</option>
+                    <option value="First Aid Kits">First Aid Kits</option>
+                    <option value="Rescue Equipment">Rescue Equipment</option>
+                  </select>
+                  <button className="btn-gd primary" onClick={() => window.toggleAddStockCard && window.toggleAddStockCard()}>
+                    <i className="fas fa-plus"></i>
+                    {" + Add New Stock"}
+                  </button>
+                </div>
+              </div>
+              <div className="grid-3 switchable-collection" id="fullInventoryCardGrid"></div>
+            </div>
           </div>
+
           {/* ===============================================================
-                 TAB 4: APPROVED RESOURCE REQUESTS
+                 TAB 3: APPROVED ALLOCATIONS, VERIFICATION & DISPATCH (MERGED UNIFIED TAB)
                  =============================================================== */}
           <div className="gd-tab-pane" id="tab-approved-req">
             <div className="aqua-card">
               <div className="card-head">
                 <h2>
                   <i className="fas fa-clipboard-check" style={{ color: "var(--river-blue)" }}></i>
-                  {" Authority-Approved Resource Allocations by Village / Area"}
+                  {" Authority-Approved Allocations, Physical Verification & Convoy Dispatch"}
                 </h2>
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                  <button className="btn-card-action" onClick={() => window.filterApprovedTab && window.filterApprovedTab('ALL')}>All Allocations</button>
+                  <button className="btn-card-action" style={{ color: "#b91c1c" }} onClick={() => window.filterApprovedTab && window.filterApprovedTab('PENDING')}>Pending Dispatch</button>
+                  <button className="btn-card-action" style={{ color: "#15803d" }} onClick={() => window.filterApprovedTab && window.filterApprovedTab('DISPATCHED')}>Dispatched Convoys</button>
+                  <button className="btn-card-action" style={{ color: "#ea580c" }} onClick={() => window.filterApprovedTab && window.filterApprovedTab('SHORTAGE')}>Flagged Shortages</button>
+                </div>
               </div>
               <div style={{ background: "#eef6fd", borderLeft: "3.5px solid var(--river-blue)", padding: "8px 12px", borderRadius: "8px", fontSize: "11.5px", color: "var(--navy-deep)", marginBottom: "12px" }}>
-                <strong>Role Separation Rule:</strong>
-                {" Only District Authority approves or rejects requests. Godown Manager verifies physical stock availability and dispatches approved quantities. "}
+                <strong>Unified Lifecycle Flow:</strong>
+                {" District Authority assesses and approves allocations for flood areas. Godown Manager verifies physical warehouse stock, reports shortages if supplies fall short, and dispatches convoys with gate-pass generation. "}
               </div>
               <div className="grid-2 switchable-collection" id="fullApprovedReqGrid"></div>
             </div>
           </div>
+
           {/* ===============================================================
-                 TAB 5: STOCK VERIFICATION
-                 =============================================================== */}
-          <div className="gd-tab-pane" id="tab-verification">
-            <div className="aqua-card">
-              <div className="card-head">
-                <h2>
-                  <i className="fas fa-magnifying-glass-chart" style={{ color: "var(--river-blue)" }}></i>
-                  {" Pre-Dispatch Physical Stock Verification & Shortage Alert"}
-                </h2>
-              </div>
-              <div className="grid-2 switchable-collection" id="stockVerificationGrid"></div>
-            </div>
-          </div>
-          {/* ===============================================================
-                 TAB 6: DISPATCH MANAGEMENT
-                 =============================================================== */}
-          <div className="gd-tab-pane" id="tab-dispatch">
-            <div className="aqua-card">
-              <div className="card-head">
-                <h2>
-                  <i className="fas fa-truck-fast" style={{ color: "var(--river-blue)" }}></i>
-                  {" Dispatch Management & Gate-Pass Receipts"}
-                </h2>
-              </div>
-              <div className="grid-2 switchable-collection" id="fullDispatchCardGrid"></div>
-            </div>
-          </div>
-          {/* ===============================================================
-                 TAB 7: RETURN MANAGEMENT
+                 TAB 6: RETURN MANAGEMENT
                  =============================================================== */}
           <div className="gd-tab-pane" id="tab-returns">
             <div className="aqua-card">
@@ -399,7 +348,7 @@ const markup = (
                   <i className="fas fa-rotate-left" style={{ color: "var(--teal-water)" }}></i>
                   {" Post-Operation Returned Resources Inspection"}
                 </h2>
-                <button className="btn-gd primary" onClick={(event) => window.openReturnModal()}>
+                <button className="btn-gd primary" onClick={(event) => window.openReturnModal && window.openReturnModal()}>
                   <i className="fas fa-plus"></i>
                   {" Log Returned Resources"}
                 </button>
@@ -413,8 +362,9 @@ const markup = (
               <div className="grid-3 switchable-collection" id="returnsCardGrid"></div>
             </div>
           </div>
+
           {/* ===============================================================
-                 TAB 8: LOW STOCK ALERTS
+                 TAB 7: LOW STOCK ALERTS
                  =============================================================== */}
           <div className="gd-tab-pane" id="tab-low-stock">
             <div className="aqua-card">
@@ -427,8 +377,9 @@ const markup = (
               <div className="grid-3 switchable-collection" id="lowStockCardsGrid"></div>
             </div>
           </div>
+
           {/* ===============================================================
-                 TAB 9: REPORTS & INVENTORY MOVEMENT HISTORY
+                 TAB 8: REPORTS & INVENTORY MOVEMENT HISTORY
                  =============================================================== */}
           <div className="gd-tab-pane" id="tab-reports">
             <div className="aqua-card">
@@ -437,7 +388,7 @@ const markup = (
                   <i className="fas fa-file-lines" style={{ color: "var(--river-blue)" }}></i>
                   {" Warehouse Reports & Stock Movement Audit"}
                 </h2>
-                <button className="btn-gd primary" onClick={(event) => window.showToast('Warehouse Stock, Dispatch & Damage Report exported.')}>
+                <button className="btn-gd primary" onClick={(event) => window.showToast && window.showToast('Warehouse Stock, Dispatch & Damage Report exported.')}>
                   <i className="fas fa-download"></i>
                   {" Export Warehouse Report"}
                 </button>
@@ -446,8 +397,9 @@ const markup = (
               <div className="grid-3 switchable-collection" id="movementLogsCardGrid"></div>
             </div>
           </div>
+
           {/* ===============================================================
-                 TAB 10: PROFILE & SETTINGS
+                 TAB 9: PROFILE & SETTINGS
                  =============================================================== */}
           <div className="gd-tab-pane" id="tab-profile">
             <div className="aqua-card">
@@ -496,10 +448,95 @@ const markup = (
             </div>
           </div>
         </main>
+
+        {/* RIGHT PANEL (QUICK ACTIONS + SELECTED ALLOCATION INSPECTOR + RIVER TELEMETRY) */}
+        <aside className="right-panel">
+          {/* Quick Actions matching Admin & Authority */}
+          <div className="aqua-card anim-card">
+            <div className="card-head">
+              <h2>
+                <i className="fas fa-bolt" style={{ color: "#f59e0b" }}></i>
+                {" Godown Quick Actions"}
+              </h2>
+            </div>
+            <div className="qa-grid-2x2">
+              <button className="qa-color-card qa-blue" onClick={() => window.openFirstPendingDispatch && window.openFirstPendingDispatch()}>
+                <i className="fas fa-truck-fast"></i>
+                <strong>Prepare Dispatch</strong>
+                <span>Gate-pass & vehicle</span>
+              </button>
+              <button className="qa-color-card qa-green" onClick={() => window.toggleAddStockCard && window.toggleAddStockCard()}>
+                <i className="fas fa-plus-circle"></i>
+                <strong>+ Add Stock</strong>
+                <span>New SDMA delivery</span>
+              </button>
+              <button className="qa-color-card qa-amber" onClick={() => window.switchGodownTab('approved-req', document.querySelector('[data-tab=approved-req]'))}>
+                <i className="fas fa-magnifying-glass-check"></i>
+                <strong>Verify & Dispatch</strong>
+                <span>Check against orders</span>
+              </button>
+              <button className="qa-color-card qa-indigo" onClick={() => window.openReturnModal && window.openReturnModal()}>
+                <i className="fas fa-rotate-left"></i>
+                <strong>Log Return</strong>
+                <span>Inspect field return</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Selected Allocation & Convoy Inspector (Matching Authority's Selected Village Box) */}
+          <div className="aqua-card anim-card">
+            <div className="card-head">
+              <h2>
+                <i className="fas fa-location-crosshairs" style={{ color: "#dc2626" }}></i>
+                {" Selected Allocation Order"}
+              </h2>
+              <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--river-blue)", cursor: "pointer" }} onClick={() => window.switchGodownTab('approved-req', document.querySelector('[data-tab=approved-req]'))}>View All →</span>
+            </div>
+            <div id="rightSelectedAllocBox">
+              <div style={{ textAlign: "center", padding: "18px", color: "var(--text-muted)", fontSize: "11.5px" }}>
+                Tap any allocation card or map pin to inspect and dispatch.
+              </div>
+            </div>
+          </div>
+
+          {/* Logistics Corridor River Water-Level Gauge Card (CWC & GloFAS) */}
+          <div className="aqua-card anim-card">
+            <div className="card-head">
+              <h2>
+                <i className="fas fa-water" style={{ color: "var(--river-blue)" }}></i>
+                {" Supply Route River Telemetry"}
+              </h2>
+            </div>
+            <div id="rightCorridorRiverBox"></div>
+          </div>
+
+          {/* Depot System Status */}
+          <div className="aqua-card anim-card">
+            <div className="card-head">
+              <h2>
+                <i className="fas fa-warehouse" style={{ color: "var(--foliage-mid)" }}></i>
+                {" Depot System Sync"}
+              </h2>
+            </div>
+            <div style={{ fontSize: "11.5px", color: "var(--text-body)", lineHeight: "1.5" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                <span>DDMA Authority Sync:</span>
+                <strong style={{ color: "#16a34a" }}>Connected (Live)</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                <span>Field Officer Verification:</span>
+                <strong style={{ color: "#0284c7" }}>Active (VHF & Net)</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span>Central Logistics Hub:</span>
+                <strong>Mirza (Loading Bay 2)</strong>
+              </div>
+            </div>
+          </div>
+        </aside>
       </div>
+
       {/* 3. RIPARIAN HILLS & RIVER FOOTER */}
-      {" "}
-      {/* RIPARIAN PANORAMIC FOOTER (MATCHED TO ADMIN, AUTHORITY & GROUND OFFICER) */}
       <div className="riparian-footer-wrap">
         <div className="footer-scenic-banner">
           <img src="/footer.jpg" alt="Misty Brahmaputra River Basin Landscape" className="footer-scenic-img" />
@@ -513,76 +550,75 @@ const markup = (
             </span>
             {" "}
             <span>
-              {"Workflow: DDMA Authority Approves → Godown Verifies & Dispatches → Field NDRF/SDRF Receives"}
+              {"Workflow: Admin Marks Area → Authority Assesses & Allocates → Godown Verifies & Dispatches → Field Ground Officer Receives"}
             </span>
           </div>
         </div>
       </div>
-      <div className="modal-overlay" id="dispatchModal" onClick={(event) => window.closeModal('dispatchModal')}>
+
+      {/* DISPATCH MODAL */}
+      <div className="modal-overlay" id="dispatchModal" onClick={(event) => window.closeModal && window.closeModal('dispatchModal')}>
         <div className="modal-box" onClick={(event) => event.stopPropagation()}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
             <h3 style={{ margin: "0", fontSize: "16px", color: "var(--navy-deep)" }}>
               <i className="fas fa-truck-fast" style={{ color: "var(--river-blue)" }}></i>
               {" Prepare & Dispatch Approved Allocation"}
             </h3>
-            <button onClick={(event) => window.closeModal('dispatchModal')} style={{ border: "none", background: "#e2e8f0", width: "28px", height: "28px", borderRadius: "50%", cursor: "pointer" }}>
+            <button onClick={() => window.closeModal && window.closeModal('dispatchModal')} style={{ border: "none", background: "#e2e8f0", width: "28px", height: "28px", borderRadius: "50%", cursor: "pointer" }}>
               <i className="fas fa-times"></i>
             </button>
           </div>
-          <form onSubmit={(event) => window.confirmDispatchSubmission(event)}>
+          <form onSubmit={(event) => window.confirmDispatchSubmission && window.confirmDispatchSubmission(event)}>
             <input type="hidden" id="dispAllocIndex" />
+            <input type="hidden" id="dispAllocId" />
             <div id="dispAllocSummary" style={{ background: "#f0f7fe", padding: "9px 11px", borderRadius: "8px", fontSize: "12px", marginBottom: "10px" }}></div>
             <div className="form-grid-2">
               <div className="form-group">
-                <label>Dispatch Quantity *</label>
-                {" "}
-                <input type="number" id="dispQtyInput" className="form-control" min="1" required />
+                <label>Assigned Vehicle Number *</label>
+                <input type="text" id="dispVehicleInput" className="form-control" placeholder="e.g. AS-01-GC-4821" required />
               </div>
               <div className="form-group">
-                <label>Transport Vehicle Number *</label>
-                {" "}
-                <input type="text" id="dispVehicleInput" className="form-control" placeholder="e.g. AS-01-GC-4821" required />
+                <label>Driver Name & Contact *</label>
+                <input type="text" id="dispDriverInput" className="form-control" placeholder="e.g. Rajesh Das (+91 98640-21943)" required />
               </div>
             </div>
             <div className="form-grid-2">
               <div className="form-group">
                 <label>Destination Location *</label>
-                {" "}
                 <input type="text" id="dispDestInput" className="form-control" required />
               </div>
               <div className="form-group">
                 <label>{"Dispatch Date & Time *"}</label>
-                {" "}
                 <input type="datetime-local" id="dispDateTimeInput" className="form-control" required />
               </div>
             </div>
             <button type="submit" className="btn-gd primary" style={{ width: "100%", justifyContent: "center", padding: "10px", fontSize: "12.5px" }}>
               <i className="fas fa-receipt"></i>
-              {" Confirm Dispatch & Generate Reference No. "}
+              {" Confirm Dispatch & Generate Reference No."}
             </button>
           </form>
         </div>
       </div>
-      <div className="modal-overlay" id="updateStockModal" onClick={(event) => window.closeModal('updateStockModal')}>
+
+      {/* UPDATE STOCK MODAL */}
+      <div className="modal-overlay" id="updateStockModal" onClick={(event) => window.closeModal && window.closeModal('updateStockModal')}>
         <div className="modal-box" onClick={(event) => event.stopPropagation()}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
             <h3 style={{ margin: "0", fontSize: "16px", color: "var(--navy-deep)" }}>{"Update Inventory & Condition"}</h3>
-            <button onClick={(event) => window.closeModal('updateStockModal')} style={{ border: "none", background: "#e2e8f0", width: "28px", height: "28px", borderRadius: "50%", cursor: "pointer" }}>
+            <button onClick={() => window.closeModal && window.closeModal('updateStockModal')} style={{ border: "none", background: "#e2e8f0", width: "28px", height: "28px", borderRadius: "50%", cursor: "pointer" }}>
               <i className="fas fa-times"></i>
             </button>
           </div>
-          <form onSubmit={(event) => window.submitStockCorrection(event)}>
+          <form onSubmit={(event) => window.submitStockCorrection && window.submitStockCorrection(event)}>
             <input type="hidden" id="updInvIndex" />
             <div id="updInvTitle" style={{ fontWeight: "700", fontSize: "13px", color: "var(--navy-deep)", marginBottom: "10px" }}></div>
             <div className="form-grid-2">
               <div className="form-group">
                 <label>Updated Available Quantity *</label>
-                {" "}
                 <input type="number" id="updAvailQty" className="form-control" min="0" required />
               </div>
               <div className="form-group">
                 <label>Stock Condition *</label>
-                {" "}
                 <select id="updCondition" className="form-control">
                   <option value="Good">Good / Ready</option>
                   <option value="Low Stock">Low Stock</option>
@@ -592,55 +628,52 @@ const markup = (
             </div>
             <div className="form-group">
               <label>Mandatory Stock Correction Reason *</label>
-              {" "}
               <input type="text" id="updReason" className="form-control" placeholder="e.g. Physical audit adjustment / damaged seal removed" required />
             </div>
             <button type="submit" className="btn-gd primary" style={{ width: "100%", justifyContent: "center", padding: "10px" }}>Save Inventory Correction</button>
           </form>
         </div>
       </div>
-      <div className="modal-overlay" id="returnModal" onClick={(event) => window.closeModal('returnModal')}>
+
+      {/* RETURN INSPECTION MODAL */}
+      <div className="modal-overlay" id="returnModal" onClick={(event) => window.closeModal && window.closeModal('returnModal')}>
         <div className="modal-box" onClick={(event) => event.stopPropagation()}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
             <h3 style={{ margin: "0", fontSize: "16px", color: "var(--navy-deep)" }}>Record Post-Operation Returned Resources</h3>
-            <button onClick={(event) => window.closeModal('returnModal')} style={{ border: "none", background: "#e2e8f0", width: "28px", height: "28px", borderRadius: "50%", cursor: "pointer" }}>
+            <button onClick={() => window.closeModal && window.closeModal('returnModal')} style={{ border: "none", background: "#e2e8f0", width: "28px", height: "28px", borderRadius: "50%", cursor: "pointer" }}>
               <i className="fas fa-times"></i>
             </button>
           </div>
-          <form onSubmit={(event) => window.submitReturnRecord(event)}>
+          <form onSubmit={(event) => window.submitReturnRecord && window.submitReturnRecord(event)}>
             <div className="form-grid-2">
               <div className="form-group">
                 <label>Resource Item *</label>
-                {" "}
                 <select id="retResourceSel" className="form-control"></select>
               </div>
               <div className="form-group">
                 <label>Returned From (Village / Camp) *</label>
-                {" "}
                 <input type="text" id="retFromLoc" className="form-control" placeholder="e.g. Palashbari Ward 2" required />
               </div>
             </div>
             <div className="form-grid-3">
               <div className="form-group">
                 <label>Good Qty (Restock)</label>
-                {" "}
                 <input type="number" id="retGoodQty" className="form-control" min="0" defaultValue="2" required />
               </div>
               <div className="form-group">
                 <label>Damaged Qty</label>
-                {" "}
                 <input type="number" id="retDamagedQty" className="form-control" min="0" defaultValue="0" required />
               </div>
               <div className="form-group">
                 <label>Missing Qty</label>
-                {" "}
                 <input type="number" id="retMissingQty" className="form-control" min="0" defaultValue="0" required />
               </div>
             </div>
-            <button type="submit" className="btn-gd primary" style={{ width: "100%", justifyContent: "center", padding: "10px" }}>{"Verify Condition & Update Stock"}</button>
+            <button type="submit" className="btn-gd primary" style={{ width: "100%", justifyContent: "center", padding: "10px" }}>Verify Condition & Update Stock</button>
           </form>
         </div>
       </div>
+
       <div id="toast"></div>
   </>
 );
@@ -648,7 +681,7 @@ const markup = (
 export default function Godown() {
   useEffect(() => {
     const cleanup = setupRouteGuard('godown');
-    document.title = "NEERAKSHAK – Godown Manager Portal | Colorful Inventory & Dispatch";
+    document.title = "NEERAKSHAK – Godown Manager Portal | Logistics, Map & Real-Time Dispatch";
     initGodownPage();
     return cleanup;
   }, []);

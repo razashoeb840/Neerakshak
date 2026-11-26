@@ -258,6 +258,9 @@ window.NEERAKSHAK_SEED_DATA = {
     // =========================================================================
     // PART 3: DISTRICT DISASTER MANAGEMENT AUTHORITY (DDMA) TELEMETRY (3authority.html)
     // =========================================================================
+    // =========================================================================
+    // PART 3: DISTRICT AUTHORITY & DDMA EXECUTIVE TELEMETRY (3authority.html)
+    // =========================================================================
     authority: {
         // Flood-affected villages with assessed resource requirements
         villages: [
@@ -267,7 +270,9 @@ window.NEERAKSHAK_SEED_DATA = {
                 block: 'Palashbari Circle',
                 severity: 'Critical',
                 pop: 4200,
-                waterStatus: 'Brahmaputra at 18.2 m (Above Danger Level)',
+                lat: 26.132,
+                lng: 91.515,
+                waterStatus: 'Brahmaputra at 18.20 m (0.60 m Above Danger Level • Rising)',
                 assessedNeed: { boats: 4, jackets: 60, food: 500, meds: 80 }
             },
             {
@@ -276,7 +281,9 @@ window.NEERAKSHAK_SEED_DATA = {
                 block: 'Chaygaon Circle',
                 severity: 'High',
                 pop: 3650,
-                waterStatus: 'Kolong Basin at 14.6 m (Rising)',
+                lat: 26.052,
+                lng: 91.225,
+                waterStatus: 'Kolong Basin at 14.60 m (0.30 m Below Danger Mark • Influx Warning)',
                 assessedNeed: { boats: 2, jackets: 30, food: 450, meds: 65 }
             },
             {
@@ -285,7 +292,9 @@ window.NEERAKSHAK_SEED_DATA = {
                 block: 'Goroimari Circle',
                 severity: 'Moderate',
                 pop: 2800,
-                waterStatus: 'Waterlogging watch on approach road',
+                lat: 26.095,
+                lng: 91.340,
+                waterStatus: 'Waterlogging watch on feeder approach road; ferry access functional',
                 assessedNeed: { boats: 1, jackets: 15, food: 250, meds: 40 }
             },
             {
@@ -294,7 +303,9 @@ window.NEERAKSHAK_SEED_DATA = {
                 block: 'Boko Circle',
                 severity: 'Normal',
                 pop: 1780,
-                waterStatus: 'Kakang Gauge at 12.8 m (Normal)',
+                lat: 25.980,
+                lng: 91.240,
+                waterStatus: 'Kakang River Gauge at 12.80 m (Safe Margin 2.40 m • Steady)',
                 assessedNeed: { boats: 0, jackets: 0, food: 100, meds: 20 }
             }
         ],
@@ -303,90 +314,211 @@ window.NEERAKSHAK_SEED_DATA = {
         requests: [
             {
                 id: 'REQ-204',
-                from: 'Ground Officer – Palashbari',
+                from: 'Ground Officer R. K. Kalita (GO-KAM-04)',
                 village: 'Palashbari Riverside Ward 2',
                 items: '4 Rescue Boats, 60 Life Jackets',
                 urgency: 'Critical',
                 status: 'Pending',
-                reason: 'Awaiting Authority review'
+                reason: 'Embankment breach at Ward 2 primary school; 140 families stranded on rooftops.',
+                timestamp: 'Today, 10:30 AM'
             },
             {
                 id: 'REQ-205',
-                from: 'Relief Camp Desk – Chaygaon',
+                from: 'Relief Camp Desk – Chaygaon HS',
                 village: 'Chaygaon Lowland Belt',
                 items: '450 Food Packets, 65 Medicine Kits',
                 urgency: 'High',
                 status: 'Pending',
-                reason: 'Awaiting Authority review'
+                reason: 'Drinking water contamination and infant formula shortage reported by Camp Doctor.',
+                timestamp: 'Today, 09:45 AM'
             },
             {
                 id: 'REQ-201',
-                from: 'DEOC Field Desk',
+                from: 'DEOC Field Sector Desk',
                 village: 'Goroimari Char Cluster',
                 items: '250 Food Packets, 40 Medicine Kits',
                 urgency: 'Moderate',
                 status: 'Approved',
-                reason: 'Approved & routed to Godown Manager'
+                reason: 'Approved per DDMA flood severity matrix & routed to Godown Manager (ALC-503).',
+                timestamp: 'Today, 08:30 AM'
             }
         ],
 
-        // Approved allocations transmitted to Godown Manager with dispatch status
+        // Approved allocations transmitted to Godown Manager with rich step-by-step tracking
         allocations: [
             {
                 id: 'ALC-501',
                 village: 'Palashbari Riverside Ward 2',
                 summary: '4 Boats, 60 Jackets, 500 Food, 80 Meds',
-                godownStatus: 'Sent to Godown Manager • Preparing Dispatch',
-                deliveryProgress: 65
+                godownStatus: 'In Transit • Checkpoint Crossed',
+                deliveryProgress: 75,
+                timestamp: 'Today, 08:50 AM',
+                assignedGodown: 'Central Relief Godown – Mirza (Loading Bay 2)',
+                vehicle: 'Heavy Truck #AS-01-EC-4210 (6-Ton Swaraj)',
+                driver: 'Rajesh Das (Ph: +91 98640-21943)',
+                escortOfficer: 'ASI D. Kalita (Kamrup District Police Escort)',
+                itemsDetail: [
+                    { name: 'Inflatable Rescue Boats with OBM', qty: 4, unit: 'Boats' },
+                    { name: 'High-Buoyancy Certified Life Jackets', qty: 60, unit: 'Jackets' },
+                    { name: 'Dry Ration Ready-to-Eat Food Packets', qty: 500, unit: 'Packets' },
+                    { name: 'Essential Flood Trauma & ORS Medicine Kits', qty: 80, unit: 'Kits' }
+                ],
+                timeline: [
+                    { step: 'DDMA Allocation Approved', time: '08:50 AM', status: 'done', detail: 'Allocation approved by District Authority & transmitted electronically to Mirza Godown.' },
+                    { step: 'Stock Verified & Pallets Loaded', time: '09:20 AM', status: 'done', detail: 'Godown Manager verified 4 boats & 500 rations; loaded onto Truck AS-01-EC-4210.' },
+                    { step: 'Departed Central Godown', time: '09:45 AM', status: 'done', detail: 'Gate-pass #GP-2026-884 issued; vehicle departed with police escort vehicle.' },
+                    { step: 'Crossed Sector Checkpoint', time: '10:20 AM', status: 'done', detail: 'Cleared Mirza-Palashbari high-water bypass bridge; pilot vehicle escort active.' },
+                    { step: 'Camp Intake & Final Distribution', time: '10:55 AM (ETA)', status: 'active', detail: 'Approaching Palashbari Govt HS Relief Camp; Ground Officer receiving team positioned.' }
+                ]
             },
             {
                 id: 'ALC-502',
                 village: 'Chaygaon Lowland Belt',
                 summary: '2 Boats, 30 Jackets, 450 Food, 65 Meds',
-                godownStatus: 'Dispatched by Godown • En-Route',
-                deliveryProgress: 85
+                godownStatus: 'Departed Godown • En-Route',
+                deliveryProgress: 50,
+                timestamp: 'Today, 09:30 AM',
+                assignedGodown: 'Central Relief Godown – Mirza (Bay 1)',
+                vehicle: 'Medium Truck #AS-01-GC-4821 (Tata 407)',
+                driver: 'Biren Barman (Ph: +91 94351-78201)',
+                escortOfficer: 'Constable N. Sarma (Traffic & Route Security)',
+                itemsDetail: [
+                    { name: 'Inflatable Rescue Boats', qty: 2, unit: 'Boats' },
+                    { name: 'High-Buoyancy Life Jackets', qty: 30, unit: 'Jackets' },
+                    { name: 'Dry Ration Food Packets', qty: 450, unit: 'Packets' },
+                    { name: 'Emergency Water Purification & Meds', qty: 65, unit: 'Kits' }
+                ],
+                timeline: [
+                    { step: 'DDMA Allocation Approved', time: '09:30 AM', status: 'done', detail: 'Emergency relief request approved by DDMA Controller.' },
+                    { step: 'Stock Verified & Pallets Loaded', time: '10:00 AM', status: 'done', detail: 'Inspected and loaded by Mirza Depot Shift B team.' },
+                    { step: 'Departed Central Godown', time: '10:15 AM', status: 'done', detail: 'Cleared outbound weighbridge; route advised via Gumi-Chaygaon bypass.' },
+                    { step: 'Crossed Sector Checkpoint', time: '10:45 AM (ETA)', status: 'active', detail: 'Moving through Chaygaon South approach road.' },
+                    { step: 'Camp Intake & Final Distribution', time: '11:20 AM (ETA)', status: 'pending', detail: 'Scheduled delivery at Chaygaon Community Hall Relief Intake Center.' }
+                ]
+            },
+            {
+                id: 'ALC-503',
+                village: 'Goroimari Char Cluster',
+                summary: '1 Boat, 15 Jackets, 250 Food, 40 Meds',
+                godownStatus: 'Delivered & Confirmed at Camp',
+                deliveryProgress: 100,
+                timestamp: 'Today, 08:15 AM',
+                assignedGodown: 'North Sector Warehouse – Rangia',
+                vehicle: 'Pickup #AS-14-B-9912 & Motorized Country Barge',
+                driver: 'Abdul Munnaf (+91 97060-44129)',
+                escortOfficer: 'Home Guard J. Medhi',
+                itemsDetail: [
+                    { name: 'Rescue Boat with 15HP OBM', qty: 1, unit: 'Boat' },
+                    { name: 'Life Jackets', qty: 15, unit: 'Jackets' },
+                    { name: 'Dry Ration Packets', qty: 250, unit: 'Packets' },
+                    { name: 'First Aid & Halogen Lights', qty: 40, unit: 'Kits' }
+                ],
+                timeline: [
+                    { step: 'DDMA Allocation Approved', time: '08:15 AM', status: 'done', detail: 'Sanctioned early morning per Brahmaputra flood wave advisory.' },
+                    { step: 'Stock Verified & Pallets Loaded', time: '08:35 AM', status: 'done', detail: 'Loaded at Rangia auxiliary relief post.' },
+                    { step: 'Departed Central Godown', time: '08:50 AM', status: 'done', detail: 'Road dispatch to Goroimari river ferry point.' },
+                    { step: 'Ferry Transfer & Sector Crossing', time: '09:30 AM', status: 'done', detail: 'Transferred safely to motorized river barge.' },
+                    { step: 'Camp Intake & Final Distribution', time: '10:10 AM', status: 'done', detail: '100% receipt verified by Village Headman & Ground Officer; signed manifest uploaded.' }
+                ]
             }
         ],
 
         // Multi-agency disaster coordination records (NDRF, SDRF, Army, Police)
         coordinations: [
             {
-                agency: 'NDRF (1st Bn)',
-                sector: 'Palashbari Riverside Ward 2',
-                update: 'Coordinated via DEOC Control Room; 2 NDRF boat teams evacuating stranded families under independent command.'
+                id: 'CORD-101',
+                agency: 'NDRF (1st Battalion, Patgaon)',
+                commander: 'Inspector Vikram Rathore',
+                designation: 'Team Alpha Incident Commander',
+                contact: 'VHF Wireless Ch-07 ("EAGLE-1") / +91 94350-11234',
+                strength: '28 Deep-Water Personnel • 4 Inflatable Zodiacs • 2 OBMs',
+                sector: 'Palashbari Riverside Ward 2 & Embankment Breach',
+                status: 'Deployed On Water',
+                timestamp: '10:15 AM',
+                callLog: 'Spoke with Insp. Vikram Rathore on VHF Ch-7. DEOC requested 2 immediate boat sorties behind primary school where 85 citizens are marooned. Team Alpha committed all 4 Zodiacs; 140 persons evacuated so far. Medical evacuation of 2 pregnant women prioritized to Mirza PHC.'
             },
             {
-                agency: 'SDRF District Unit',
-                sector: 'Chaygaon Lowland Belt',
-                update: 'Official requisition acknowledged; 1 SDRF unit stationed at Chaygaon ferry point.'
+                id: 'CORD-102',
+                agency: 'SDRF District Unit (Guwahati Central)',
+                commander: 'Sub-Inspector Manoj Baruah',
+                designation: 'SDRF Quick Response Unit Lead',
+                contact: 'Mobile: +91 98540-33211 / DEOC Hotline Line 2',
+                strength: '18 Divers & Rescuers • 2 Aluminium Boats • 1 Mobile Generator',
+                sector: 'Chaygaon Lowland Belt & Gumi Road Junction',
+                status: 'Active Rescue Sortie',
+                timestamp: '09:30 AM',
+                callLog: 'Direct telephone coordination with SI Manoj Baruah. SDRF unit arrived at Chaygaon ferry crossing. Clearing submerged approach road of driftwood to open access for food trucks. Assisting local administration in ferry shuttles for elderly citizens.'
+            },
+            {
+                id: 'CORD-103',
+                agency: 'Indian Army (Red Horns Division)',
+                commander: 'Major Ankit Swaminathan',
+                designation: 'Flood Relief Column Commander',
+                contact: 'Army Tactical Line / Sat-Phone: +88216-992384',
+                strength: '1 Task Force Column (45 Jawans) • 6 BAUTs • 1 Mobile Field Hospital',
+                sector: 'Goroimari Char Cluster & Island Villages',
+                status: 'On Standby at Staging Area',
+                timestamp: '08:45 AM',
+                callLog: 'Conference call with Army Liaison Officer Maj. Swaminathan. Standby requisition acknowledged. Army column positioned at Mirza Stadium staging base. Requisition triggers if Brahmaputra crosses 18.50 m or if embankment breaches in West Kamrup.'
             }
         ],
 
         // Active field rescue operations & logistical movement
         operations: [
             {
-                title: 'Palashbari Embankment Evacuation',
+                id: 'OP-301',
+                title: 'Palashbari Embankment Deep-Water Evacuation',
+                officer: 'Inspector Vikram Rathore (NDRF)',
                 status: 'Ongoing',
-                summary: '140 residents evacuated to Palashbari Govt. HS Relief Camp; boat shuttle active.'
+                rescued: 142,
+                summary: '142 residents evacuated to Palashbari Govt. HS Relief Camp; 4 NDRF boat shuttles operational round-the-clock.',
+                timestamp: 'Active'
             },
             {
-                title: 'Chaygaon Medical & Ration Supply Run',
+                id: 'OP-302',
+                title: 'Chaygaon Lowland Medical & Baby Food Airlift/Shuttle',
+                officer: 'SI Manoj Baruah (SDRF) & Ground Officer',
+                status: 'Ongoing',
+                rescued: 68,
+                summary: 'First batch of 300 emergency food packets & ORS delivered to cutoff hamlets via motorized rafts.',
+                timestamp: 'Active'
+            },
+            {
+                id: 'OP-303',
+                title: 'Goroimari Char Evacuation Drill & Pre-emptive Move',
+                officer: 'Circle Officer Goroimari & Village Defense Party',
                 status: 'Completed',
-                summary: 'First batch of 300 food packets & drinking water verified by Ground Officer.'
+                rescued: 95,
+                summary: 'All elderly and livestock moved from low-lying char to elevated school bund; zero casualties.',
+                timestamp: 'Completed'
             }
         ],
 
         // DDMA Authority executive audit & activity log stream
         logs: [
             {
+                id: 'LOG-01',
                 time: '10:40 AM',
-                actor: 'District Authority (DDMA)',
-                note: 'Assessed Palashbari Ward 2 and transmitted allocation ALC-501 to Godown Manager.'
+                actor: 'District Authority (DDMA Controller)',
+                note: 'Assessed Palashbari Ward 2; approved ALC-501 (4 Boats, 60 Jackets, 500 Rations) to Godown Manager.'
             },
             {
-                time: '09:55 AM',
+                id: 'LOG-02',
+                time: '10:15 AM',
                 actor: 'District Authority (DDMA)',
-                note: 'Logged NDRF 1st Bn official coordination update for Palashbari sector.'
+                note: 'VHF coordination with NDRF 1st Bn (Insp. Rathore) for 4 boat sorties in Palashbari breach zone.'
+            },
+            {
+                id: 'LOG-03',
+                time: '09:30 AM',
+                actor: 'District Authority (DDMA)',
+                note: 'Approved direct allocation ALC-502 for Chaygaon Lowland Belt and tasked SDRF for route escort.'
+            },
+            {
+                id: 'LOG-04',
+                time: '08:45 AM',
+                actor: 'District Authority (DDMA)',
+                note: 'Briefed Indian Army Red Horns Division on staging readiness at Mirza base.'
             }
         ]
     },
@@ -406,12 +538,12 @@ window.NEERAKSHAK_SEED_DATA = {
             { id: 'INV-07', name: 'Solar Searchlights & Rope Kits', category: 'Rescue Equipment', warehouse: 'Central Relief Godown – Mirza', total: 95, available: 65, allocated: 10, dispatched: 20, minLimit: 25, condition: 'Good' }
         ],
 
-        // Authority-approved allocation orders pending/dispatched
+        // Authority-approved allocation orders pending/dispatched (Unified with Admin & Authority)
         allocations: [
-            { id: 'ALC-501', destination: 'Palashbari Riverside Ward 2', resourceId: 'INV-01', resourceName: 'Inflatable Rescue Boats', qty: 4, priority: 'Critical', stockVerified: true, status: 'Pending Dispatch', vehicle: '—', dispatchTime: '—', refNo: '—' },
-            { id: 'ALC-502', destination: 'Palashbari Riverside Ward 2', resourceId: 'INV-02', resourceName: 'High-Buoyancy Life Jackets', qty: 60, priority: 'Critical', stockVerified: true, status: 'Pending Dispatch', vehicle: '—', dispatchTime: '—', refNo: '—' },
-            { id: 'ALC-503', destination: 'Chaygaon Lowland Belt', resourceId: 'INV-03', resourceName: 'Dry Ration Food Packets', qty: 450, priority: 'High', stockVerified: true, status: 'Dispatched', vehicle: 'AS-01-GC-4821', dispatchTime: 'Today, 09:40 AM', refNo: 'DSP-2026-884' },
-            { id: 'ALC-504', destination: 'Goroimari Char Cluster', resourceId: 'INV-04', resourceName: '20L Drinking Water Canisters', qty: 150, priority: 'Moderate', stockVerified: false, status: 'Shortage Flagged', vehicle: '—', dispatchTime: '—', refNo: '—' }
+            { id: 'ALC-501', destination: 'Palashbari Riverside Ward 2', block: 'Palashbari Circle', severity: 'Critical', lat: 26.132, lng: 91.515, summary: '4 Boats, 60 Jackets, 500 Food, 80 Meds', needs: { boats: 4, jackets: 60, food: 500, meds: 80 }, assignedGodown: 'Central Relief Godown – Mirza', priority: 'Critical', stockVerified: true, status: 'Pending Dispatch', vehicle: 'Heavy Truck AS-01-EC-4210', driver: 'Rajesh Das (+91 98640-21943)', escortOfficer: 'ASI D. Kalita (District Police)', dispatchTime: '—', refNo: '—', progress: 25 },
+            { id: 'ALC-502', destination: 'Chaygaon Lowland Belt', block: 'Chaygaon Circle', severity: 'High', lat: 26.052, lng: 91.225, summary: '2 Boats, 30 Jackets, 450 Food, 65 Meds', needs: { boats: 2, jackets: 30, food: 450, meds: 65 }, assignedGodown: 'Central Relief Godown – Mirza', priority: 'High', stockVerified: true, status: 'Dispatched', vehicle: 'Medium Truck AS-01-GC-4821', driver: 'Biren Barman (+91 94351-78201)', escortOfficer: 'Constable N. Sarma', dispatchTime: 'Today, 09:40 AM', refNo: 'DSP-2026-884', progress: 65 },
+            { id: 'ALC-503', destination: 'Goroimari Char Cluster', block: 'Goroimari Circle', severity: 'Moderate', lat: 26.095, lng: 91.340, summary: '1 Boat, 15 Jackets, 250 Food, 40 Meds', needs: { boats: 1, jackets: 15, food: 250, meds: 40 }, assignedGodown: 'Central Relief Godown – Mirza', priority: 'Moderate', stockVerified: true, status: 'Pending Dispatch', vehicle: 'Pickup AS-14-B-9912 & Motorized Barge', driver: 'Abdul Munnaf (+91 97060-44129)', escortOfficer: 'Home Guard J. Medhi', dispatchTime: '—', refNo: '—', progress: 20 },
+            { id: 'ALC-575', destination: 'Police Colony', block: 'Kahara, Saharsa', severity: 'Normal', lat: 25.8828, lng: 86.5896, summary: '1 Boats, 33 Jackets, 264 Food, 44 Meds', needs: { boats: 1, jackets: 33, food: 264, meds: 44 }, assignedGodown: 'Central Relief Godown – Mirza', priority: 'Normal', stockVerified: true, status: 'Pending Dispatch', vehicle: 'Heavy Truck AS-01-EC-4210', driver: 'Rajesh Das (+91 98640-21943)', escortOfficer: 'ASI D. Kalita', dispatchTime: '—', refNo: '—', progress: 25 }
         ],
 
         // Equipment returns from completed rescue sectors

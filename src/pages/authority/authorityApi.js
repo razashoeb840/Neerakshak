@@ -170,8 +170,19 @@ export async function confirmRequestDecisionApi(index, decision, reason) {
         village: req.village,
         summary: req.items,
         godownStatus: 'Sent to Godown Manager • Preparing Dispatch',
-        deliveryProgress: 35,
-        timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+        deliveryProgress: 25,
+        timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+        assignedGodown: 'Central Relief Godown – Mirza (Bay 1)',
+        vehicle: 'Heavy Relief Truck AS-01-EC-4210',
+        driver: 'Rajesh Das (+91 98640-21943)',
+        escortOfficer: 'District Police Escort Assigned',
+        timeline: [
+          { step: 'Field Request Approved', time: 'Just now', status: 'done', detail: `Request ${req.id} for ${req.village} approved per flood assessment.` },
+          { step: 'Godown Stock Picking', time: 'Pending', status: 'active', detail: 'Picking verified relief inventory at Central Godown.' },
+          { step: 'Vehicle Loading & Gatepass', time: 'Pending', status: 'pending', detail: 'Pallets loading & weighbridge inspection.' },
+          { step: 'Route Transit', time: 'Pending', status: 'pending', detail: 'Moving towards destination sector.' },
+          { step: 'Camp Delivery Receipt', time: 'Pending', status: 'pending', detail: 'Handover to Ground Officer.' }
+        ]
       };
       if (!cachedState.allocations) cachedState.allocations = [];
       cachedState.allocations.unshift(newAlloc);
@@ -207,20 +218,69 @@ export async function confirmRequestDecisionApi(index, decision, reason) {
   return cachedState;
 }
 
-// Direct Allocation to Godown
+// Direct Allocation to Godown (with Deduplication & Update)
 export async function allocateDirectResourcesApi(village, summary) {
   if (!cachedState) cachedState = getDefaultAuthoritySeed();
+  if (!cachedState.allocations) cachedState.allocations = [];
+
+  const villageClean = String(village || '').trim().toLowerCase();
+  const existing = cachedState.allocations.find(a => a.village && a.village.trim().toLowerCase() === villageClean);
+
+  if (existing) {
+    existing.summary = summary;
+    existing.godownStatus = 'Updated by Authority • Preparing Dispatch';
+    existing.timestamp = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    if (!existing.timeline) existing.timeline = [];
+    existing.timeline.unshift({
+      step: 'Allocation Order Adjusted',
+      time: 'Just now',
+      status: 'done',
+      detail: `Emergency supplies updated by District Authority to: ${summary}`
+    });
+
+    if (!cachedState.logs) cachedState.logs = [];
+    cachedState.logs.unshift({
+      id: `LOG-${Date.now().toString(36).toUpperCase()}`,
+      time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      actor: 'District Authority (DDMA)',
+      note: `Updated allocation (${summary}) for ${existing.village} (${existing.id}); notified Godown Manager.`
+    });
+
+    notifySync(cachedState);
+
+    try {
+      await fetch(`${API_BASE}/allocations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(existing)
+      });
+    } catch (e) {
+      console.warn('Backend allocation sync notice:', e);
+    }
+
+    return existing;
+  }
 
   const newAlloc = {
     id: `ALC-${Math.floor(530 + Math.random() * 70)}`,
     village,
     summary,
     godownStatus: 'Sent to Godown Manager • Awaiting Dispatch',
-    deliveryProgress: 35,
-    timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    deliveryProgress: 25,
+    timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+    assignedGodown: 'Central Relief Godown – Mirza (Bay 2)',
+    vehicle: 'Heavy Truck AS-01-EC-4210 (6-Ton Swaraj)',
+    driver: 'Rajesh Das (Ph: +91 98640-21943)',
+    escortOfficer: 'ASI D. Kalita (District Police Escort)',
+    timeline: [
+      { step: 'DDMA Allocation Approved', time: 'Just now', status: 'done', detail: `Direct allocation (${summary}) approved by Authority & transmitted to Godown Manager.` },
+      { step: 'Stock Verification & Staging', time: 'In Progress', status: 'active', detail: 'Godown warehouse crew picking verified stock from storage racks.' },
+      { step: 'Vehicle Dispatch & Gate Pass', time: 'Pending', status: 'pending', detail: 'Pallets loading & security checkpoint clearance.' },
+      { step: 'Route Checkpoint Crossing', time: 'Pending', status: 'pending', detail: 'Transit via high-water bypass bridge towards destination.' },
+      { step: 'Camp Intake & Final Distribution', time: 'Pending', status: 'pending', detail: 'Handover to Ground Officer and receipt acknowledgement.' }
+    ]
   };
 
-  if (!cachedState.allocations) cachedState.allocations = [];
   cachedState.allocations.unshift(newAlloc);
 
   if (!cachedState.logs) cachedState.logs = [];
@@ -247,7 +307,7 @@ export async function allocateDirectResourcesApi(village, summary) {
 }
 
 // NDRF / SDRF Multi-Agency Coordination Log
-export async function logCoordinationApi(agency, sector, update) {
+export async function logCoordinationApi(agency, sector, update, commander = '', contact = '', strength = '', status = 'Deployed On Water') {
   if (!cachedState) cachedState = getDefaultAuthoritySeed();
 
   const record = {
@@ -255,6 +315,11 @@ export async function logCoordinationApi(agency, sector, update) {
     agency,
     sector,
     update,
+    commander: commander || 'Field Incident Commander',
+    contact: contact || 'VHF Ch-07 / DEOC Hotline',
+    strength: strength || 'Tactical Personnel Unit',
+    status: status || 'Deployed On Water',
+    callLog: update,
     timestamp: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
   };
 
@@ -266,7 +331,7 @@ export async function logCoordinationApi(agency, sector, update) {
     id: `LOG-${Date.now().toString(36).toUpperCase()}`,
     time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
     actor: 'District Authority (DDMA)',
-    note: `Logged ${agency} coordination update for ${sector}.`
+    note: `Logged ${agency} (${record.commander}) coordination update for ${sector}.`
   });
 
   notifySync(cachedState);

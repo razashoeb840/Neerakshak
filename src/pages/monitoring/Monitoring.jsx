@@ -195,36 +195,6 @@ const markup = (
                 </table>
               </div>
             </div>
-            {/* 2. DISCREPANCY ALERTS & CLARIFICATION CARDS */}
-            <div className="aqua-card anim-card">
-              <div className="card-head">
-                <h2>
-                  <i className="fas fa-triangle-exclamation" style={{ color: "#dc2626" }}></i>
-                  {" Flagged Discrepancies & Unresolved Mismatches"}
-                </h2>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <button id="viewSlideSwitch" className="btn-mo" onClick={(event) => window.toggleGridListView()} title="Toggle Grid / List View" style={{ padding: "5px 12px", fontSize: "11.5px", fontWeight: "600", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    <i className="fas fa-table-cells-large"></i>
-                    {" "}
-                    <span>Grid / List</span>
-                  </button>
-                  {" "}
-                  <button className="btn-mo" onClick={(event) => window.switchMonitorTab('discrepancies', document.querySelector('[data-tab=discrepancies]'))}>Manage All →</button>
-                </div>
-              </div>
-              <div className="grid-2 switchable-collection" id="dashDiscrepancyCards"></div>
-            </div>
-            {/* 3. RECENT USER AUDIT TIMELINE */}
-            <div className="aqua-card anim-card">
-              <div className="card-head">
-                <h2>
-                  <i className="fas fa-clock-rotate-left" style={{ color: "var(--river-blue)" }}></i>
-                  {" Recent Cross-Portal Audit Activity"}
-                </h2>
-                <button className="btn-mo" onClick={(event) => window.switchMonitorTab('activity-logs', document.querySelector('[data-tab=activity-logs]'))}>Full Audit Trail →</button>
-              </div>
-              <div className="grid-2 switchable-collection" id="dashRecentLogsGrid"></div>
-            </div>
           </div>
           {/* ===============================================================
                  TAB 2: RESOURCE LIFECYCLE MONITORING
