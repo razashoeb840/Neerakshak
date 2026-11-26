@@ -34,9 +34,9 @@ export async function DELETE(req) {
     const id = searchParams.get('id');
     const index = searchParams.get('index');
     const target = index !== null ? Number(index) : id;
-    const deleted = adminService.deleteArea(target);
+    const deleted = await adminService.deleteArea(target);
     return NextResponse.json({ success: deleted }, { headers: corsHeaders() });
   } catch (e) {
-    return NextResponse.json({ success: false, error: e.message }, { status: 500, headers: corsHeaders() });
+    return NextResponse.json({ success: false, error: e.message }, { status: 400, headers: corsHeaders() });
   }
 }

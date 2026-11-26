@@ -62,8 +62,37 @@ export const adminDb = {
           db.collection('floodalerts').find({}, { projection: { _id: 0 } }).toArray(),
           db.collection('emergencyfacilities').find({}, { projection: { _id: 0 } }).toArray(),
         ]);
+
+        // Check active requests and allocations with District Authority
+        let activeAuthAreas = new Set();
+        try {
+          const [allocs, reqs] = await Promise.all([
+            db.collection('resourceallocations').find({}, { projection: { targetLocation: 1, destination: 1, village: 1, _id: 0 } }).toArray(),
+            db.collection('resourcerequests').find({}, { projection: { targetLocation: 1, village: 1, _id: 0 } }).toArray()
+          ]);
+          (allocs || []).forEach(a => {
+            if (a.village) activeAuthAreas.add(a.village.trim().toLowerCase());
+            if (a.destination) activeAuthAreas.add(a.destination.trim().toLowerCase());
+            if (a.targetLocation) activeAuthAreas.add(a.targetLocation.trim().toLowerCase());
+          });
+          (reqs || []).forEach(r => {
+            if (r.village) activeAuthAreas.add(r.village.trim().toLowerCase());
+            if (r.targetLocation) activeAuthAreas.add(r.targetLocation.trim().toLowerCase());
+          });
+        } catch (e) {}
+
+        const mappedAreas = (areas || []).map(a => {
+          const aName = String(a.name || '').trim().toLowerCase();
+          const underAuth = activeAuthAreas.has(aName) ||
+            [...activeAuthAreas].some(authName => authName && (aName.includes(authName) || authName.includes(aName)));
+          return {
+            ...a,
+            underAuthorityAction: Boolean(underAuth)
+          };
+        });
+
         cache.admin = {
-          areas: areas || [],
+          areas: mappedAreas,
           rivers: rivers || [],
           alerts: alerts || [],
           facilities: facilities || [],
@@ -112,10 +141,43 @@ export const adminDb = {
   },
 
   async deleteArea(id) {
+    const db = await getDatabase();
+    const targetArea = (cache.admin.areas || []).find(a => a.id === id || a.name === id);
+    const areaName = targetArea ? targetArea.name : id;
+    const nameClean = String(areaName || '').trim().toLowerCase();
+
+    // Block deletion if active request or allocation exists with District Authority
+    if (db) {
+      try {
+        const [allocExists, reqExists] = await Promise.all([
+          db.collection('resourceallocations').findOne({
+            $or: [
+              { village: { $regex: new RegExp(`^${nameClean}$`, 'i') } },
+              { destination: { $regex: new RegExp(`^${nameClean}$`, 'i') } },
+              { targetLocation: { $regex: new RegExp(`^${nameClean}$`, 'i') } }
+            ]
+          }),
+          db.collection('resourcerequests').findOne({
+            $or: [
+              { village: { $regex: new RegExp(`^${nameClean}$`, 'i') } },
+              { targetLocation: { $regex: new RegExp(`^${nameClean}$`, 'i') } }
+            ]
+          })
+        ]);
+
+        if (allocExists || reqExists) {
+          throw new Error(`Cannot delete area "${areaName}": A relief request or allocation is currently active with District Authority.`);
+        }
+      } catch (err) {
+        if (err.message && err.message.includes('Cannot delete area')) {
+          throw err;
+        }
+      }
+    }
+
     if (cache.admin.areas) {
       cache.admin.areas = cache.admin.areas.filter(a => a.id !== id && a.name !== id);
     }
-    const db = await getDatabase();
     if (db) {
       try {
         await db.collection('affectedareas').deleteOne({ $or: [{ id }, { name: id }] });

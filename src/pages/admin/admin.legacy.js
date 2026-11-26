@@ -149,27 +149,39 @@ export default function initAdminPage() {
       if (!list || list.length === 0) {
         return `<div style="grid-column:1/-1; text-align:center; padding:18px; border:1.5px dashed #9cc3e6; border-radius:12px; color:var(--text-muted);">No flood-affected village markers recorded. Click <strong>Add Map Marker</strong> to add GIS data.</div>`;
       }
-      return list.map(a => `
-        <div class="eco-data-card">
-          <div class="eco-card-top">
-            <div>
-              <h4>${a.name}</h4>
-              <span style="font-size:11px; color:var(--text-muted); font-weight:600;">${a.block}</span>
+      return list.map(a => {
+        const isUnderAuth = Boolean(a.underAuthorityAction);
+        return `
+          <div class="eco-data-card" style="${isUnderAuth ? 'border-top:3.5px solid #0284c7;' : ''}">
+            <div class="eco-card-top">
+              <div>
+                <h4 style="margin:0 0 2px;"><i class="fas fa-location-dot" style="color:#0284c7; margin-right:4px;"></i>${a.name}</h4>
+                <span style="font-size:11px; color:var(--text-muted); font-weight:600;">${a.block}</span>
+              </div>
+              <div style="display:flex; gap:4px; align-items:center;">
+                ${isUnderAuth ? `<span class="sev-pill" style="background:#eff6ff; color:#0284c7; border:1px solid #bfdbfe; font-size:9.5px; padding:2px 6px;" title="Active relief request/allocation with District Authority"><i class="fas fa-shield"></i> Authority Active</span>` : ''}
+                <span class="sev-pill ${getSevClass(a.severity)}">${a.severity}</span>
+              </div>
             </div>
-            <span class="sev-pill ${getSevClass(a.severity)}">${a.severity}</span>
+            <div class="eco-meta-grid">
+              <span>Pop: <strong>${Number(a.pop).toLocaleString()}</strong></span>
+              <span>GIS: <strong>${(Number(a.lat) || 0).toFixed(2)}, ${(Number(a.lng) || 0).toFixed(2)}</strong></span>
+            </div>
+            <p style="margin:0; font-size:11.5px; color:var(--text-body); line-height:1.4;">${a.notes || ''}</p>
+            <div class="eco-card-footer" style="flex-wrap:wrap; gap:6px; align-items:center;">
+              <button class="card-action-btn" style="background:#eff6ff; color:#0284c7; border-color:#93c5fd; font-weight:700;" onclick="window.focusAdminMapOnCoords && window.focusAdminMapOnCoords(${Number(a.lat)}, ${Number(a.lng)}, '${(a.name || '').replace(/'/g, "\\'")}', '${a.id || ''}')"><i class="fas fa-crosshairs"></i> Focus on Map</button>
+              <button class="card-action-btn" onclick="window.editAreaRecord(${a.idx})"><i class="fas fa-edit"></i> Edit</button>
+              ${!isUnderAuth ? `
+                <button class="card-action-btn del" onclick="window.deleteAreaRecord(${a.idx})" title="Delete Area Record"><i class="fas fa-trash"></i></button>
+              ` : `
+                <span style="font-size:10px; font-weight:700; color:#0369a1; background:#e0f2fe; padding:4px 8px; border-radius:6px; border:1px solid #bae6fd; display:inline-flex; align-items:center; gap:4px;" title="Locked: Active request/allocation forwarded to District Authority. Cannot be deleted.">
+                  <i class="fas fa-lock"></i> Deletion Locked
+                </span>
+              `}
+            </div>
           </div>
-          <div class="eco-meta-grid">
-            <span>Pop: <strong>${Number(a.pop).toLocaleString()}</strong></span>
-            <span>GIS: <strong>${(Number(a.lat) || 0).toFixed(2)}, ${(Number(a.lng) || 0).toFixed(2)}</strong></span>
-          </div>
-          <p style="margin:0; font-size:11.5px; color:var(--text-body); line-height:1.4;">${a.notes || ''}</p>
-          <div class="eco-card-footer">
-            <button class="card-action-btn" onclick="window.focusAdminMapOnCoords && window.focusAdminMapOnCoords(${Number(a.lat)}, ${Number(a.lng)})"><i class="fas fa-crosshairs"></i> View Map</button>
-            <button class="card-action-btn" onclick="window.editAreaRecord(${a.idx})"><i class="fas fa-edit"></i> Edit</button>
-            <button class="card-action-btn del" onclick="window.deleteAreaRecord(${a.idx})"><i class="fas fa-trash"></i></button>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     };
 
     const indexedAreas = (state.areas || []).map((item, idx) => ({ ...item, idx }));
@@ -530,9 +542,18 @@ export default function initAdminPage() {
   }
 
   async function deleteAreaRecord(idx) {
-    await deleteAreaApi(idx);
-    renderAllCards();
-    showToast('Removed flood zone marker from GIS map & database.');
+    const targetArea = (state.areas || [])[idx];
+    if (targetArea && targetArea.underAuthorityAction) {
+      showToast(`🔒 Cannot delete: "${targetArea.name}" is under active District Authority operation.`);
+      return;
+    }
+    try {
+      await deleteAreaApi(idx);
+      renderAllCards();
+      showToast('Removed flood zone marker from GIS map & database.');
+    } catch (err) {
+      showToast(`⚠️ ${err.message}`);
+    }
   }
 
   // --- ALERT MODAL & CRUD ---
@@ -747,7 +768,7 @@ export default function initAdminPage() {
     }
   });
 
-  function focusAdminMapOnCoords(lat, lng) {
+  function focusAdminMapOnCoords(lat, lng, areaName, areaId) {
     if (typeof switchTab === 'function') {
       switchTab('overview');
     }
@@ -756,7 +777,10 @@ export default function initAdminPage() {
         window.adminLeafletMapInstance.invalidateSize();
       }
       if (typeof window.zoomToCoords === 'function') {
-        window.zoomToCoords(lat, lng);
+        window.zoomToCoords(lat, lng, 14, true);
+      }
+      if (areaName && typeof showToast === 'function') {
+        showToast(`Map focused on ${areaName}`);
       }
     }, 120);
   }

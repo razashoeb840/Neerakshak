@@ -17,6 +17,8 @@ let riverLayerGroup = null;
 let tempPickLayer = null;
 let activeSeverityFilter = 'ALL';
 let isMapPickActive = false;
+let zoneMarkersList = [];
+let hasAutoCenteredInitially = false;
 
 // Fix Leaflet's default icon path issue with bundlers
 delete L.Icon.Default.prototype._getIconUrl;
@@ -92,6 +94,7 @@ export function initAdminFloodMap(containerId = 'leafletMap', initialCoords, ini
   window.zoomToCoords = zoomToCoords;
   window.focusAdminMap = zoomToCoords;
   window.flyToDistrictSector = flyToDistrictSector;
+  window.autoCenterOnAffectedAreas = autoCenterOnAffectedAreas;
 
   // Render Live Indian River Corridors & CWC Stations on Map
   renderLiveRiversOnMap(null, basinKey);
@@ -378,6 +381,7 @@ export function updateMapLayers(areas = [], facilities = [], rivers = []) {
   try {
     zonesLayerGroup.clearLayers();
     facilitiesLayerGroup.clearLayers();
+    zoneMarkersList = [];
 
     // 1. RENDER LIVE RIVER CORRIDORS & CWC TELEMETRY STATIONS ON MAP
     renderLiveRiversOnMap(rivers);
@@ -471,7 +475,17 @@ export function updateMapLayers(areas = [], facilities = [], rivers = []) {
     `;
 
     marker.bindPopup(popupContent, { minWidth: 230 });
+    zoneMarkersList.push({ id: area.id, name: area.name, lat, lng, marker });
   });
+
+  // Auto-center map on affected areas so map is always centered on active flood sectors
+  const validAreas = (areas || []).filter(a => Number(a.lat) && Number(a.lng));
+  if (validAreas.length > 0 && !hasAutoCenteredInitially) {
+    setTimeout(() => {
+      autoCenterOnAffectedAreas(validAreas);
+      hasAutoCenteredInitially = true;
+    }, 150);
+  }
 
   // 2. RENDER EMERGENCY FACILITIES
   facilities.forEach((fac, idx) => {
@@ -707,16 +721,45 @@ export function mapZoomOut() {
   if (mapInstance) mapInstance.zoomOut();
 }
 
-export function mapRecenter() {
-  if (mapInstance) {
-    mapInstance.setView(INITIAL_CENTER, INITIAL_ZOOM, { animate: true });
-    if (window.showToast) window.showToast('Recentered to Active Flood Command Sector');
+export function autoCenterOnAffectedAreas(areas = null) {
+  if (!mapInstance) return;
+  const list = areas || (window.adminState && window.adminState.areas) || [];
+  const validAreas = list.filter(a => Number(a.lat) && Number(a.lng));
+  if (validAreas.length === 1) {
+    mapInstance.flyTo([Number(validAreas[0].lat), Number(validAreas[0].lng)], 13, { duration: 1.2 });
+  } else if (validAreas.length > 1) {
+    const bounds = L.latLngBounds(validAreas.map(a => [Number(a.lat), Number(a.lng)]));
+    mapInstance.fitBounds(bounds, { padding: [50, 50], maxZoom: 14, animate: true, duration: 1.2 });
   }
 }
 
-export function zoomToCoords(lat, lng, zoom = 14) {
+export function mapRecenter() {
+  if (mapInstance) {
+    const areas = (window.adminState && window.adminState.areas) || [];
+    const validAreas = areas.filter(a => Number(a.lat) && Number(a.lng));
+    if (validAreas.length > 0) {
+      autoCenterOnAffectedAreas(validAreas);
+      if (window.showToast) window.showToast('Recentered to Active Flood Affected Areas');
+    } else {
+      mapInstance.setView(INITIAL_CENTER, INITIAL_ZOOM, { animate: true });
+      if (window.showToast) window.showToast('Recentered to Active Flood Command Sector');
+    }
+  }
+}
+
+export function zoomToCoords(lat, lng, zoom = 14, openPopup = true) {
   if (mapInstance && lat && lng) {
     mapInstance.flyTo([Number(lat), Number(lng)], zoom, { duration: 1.2 });
+    if (openPopup) {
+      const match = zoneMarkersList.find(m => 
+        Math.abs(Number(m.lat) - Number(lat)) < 0.002 && Math.abs(Number(m.lng) - Number(lng)) < 0.002
+      );
+      if (match && match.marker) {
+        setTimeout(() => {
+          match.marker.openPopup();
+        }, 500);
+      }
+    }
   }
 }
 

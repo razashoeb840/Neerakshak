@@ -140,21 +140,38 @@ export async function deleteArea(indexOrId) {
   if (!cachedState) cachedState = getDefaultSeed();
 
   let targetId = null;
+  let targetArea = null;
   if (typeof indexOrId === 'number' && cachedState.areas[indexOrId]) {
-    targetId = cachedState.areas[indexOrId].id;
-    cachedState.areas.splice(indexOrId, 1);
+    targetArea = cachedState.areas[indexOrId];
+    targetId = targetArea.id;
   } else {
+    targetArea = (cachedState.areas || []).find(a => a.id === indexOrId || a.name === indexOrId);
     targetId = indexOrId;
-    cachedState.areas = cachedState.areas.filter(a => a.id !== indexOrId);
   }
-  notifySync(cachedState);
+
+  // Pre-check lock before sending request
+  if (targetArea && targetArea.underAuthorityAction) {
+    throw new Error(`Area "${targetArea.name}" cannot be deleted because it is actively assigned to District Authority.`);
+  }
 
   try {
     const param = targetId ? `id=${encodeURIComponent(targetId)}` : `index=${indexOrId}`;
-    await fetch(`${API_BASE}/areas?${param}`, { method: 'DELETE' });
+    const res = await fetch(`${API_BASE}/areas?${param}`, { method: 'DELETE' });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || json.success === false) {
+      throw new Error(json.error || 'Cannot delete area: Record locked by District Authority.');
+    }
+
+    if (typeof indexOrId === 'number') {
+      cachedState.areas.splice(indexOrId, 1);
+    } else {
+      cachedState.areas = cachedState.areas.filter(a => a.id !== indexOrId);
+    }
+    notifySync(cachedState);
     updatePulseIndicator(true);
   } catch (e) {
     updatePulseIndicator(false);
+    throw e;
   }
   return cachedState;
 }
