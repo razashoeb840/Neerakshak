@@ -948,23 +948,207 @@ export const godownDb = {
 // -----------------------------------------------------------------------------
 export const groundDb = {
   async getState() {
+    // 1. Fetch live states from Admin, Authority and Godown (Single Source of Truth)
+    const [adminState, authState, godownState] = await Promise.all([
+      adminDb.getState(),
+      authorityDb.getState(),
+      godownDb.getState()
+    ]);
+
+    const adminAreas = adminState.areas || [];
+    const authAllocations = authState.allocations || [];
+    const authCoordinations = authState.coordinations || [];
+    const alerts = adminState.alerts || [];
+
+    const db = await getDatabase();
+    let dbReports = [];
+    let dbVerifications = [];
+    let dbOperations = [];
+    let dbReturns = [];
+
+    if (db) {
+      try {
+        const [reports, verifs, ops, rets] = await Promise.all([
+          db.collection('fieldreports').find({}, { projection: { _id: 0 } }).sort({ _id: -1 }).toArray(),
+          db.collection('deliveryverifications').find({}, { projection: { _id: 0 } }).toArray(),
+          db.collection('groundoperations').find({}, { projection: { _id: 0 } }).toArray(),
+          db.collection('groundreturns').find({}, { projection: { _id: 0 } }).toArray()
+        ]);
+        dbReports = reports || [];
+        dbVerifications = verifs || [];
+        dbOperations = ops || [];
+        dbReturns = rets || [];
+      } catch (e) {
+        console.warn('groundDb.getState MongoDB read notice:', e.message);
+      }
+    }
+
+    // 2. Map real Admin Affected Areas into Ground Officer Assigned Areas
+    const areas = adminAreas.map((a, idx) => {
+      const isCrit = a.severity === 'Critical';
+      const isHigh = a.severity === 'High';
+      return {
+        id: a.id || `ASN-${String(idx + 1).padStart(2, '0')}`,
+        village: a.name,
+        block: a.block || 'Assigned Circle',
+        severity: a.severity || 'Moderate',
+        priority: isCrit ? 'Urgent' : (isHigh ? 'High' : 'Normal'),
+        status: isCrit ? 'Active Emergency Zone' : 'Active Field Duty',
+        coords: `${Number(a.lat || 26.15).toFixed(4)}° N, ${Number(a.lng || 91.50).toFixed(4)}° E`,
+        lat: Number(a.lat || 26.15),
+        lng: Number(a.lng || 91.50),
+        pop: a.pop || 2000,
+        deadline: isCrit ? 'Immediate Action' : 'Today, 04:00 PM',
+        task: a.notes || `Monitor inundation depth & verify relief consignments for ${a.name}.`
+      };
+    });
+
+    // 3. Map real Godown Dispatches into Ground Officer Delivery Verifications
+    const dispatchedAllocations = authAllocations.filter(a => 
+      a.status === 'Dispatched' ||
+      String(a.godownStatus || '').toLowerCase().includes('dispatched') ||
+      String(a.godownStatus || '').toLowerCase().includes('en-route') ||
+      (Boolean(a.refNo) && a.refNo !== '—' && a.refNo.startsWith('DSP-'))
+    );
+
+    const deliveries = dispatchedAllocations.map(a => {
+      const dispatchId = a.refNo && a.refNo !== '—' ? a.refNo : (a.id || 'DSP-2026');
+      const savedVerif = dbVerifications.find(v => v.dispatchId === dispatchId || v.allocId === a.id);
+
+      return {
+        dispatchId,
+        allocId: a.id,
+        destination: (a.village || a.destination || 'Assigned Sector').trim(),
+        resource: a.summary || 'Emergency Relief Buffer',
+        dispatched: a.summary || 'Consignment Dispatched',
+        received: savedVerif ? savedVerif.received : null,
+        damaged: savedVerif ? Number(savedVerif.damaged) || 0 : 0,
+        shortage: savedVerif ? Number(savedVerif.shortage) || 0 : 0,
+        status: savedVerif ? savedVerif.status : 'Pending Verification',
+        remarks: savedVerif ? savedVerif.remarks : `Escort: ${a.leadOfficerName ? `${a.leadAgency || 'NDRF'} ${a.leadOfficerName}` : (a.driver || 'Field Convoy')}. Vehicle: ${a.vehicle || 'Relief Truck'}.`,
+        groundOfficerCleared: Boolean(a.groundOfficerCleared || a.reliefClearedForReturn),
+        reliefClearedForReturn: Boolean(a.reliefClearedForReturn || a.groundOfficerCleared),
+        verifiedAt: savedVerif?.verifiedAt || null,
+        verifiedBy: savedVerif?.verifiedBy || null
+      };
+    });
+
+    // 4. Map real multi-agency coordination & operations
+    const operations = authCoordinations.map((c, idx) => {
+      const opId = c.recordNumber || `OP-${idx + 1}`;
+      const savedOp = dbOperations.find(o => o.opId === opId || o.location === c.operationLocation);
+
+      return {
+        opId,
+        location: c.operationLocation || c.sector || 'Assigned District Sector',
+        agency: `${c.agency || 'NDRF'} (${c.unitDesignation || 'Tactical Team'})`,
+        rescued: savedOp ? Number(savedOp.rescued) : (c.evacuatedCitizensCount && !isNaN(Number(c.evacuatedCitizensCount)) ? Number(c.evacuatedCitizensCount) : 48),
+        stranded: savedOp ? Number(savedOp.stranded) : 15,
+        status: savedOp ? savedOp.status : (c.operationalStatus || 'In Progress'),
+        notes: savedOp ? savedOp.notes : (c.latestCoordinationBrief || `Officer ${c.contactOfficer || 'Lead Officer'} deployed on site.`)
+      };
+    });
+
+    // 5. Notifications from real flood alerts
+    const notifications = alerts.map((alt, idx) => ({
+      id: alt.id || `notif-${idx}`,
+      title: `${alt.severity.toUpperCase()} ALERT: ${alt.location} — ${alt.title}`,
+      priority: alt.severity === 'Critical' ? 'Critical' : (alt.severity === 'High' ? 'High' : 'Moderate'),
+      detail: alt.desc || `River hydrological telemetry indicates alert status at ${alt.location}.`,
+      time: alt.timestamp || 'Live Telemetry'
+    }));
+
+    // 6. Returns from Godown and Ground verifications
+    const returns = (godownState.returns || []).map(r => ({
+      retId: r.id || 'RET-01',
+      item: r.dispatchedSummary || r.resourceName || 'Emergency Relief Equipment',
+      location: r.area || r.from || 'Field Sector',
+      good: Number(r.boatsReturned || r.good || 0),
+      damaged: Number(r.boatsDamaged || r.damaged || 0),
+      missing: Number(r.boatsMissing || r.missing || 0),
+      remarks: r.conditionNotes || 'Post-rescue inspection logged',
+      time: r.date || 'Today'
+    })).concat(dbReturns);
+
+    cache.groundOfficer = {
+      areas,
+      deliveries,
+      fieldReports: dbReports.length > 0 ? dbReports : (cache.groundOfficer.fieldReports || []),
+      operations,
+      returns,
+      notifications,
+      officer: {
+        name: 'Bhaskar Jyoti Das',
+        designation: 'Ground Disaster Management Officer',
+        badge: 'GO-KAM-04',
+        hq: 'District Emergency Operations Center (DEOC)'
+      }
+    };
+
+    return cache.groundOfficer;
+  },
+
+  async verifyDelivery(verifyData) {
+    const dispatchId = verifyData.dispatchId;
+    const allocId = verifyData.allocId;
+    const received = verifyData.received;
+    const damaged = Number(verifyData.damaged) || 0;
+    const shortage = Number(verifyData.shortage) || 0;
+    const remarks = verifyData.remarks || 'Physical delivery verified by Ground Officer.';
+    const verifiedBy = verifyData.verifiedBy || 'Bhaskar Jyoti Das (GO-KAM-04)';
+    const verifiedAt = new Date().toLocaleDateString('en-IN') + ', ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+    const status = (shortage > 0 || damaged > 0) ? 'Discrepancy Flagged' : 'Verified';
+
+    const record = {
+      dispatchId,
+      allocId,
+      received,
+      damaged,
+      shortage,
+      status,
+      remarks: `[${verifiedBy}] ${remarks}`,
+      verifiedBy,
+      verifiedAt
+    };
+
     const db = await getDatabase();
     if (db) {
       try {
-        const [reports, deliveries] = await Promise.all([
-          db.collection('fieldreports').find({}, { projection: { _id: 0 } }).toArray(),
-          db.collection('deliveryverifications').find({}, { projection: { _id: 0 } }).toArray()
-        ]);
-        cache.groundOfficer.fieldReports = reports || [];
-        cache.groundOfficer.deliveries = deliveries || [];
-      } catch (e) {}
+        await db.collection('deliveryverifications').updateOne(
+          { dispatchId },
+          { $set: record },
+          { upsert: true }
+        );
+
+        // Update allocation timeline and status if linked
+        if (allocId || dispatchId) {
+          await db.collection('resourceallocations').updateOne(
+            { $or: [{ id: allocId }, { refNo: dispatchId }] },
+            { 
+              $set: { physicalDeliveryStatus: status },
+              $push: {
+                timeline: {
+                  step: `Ground Delivery Verified (${status})`,
+                  time: 'Just now',
+                  status: status === 'Verified' ? 'done' : 'active',
+                  detail: `Physically counted by ${verifiedBy}. Received: ${received}. Shortage: ${shortage}, Damaged: ${damaged}. Notes: ${remarks}`
+                }
+              }
+            }
+          );
+        }
+      } catch (e) {
+        console.warn('verifyDelivery MongoDB write notice:', e.message);
+      }
     }
-    return cache.groundOfficer;
+
+    return record;
   },
 
   async submitReport(reportData) {
     const report = {
-      refId: `FR-2026-${Math.floor(400 + Math.random() * 500)}`,
+      refId: reportData.refId || `FR-2026-${Math.floor(400 + Math.random() * 500)}`,
       village: reportData.village || 'Assigned Area',
       severity: reportData.severity || 'Moderate',
       water: reportData.water || 'Normal Runoff',
@@ -973,9 +1157,12 @@ export const groundDb = {
       road: reportData.road || 'Passable',
       needs: reportData.needs || 'Relief Buffer',
       coords: reportData.coords || '26.12, 91.50',
-      time: 'Just now',
-      reviewStatus: 'Pending Review'
+      officer: reportData.officer || 'Bhaskar Jyoti Das (GO-KAM-04)',
+      time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      reviewStatus: 'Pending Review',
+      submittedAt: new Date().toISOString()
     };
+
     if (!cache.groundOfficer.fieldReports) cache.groundOfficer.fieldReports = [];
     cache.groundOfficer.fieldReports.unshift(report);
 
@@ -983,9 +1170,70 @@ export const groundDb = {
     if (db) {
       try {
         await db.collection('fieldreports').insertOne({ ...report });
-      } catch (e) {}
+
+        // If Critical severity, also raise a high-priority audit alert
+        if (report.severity === 'Critical') {
+          await db.collection('floodalerts').insertOne({
+            id: `alt-${Date.now()}`,
+            title: `CRITICAL FIELD SITUATION: ${report.village}`,
+            location: report.village,
+            severity: 'Critical',
+            desc: `Ground Officer reported: ${report.stranded} stranded, water depth ${report.water}. Immediate assistance: ${report.needs}.`,
+            timestamp: new Date().toISOString()
+          });
+        }
+      } catch (e) {
+        console.warn('submitReport MongoDB write notice:', e.message);
+      }
     }
     return report;
+  },
+
+  async updateRescueProgress(opData) {
+    const opId = opData.opId;
+    const rescued = Number(opData.rescued) || 0;
+    const stranded = Number(opData.stranded) || 0;
+    const status = opData.status || 'In Progress';
+    const notes = opData.notes || 'Rescue operations progressing under local command.';
+    const location = opData.location || 'Assigned Sector';
+    const officerName = opData.officerName || 'Bhaskar Jyoti Das (GO-KAM-04)';
+
+    const record = {
+      opId,
+      location,
+      rescued,
+      stranded,
+      status,
+      notes,
+      updatedBy: officerName,
+      updatedAt: new Date().toISOString()
+    };
+
+    const db = await getDatabase();
+    if (db) {
+      try {
+        await db.collection('groundoperations').updateOne(
+          { opId },
+          { $set: record },
+          { upsert: true }
+        );
+
+        // Update corresponding multi-agency coordination record
+        await db.collection('coordinationrecords').updateOne(
+          { $or: [{ recordNumber: opId }, { operationLocation: location }] },
+          { 
+            $set: {
+              evacuatedCitizensCount: String(rescued),
+              operationalStatus: status,
+              latestCoordinationBrief: `Progress by ${officerName}: ${rescued} evacuated, ${stranded} stranded remaining. ${notes}`
+            }
+          }
+        );
+      } catch (e) {
+        console.warn('updateRescueProgress MongoDB write notice:', e.message);
+      }
+    }
+    return record;
   },
 
   async clearAreaForReturn(clearData) {
@@ -1034,6 +1282,31 @@ export const groundDb = {
       }
     }
     return { success: true, targetAuth };
+  },
+
+  async submitReturnVerification(returnData) {
+    const record = {
+      retId: returnData.retId || `RV-${Math.floor(110 + Math.random() * 880)}`,
+      item: returnData.item || 'Rescue Equipment',
+      location: returnData.location || 'Assigned Sector',
+      good: Number(returnData.good) || 0,
+      damaged: Number(returnData.damaged) || 0,
+      missing: Number(returnData.missing) || 0,
+      remarks: returnData.remarks || 'Condition verified on ground',
+      officer: returnData.officer || 'Bhaskar Jyoti Das (GO-KAM-04)',
+      time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      createdAt: new Date().toISOString()
+    };
+
+    const db = await getDatabase();
+    if (db) {
+      try {
+        await db.collection('groundreturns').insertOne({ ...record });
+      } catch (e) {
+        console.warn('submitReturnVerification MongoDB write notice:', e.message);
+      }
+    }
+    return record;
   }
 };
 

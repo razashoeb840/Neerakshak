@@ -10,8 +10,17 @@ export const groundOfficerService = {
   submitReport(reportData) {
     return groundDb.submitReport(reportData);
   },
+  verifyDelivery(verifyData) {
+    return groundDb.verifyDelivery(verifyData);
+  },
+  updateRescueProgress(opData) {
+    return groundDb.updateRescueProgress(opData);
+  },
   clearAreaForReturn(clearData) {
     return groundDb.clearAreaForReturn(clearData);
+  },
+  submitReturnVerification(returnData) {
+    return groundDb.submitReturnVerification(returnData);
   },
   getSummary() {
     return groundDb.getState();

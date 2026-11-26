@@ -63,6 +63,32 @@ export default async function Page() {
         </div>
       </section>
 
+      <section style={{ background: '#0f172a', padding: '24px', borderRadius: '12px', border: '1px solid #1e293b', marginBottom: '24px' }}>
+        <h2 style={{ margin: '0 0 16px', fontSize: '18px', color: '#e2e8f0' }}>Ground Officer & Field Operations Engine</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+          <div style={{ background: '#1e293b', padding: '14px 16px', borderRadius: '8px', border: '1px solid #334155' }}>
+            <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#94a3b8' }}>API Endpoint</span>
+            <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#38bdf8', marginTop: '4px' }}>/api/ground-officer</div>
+            <span style={{ fontSize: '11px', color: '#10b981' }}>● Live App Router</span>
+          </div>
+          <div style={{ background: '#1e293b', padding: '14px 16px', borderRadius: '8px', border: '1px solid #334155' }}>
+            <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#94a3b8' }}>Physical Verification</span>
+            <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#a78bfa', marginTop: '4px' }}>deliveryverifications</div>
+            <span style={{ fontSize: '11px', color: '#94a3b8' }}>Linked to Godown Gate-Pass</span>
+          </div>
+          <div style={{ background: '#1e293b', padding: '14px 16px', borderRadius: '8px', border: '1px solid #334155' }}>
+            <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#94a3b8' }}>Field Situation Reports</span>
+            <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#34d399', marginTop: '4px' }}>fieldreports</div>
+            <span style={{ fontSize: '11px', color: '#94a3b8' }}>Immutable Ground Audits</span>
+          </div>
+          <div style={{ background: '#1e293b', padding: '14px 16px', borderRadius: '8px', border: '1px solid #334155' }}>
+            <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#94a3b8' }}>Return Clearance</span>
+            <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#f59e0b', marginTop: '4px' }}>clear-return</div>
+            <span style={{ fontSize: '11px', color: '#94a3b8' }}>Unlocks Warehouse Intake</span>
+          </div>
+        </div>
+      </section>
+
       <section style={{ background: '#0f172a', padding: '24px', borderRadius: '12px', border: '1px solid #1e293b' }}>
         <h2 style={{ margin: '0 0 16px', fontSize: '18px', color: '#e2e8f0' }}>Live Collections Status in MongoDB (<code>neerakshak_db</code>)</h2>
         {collectionsList.length === 0 ? (
