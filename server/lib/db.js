@@ -1873,8 +1873,11 @@ export const monitoringDb = {
       // Quantities from real dispatches
       const boatsDisp = lc ? lc.dispatchedSupplies.boats : 3;
       const jacketsDisp = lc ? lc.dispatchedSupplies.jackets : 33;
-      const totalDisp = lc ? (lc.dispatchedSupplies.total || (boatsDisp + jacketsDisp)) : 36;
+      const foodDisp = lc ? lc.dispatchedSupplies.food : 264;
+      const medsDisp = lc ? lc.dispatchedSupplies.meds : 44;
+      const totalDisp = lc ? (lc.dispatchedSupplies.total || (boatsDisp + jacketsDisp)) : (boatsDisp + jacketsDisp);
 
+      // Item condition values
       const groundGood = groundRet ? Number(groundRet.good || 0) : (isGroundCleared ? boatsDisp : 0);
       const groundDamaged = groundRet ? Number(groundRet.damaged || 0) : Number(delivery?.damaged || 0);
       const groundMissing = groundRet ? Number(groundRet.missing || 0) : Number(delivery?.shortage || 0);
@@ -1883,8 +1886,45 @@ export const monitoringDb = {
       const godownDamaged = godownRet ? Number(godownRet.boatsDamaged || godownRet.damaged || 0) : 0;
       const godownMissing = godownRet ? Number(godownRet.boatsMissing || godownRet.missing || 0) : 0;
 
-      const isClosed = Boolean(caseRec && caseRec.status === 'Closed');
-      const bothVerified = isGroundCleared && isGodownRestocked;
+      // Itemized breakdown: konsa item kitna gaya aur kis condition me aaya
+      const itemsBreakdown = [
+        {
+          name: 'Inflatable Motorized Rescue Boats',
+          category: 'Rescue Craft',
+          dispatched: boatsDisp,
+          groundStatus: isGroundCleared ? `${groundGood} Good, ${groundDamaged} Damaged, ${groundMissing} Missing` : 'Pending Field Release',
+          godownStatus: isGodownRestocked ? `${godownGood} Restocked (Good Condition)` : 'Awaiting Bay Arrival',
+          condition: isGroundCleared && groundDamaged === 0 ? 'Good / Operational' : (groundDamaged > 0 ? 'Damaged (Repair Required)' : 'In Field Use')
+        },
+        {
+          name: 'High-Buoyancy Safety Life Jackets',
+          category: 'Safety Gear',
+          dispatched: jacketsDisp,
+          groundStatus: isGroundCleared ? `${isGroundCleared ? jacketsDisp : 0} Good, 0 Damaged` : 'Pending Field Release',
+          godownStatus: isGodownRestocked ? `${isGodownRestocked ? jacketsDisp : 0} Restocked (Good Condition)` : 'Awaiting Bay Arrival',
+          condition: isGroundCleared ? 'Good / Clean Restock' : 'In Field Use'
+        },
+        {
+          name: 'Emergency Ration Packs (Pack of 10)',
+          category: 'Relief Food',
+          dispatched: foodDisp,
+          groundStatus: isGroundCleared ? `${foodDisp} Distributed to Camp Evacuees` : 'In Distribution',
+          godownStatus: 'Consumable Item (Distributed / No Warehouse Restock Required)',
+          condition: 'Distributed to Flood Victims'
+        },
+        {
+          name: 'Trauma & Waterborne Disease Medicine Kits',
+          category: 'Medical',
+          dispatched: medsDisp,
+          groundStatus: isGroundCleared ? `${medsDisp} Deployed at DEOC Health Camp` : 'In Clinical Use',
+          godownStatus: 'Consumable Medical Aid (Disbursed)',
+          condition: 'Administered in Sector'
+        }
+      ];
+
+      // Dual-Verification enforcement: Can ONLY be closed when BOTH have truly verified non-zero numbers
+      const bothVerified = isGroundCleared && isGodownRestocked && groundGood > 0 && godownGood > 0;
+      const isClosed = Boolean(caseRec && caseRec.status === 'Closed' && bothVerified);
 
       return {
         id: `RET-AUD-${idx + 1}`,
@@ -1893,7 +1933,8 @@ export const monitoringDb = {
         village: sector.village,
         resource: lc ? `${boatsDisp} Boats, ${jacketsDisp} Jackets` : 'Rescue Boats & Life Jackets',
         dispatched: totalDisp,
-        dispatchedSummary: `${boatsDisp} Boats, ${jacketsDisp} Jackets`,
+        dispatchedSummary: `${boatsDisp} Boats, ${jacketsDisp} Jackets, ${foodDisp} Food, ${medsDisp} Meds`,
+        items: itemsBreakdown,
         
         // Ground Officer Verification Block
         ground: {
@@ -1921,7 +1962,9 @@ export const monitoringDb = {
 
         variance: Math.abs(groundGood - godownGood),
         status: isClosed ? 'Closed' : (bothVerified ? 'Dual Verified' : 'Under Review'),
+        bothVerified,
         caseClosed: isClosed,
+        canClose: bothVerified && !isClosed,
         closedBy: caseRec?.closedBy || null,
         closedAt: caseRec?.closedAt || null,
         sealNo: caseRec?.sealNo || null
@@ -1949,68 +1992,72 @@ export const monitoringDb = {
       };
     });
 
-    // 8. Cross-Portal Comprehensive Activity Logs with Area & Impact
+    // 8. Cross-Portal Comprehensive Activity Logs / Notification Feed (Chronological with Admin at Top)
     const auditLogs = [];
 
-    // Logs from Ground Officer deliveries & actions
-    groundDeliveries.forEach((g, idx) => {
+    // Priority 1: Logs from Admin Inundation Mapping (Pinned flood areas)
+    adminAreas.forEach((a, idx) => {
       auditLogs.push({
-        id: `LOG-GRD-${idx + 1}`,
-        time: g.verifiedAt || 'Live Sync',
-        portal: 'Ground Field Officer',
-        actor: g.verifiedBy || 'Bhaskar Jyoti Das (Ground Officer)',
-        area: g.destination || 'Field Sector',
-        action: g.status === 'Verified' ? 'Physical Delivery Intake Verified' : 'Consignment Acknowledged',
-        detail: `Verified supplies: ${g.dispatched || g.resource}. Shortages: ${g.shortage || 0}, Damaged: ${g.damaged || 0}. Remarks: ${g.remarks || 'No remarks'}.`,
-        impact: g.groundOfficerCleared
-          ? 'Rescue operations completed! Area declared controlled; equipment released for warehouse return.'
-          : 'Emergency supplies distributed to waterlogged camps and evacuees.',
-        tag: 'tag-good'
+        id: `LOG-ADM-${idx + 1}`,
+        time: 'Flood Onset (Live Inundation)',
+        portal: 'State Admin (GIS Command)',
+        actor: 'State Inundation Command Cell',
+        area: a.name || a.village || 'Flood Sector',
+        action: `Flood Zone Pinned & Telemetry Inundation Alert Issued`,
+        detail: `Sector marked as ${a.severity || 'Critical'} flood hazard near ${a.river || 'Saura / Kosi Basin'}. Current waterlevel: ${a.waterLevel || '34.9m'} (Above Danger Mark). Estimated affected population: ${(a.pop || a.population || 2500).toLocaleString()} citizens.`,
+        impact: `Emergency evacuation boundary mapped on state GIS console. Requisition transmitted to DDMA for relief allocation.`,
+        tag: 'tag-red',
+        icon: 'fa-satellite-dish'
       });
     });
 
-    // Logs from Godown dispatches
-    godownDispatches.forEach((d, idx) => {
-      auditLogs.push({
-        id: `LOG-GDN-${idx + 1}`,
-        time: d.dispatchTime || 'Live Sync',
-        portal: 'Central Godown Manager',
-        actor: 'Rajesh Das (Warehouse Manager)',
-        area: d.destination || 'Dispatched Sector',
-        action: `Gate-Pass Issued & Convoy Dispatched (${d.refNo || d.dispatchId || 'DSP-2026'})`,
-        detail: `Resources loaded: ${d.summary || `${d.dispatchedBoats || 3} Boats, ${d.dispatchedJackets || 33} Jackets`}. Truck: ${d.vehicle || 'Heavy Swaraj Truck'}.`,
-        impact: `Convoy departed under armed NDRF escort to ensure zero leakage en route.`,
-        tag: 'tag-blue'
-      });
-    });
-
-    // Logs from Authority allocations
+    // Priority 2: Logs from Authority Allocations
     authAllocations.forEach((a, idx) => {
       auditLogs.push({
         id: `LOG-AUT-${idx + 1}`,
-        time: a.timestamp || 'Live Sync',
+        time: a.timestamp || 'Today, 10:30 AM',
         portal: 'District Authority (DDMA)',
         actor: 'DC / ADC Relief Control Room',
         area: a.village || a.destination || 'Flood Sector',
         action: `Emergency Relief Order Approved (${a.id})`,
-        detail: `Allocated supplies: ${a.summary}. Assigned Field Handover Lead: ${a.leadOfficerName ? `${a.leadAgency || 'NDRF'} ${a.leadOfficerName}` : 'NDRF (1st Bn) Kalita'}.`,
-        impact: `Binding administrative supply requisition transmitted to Central Godown.`,
-        tag: 'tag-indigo'
+        detail: `Allocated supplies: ${a.summary}. Handover Lead: ${a.leadOfficerName ? `${a.leadAgency || 'NDRF'} ${a.leadOfficerName}` : 'Inspector Rajesh Kalita'}.`,
+        impact: `Binding administrative supply requisition transmitted to Central Godown for dispatch.`,
+        tag: 'tag-indigo',
+        icon: 'fa-building-columns'
       });
     });
 
-    // Logs from Admin Inundation Mapping
-    adminAreas.forEach((a, idx) => {
+    // Priority 3: Logs from Godown Dispatches
+    godownDispatches.forEach((d, idx) => {
       auditLogs.push({
-        id: `LOG-ADM-${idx + 1}`,
-        time: 'Live Onset',
-        portal: 'State Admin (GIS Command)',
-        actor: 'State Inundation Cell',
-        area: a.name || a.village || 'Flood Sector',
-        action: `Flood Zone Pinned & Telemetry Alert Issued`,
-        detail: `Marked as ${a.severity || 'Critical'} flood risk near ${a.river || 'River'}. Waterlevel: ${a.waterLevel || 'Above Danger'}.`,
-        impact: `Estimated affected population of ${(a.pop || a.population || 2500).toLocaleString()} citizens mapped for evacuation.`,
-        tag: 'tag-red'
+        id: `LOG-GDN-${idx + 1}`,
+        time: d.dispatchTime || 'Today, 11:15 AM',
+        portal: 'Central Godown Manager',
+        actor: 'Rajesh Das (Warehouse Manager)',
+        area: d.destination || 'Dispatched Sector',
+        action: `Gate-Pass Issued & Convoy Dispatched (${d.refNo || d.dispatchId || 'DSP-2026-932'})`,
+        detail: `Resources loaded: ${d.summary || `${d.dispatchedBoats || 3} Boats, ${d.dispatchedJackets || 33} Jackets`}. Truck: ${d.vehicle || 'Heavy Swaraj Truck AS-01-EC-4210'}. Driver: ${d.driver || 'Rajesh Das'}.`,
+        impact: `Convoy departed under armed NDRF escort to ensure zero leakage en route.`,
+        tag: 'tag-blue',
+        icon: 'fa-truck-fast'
+      });
+    });
+
+    // Priority 4: Logs from Ground Officer deliveries & actions
+    groundDeliveries.forEach((g, idx) => {
+      auditLogs.push({
+        id: `LOG-GRD-${idx + 1}`,
+        time: g.verifiedAt || 'Today, 12:45 PM',
+        portal: 'Ground Field Officer',
+        actor: g.verifiedBy || 'Bhaskar Jyoti Das (Ground Officer)',
+        area: g.destination || 'Field Sector',
+        action: g.status === 'Verified' ? 'Physical Delivery Intake Verified' : 'Consignment Acknowledged',
+        detail: `Verified supplies: ${g.dispatched || g.resource}. Shortages: ${g.shortage || 0}, Damaged: ${g.damaged || 0}. Remarks: "${g.remarks || 'Receipt verified'}".`,
+        impact: g.groundOfficerCleared
+          ? 'Rescue operations completed! Area declared controlled; equipment released for warehouse return.'
+          : 'Emergency supplies distributed to waterlogged camps and evacuees.',
+        tag: 'tag-good',
+        icon: 'fa-person-military-rifle'
       });
     });
 

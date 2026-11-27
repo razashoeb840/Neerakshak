@@ -72,19 +72,9 @@ const markup = (
           <span>Shortages</span>
           <span className="rail-badge-count count-red" id="navDiscCount">0</span>
         </button>
-        {/* ADDITION 1: Delivery Verification Audit */}
-        <button className="rail-btn mon-nav-btn" data-tab="delivery-audit" onClick={(e) => window.switchMonitorTab('delivery-audit', e.currentTarget)} title="Delivery Verification Audit">
-          <i className="fas fa-clipboard-check"></i>
-          <span>Deliveries</span>
-        </button>
         <button className="rail-btn mon-nav-btn" data-tab="returns" onClick={(e) => window.switchMonitorTab('returns', e.currentTarget)} title="Return & Resource Restock Audit">
           <i className="fas fa-rotate-left"></i>
           <span>Returns</span>
-        </button>
-        {/* ADDITION 2: Rescue Ops Watch */}
-        <button className="rail-btn mon-nav-btn" data-tab="ops-monitor" onClick={(e) => window.switchMonitorTab('ops-monitor', e.currentTarget)} title="Rescue & Operation Monitoring (Non-Command)">
-          <i className="fas fa-shield-halved"></i>
-          <span>Ops Watch</span>
         </button>
         <button className="rail-btn mon-nav-btn" data-tab="logs" onClick={(e) => window.switchMonitorTab('logs', e.currentTarget)} title="User Activity & Multi-Agency Audit Logs">
           <i className="fas fa-clock-rotate-left"></i>
@@ -178,24 +168,17 @@ const markup = (
                   </span>
                 </div>
 
-                <div id="centerChatFeed" style={{ minHeight: '200px', maxHeight: '240px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', padding: '6px', background: '#ffffff', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '10px' }}></div>
-
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
-                  <button type="button" className="quick-chip-btn" onClick={() => window.insertQuickChat('Verify delivery headcount and supply count on site.')}>Verify Delivery</button>
-                  <button type="button" className="quick-chip-btn" onClick={() => window.insertQuickChat('Clarify warehouse gate shortage before departure.')}>Check Shortage</button>
-                  <button type="button" className="quick-chip-btn" onClick={() => window.insertQuickChat('Requesting NDRF escort confirmation for convoy.')}>Confirm Escort</button>
-                  <button type="button" className="quick-chip-btn" onClick={() => window.insertQuickChat('Confirm post-rescue return restock status in warehouse.')}>Confirm Restock</button>
-                </div>
+                <div id="centerChatFeed" style={{ minHeight: '220px', maxHeight: '260px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px', background: '#ffffff', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '10px' }}></div>
 
                 <form onSubmit={(e) => window.sendChatMessage(e)} style={{ display: 'flex', gap: '8px' }}>
                   <input
                     type="text"
                     id="centerChatMessageInput"
                     placeholder="Type official directive / message to selected portal officer..."
-                    style={{ flex: 1, padding: '9px 14px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '12px', outline: 'none' }}
+                    style={{ flex: 1, padding: '10px 14px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '12px', outline: 'none' }}
                     required
                   />
-                  <button type="submit" className="btn-mo" style={{ padding: '0 20px', background: '#0284c7', color: '#fff', borderColor: '#0284c7' }}>
+                  <button type="submit" className="btn-mo" style={{ padding: '0 22px', background: '#0284c7', color: '#fff', borderColor: '#0284c7', fontWeight: 700 }}>
                     <i className="fas fa-paper-plane"></i> Send
                   </button>
                 </form>
@@ -354,37 +337,27 @@ const markup = (
         </div>
 
         {/* ===============================================================
-            TAB 5: DELIVERY VERIFICATION AUDIT (FUNCTION 5 - NEW TAB)
-            Ground Officer delivery records audit, cross-check dispatch vs received
-            =============================================================== */}
-        <div className="mo-tab-pane" id="tab-delivery-audit">
-          <div className="aqua-card">
-            <div className="card-head">
-              <h2>
-                <i className="fas fa-clipboard-check" style={{ color: "var(--foliage-mid)" }}></i>
-                {" Ground Officer Delivery Verification Audit"}
-              </h2>
-              <div style={{ fontSize: '11.5px', color: '#64748b' }}>
-                Read-only audit: cross-check field receipts against godown dispatch gate-passes.
-              </div>
-            </div>
-            <div className="grid-2 switchable-collection" id="deliveryAuditGrid"></div>
-          </div>
-        </div>
-
-        {/* ===============================================================
-            TAB 6: RETURN & RESOURCE AUDIT (FUNCTION 6)
+            TAB 5: RETURN & RESOURCE AUDIT (FUNCTION 6)
             Individual Ground Officer & Godown Verifications + Case Closure
             =============================================================== */}
         <div className="mo-tab-pane" id="tab-returns">
           <div className="aqua-card">
             <div className="card-head">
-              <h2>
-                <i className="fas fa-rotate-left" style={{ color: "var(--teal-water)" }}></i>
-                {" Post-Operation Return & Physical Restock Dual-Audit"}
-              </h2>
-              <div style={{ fontSize: '11.5px', color: '#64748b' }}>
-                Individual verifications by Ground Officer (field release) & Godown (warehouse intake). Sign-off to close audit case.
+              <div>
+                <h2>
+                  <i className="fas fa-rotate-left" style={{ color: "var(--teal-water)" }}></i>
+                  {" Post-Operation Return & Physical Restock Dual-Audit"}
+                </h2>
+                <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
+                  Individual verifications by Ground Officer (field release) & Central Godown (warehouse intake). Itemized condition breakdown & sign-off.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span style={{ fontSize: '11px', color: '#64748b' }}>Filter Sector:</span>
+                <select id="returnSectorSelect" className="hero-district-select" style={{ background: '#0284c7', color: '#fff', padding: '4px 10px', borderRadius: '6px' }} onChange={(e) => { if (window.filterReturnSector) window.filterReturnSector(e.currentTarget.value); }}>
+                  <option value="ALL">All Return Sectors</option>
+                </select>
               </div>
             </div>
 
@@ -411,39 +384,32 @@ const markup = (
         </div>
 
         {/* ===============================================================
-            TAB 7: RESCUE & OPERATION MONITORING (FUNCTION 7 - NEW TAB)
-            Active operations, rescued citizens, stranded count, non-command watch
-            =============================================================== */}
-        <div className="mo-tab-pane" id="tab-ops-monitor">
-          <div className="aqua-card">
-            <div className="card-head">
-              <h2>
-                <i className="fas fa-shield-halved" style={{ color: "var(--river-blue)" }}></i>
-                {" Active Flood-Relief & Rescue Operations Watch"}
-              </h2>
-              <div style={{ fontSize: '11.5px', color: '#64748b' }}>
-                Non-command monitoring: track progress, citizen evacuation counts, and report anomalies.
-              </div>
-            </div>
-            <div className="grid-2 switchable-collection" id="opsMonitorGrid"></div>
-          </div>
-        </div>
-
-        {/* ===============================================================
-            TAB 8: USER ACTIVITY & MULTI-AGENCY AUDIT LOGS (FUNCTION 8)
+            TAB 6: STATE MULTI-AGENCY NOTIFICATION FEED & AUDIT LOGS
             =============================================================== */}
         <div className="mo-tab-pane" id="tab-logs">
           <div className="aqua-card">
             <div className="card-head">
-              <h2>
-                <i className="fas fa-clock-rotate-left" style={{ color: "var(--navy-deep)" }}></i>
-                {" Cross-Portal Member Activity Logs & Area Impact Trace"}
-              </h2>
-              <div style={{ fontSize: '11px', color: '#64748b' }}>
-                Chronological actions of Admin, Authority, Godown, and Ground Officer with affected Area & Impact
+              <div>
+                <h2>
+                  <i className="fas fa-bell" style={{ color: "var(--navy-deep)" }}></i>
+                  {" Multi-Agency Operational Activity Stream & Notification Feed"}
+                </h2>
+                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                  Live chronological stream of State Admin GIS pins, DDMA allocations, warehouse dispatches, and field verification impacts.
+                </div>
+              </div>
+
+              {/* Agency Filter Chips */}
+              <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                <button type="button" className="btn-mo" style={{ padding: '4px 9px', fontSize: '10.5px' }} onClick={() => window.filterLogsByAgency('ALL')}>All (सभी)</button>
+                <button type="button" className="btn-mo" style={{ padding: '4px 9px', fontSize: '10.5px', background: '#fef2f2', color: '#dc2626', borderColor: '#fca5a5' }} onClick={() => window.filterLogsByAgency('Admin')}>Admin GIS</button>
+                <button type="button" className="btn-mo" style={{ padding: '4px 9px', fontSize: '10.5px', background: '#eef2ff', color: '#4338ca', borderColor: '#c7d2fe' }} onClick={() => window.filterLogsByAgency('Authority')}>DDMA Authority</button>
+                <button type="button" className="btn-mo" style={{ padding: '4px 9px', fontSize: '10.5px', background: '#f0f9ff', color: '#0284c7', borderColor: '#bae6fd' }} onClick={() => window.filterLogsByAgency('Godown')}>Central Godown</button>
+                <button type="button" className="btn-mo" style={{ padding: '4px 9px', fontSize: '10.5px', background: '#f0fdf4', color: '#16a34a', borderColor: '#bbf7d0' }} onClick={() => window.filterLogsByAgency('Ground')}>Ground Units</button>
               </div>
             </div>
-            <div className="grid-2 switchable-collection" id="fullActivityLogsGrid"></div>
+
+            <div id="fullActivityLogsGrid" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}></div>
           </div>
         </div>
       </main>

@@ -25,6 +25,9 @@ let commsMode = 'direct';
 let activeChatChannel = 'ground';
 let selectedSectorName = null;
 let activeAreaFilter = 'ALL';
+let activeReturnSectorFilter = 'ALL';
+let activeLogsAgencyFilter = 'ALL';
+let latestMonitoringState = null;
 
 export default function initMonitoringPage() {
   // Expose global controller functions for UI clicks
@@ -39,8 +42,11 @@ export default function initMonitoringPage() {
   window.escalateDiscrepancy = escalateDiscrepancy;
   window.changeDiscrepancyStatus = changeDiscrepancyStatus;
   window.requestDiscrepancyClarification = requestDiscrepancyClarification;
+  window.requestDeliveryEvidence = requestDeliveryEvidence;
   window.closeReturnAuditCase = closeReturnAuditCase;
   window.requestReturnClarification = requestReturnClarification;
+  window.filterReturnSector = filterReturnSector;
+  window.filterLogsByAgency = filterLogsByAgency;
   window.flagOpsAnomaly = flagOpsAnomaly;
   window.resolveOpsAnomaly = resolveOpsAnomaly;
   window.directMessageTacticalTeam = directMessageTacticalTeam;
@@ -165,23 +171,30 @@ export function inspectSectorByName(name) {
 // ---------------------------------------------------------------------------
 function renderAllViews(state) {
   if (!state) return;
+  latestMonitoringState = state;
 
   renderKpis(state); // Function 1
   renderSectorDropdowns(state);
   renderDashboard(state);
-  renderAreaTracing(state.lifecycles || []); // Function 2
+  renderAreaTracing(state.lifecycles || []); // Function 2 (includes merged delivery verifications & driver/vehicle telemetry)
   renderReconciliationTable(state.reconciliation || []); // Function 3
   renderDiscrepancies(state.discrepancies || []); // Function 4
-  renderDeliveryAudits(state.deliveryAudits || []); // Function 5
-  renderReturns(state.returns || []); // Function 6
-  renderOpsMonitor(state.operations || []); // Function 7
-  renderLogs(state.logs || []); // Function 8
-  renderReports(state); // Function 9
-  renderNotifications(state.notifications || []); // Function 10
+  renderReturns(state.returns || []); // Function 5 (Itemized return condition breakdown & dual-verification sign-off)
+  renderLogs(state.logs || []); // Function 6 (State multi-agency notification feed with Admin flood pins)
+  renderNotifications(state.notifications || []);
   renderInspector(state);
   renderRiverTelemetry();
   renderChatFeed(state.chats || []);
   renderActiveAnnouncements(state.announcements || []);
+
+  // Populate return sector dropdown
+  const retSelect = document.getElementById('returnSectorSelect');
+  if (retSelect && state.returns) {
+    const existingVal = retSelect.value || 'ALL';
+    const sectorNames = Array.from(new Set(state.returns.map(r => r.area))).filter(Boolean);
+    retSelect.innerHTML = `<option value="ALL">All Return Sectors (${sectorNames.length})</option>` +
+      sectorNames.map(s => `<option value="${s}" ${s === existingVal ? 'selected' : ''}>${s}</option>`).join('');
+  }
 
   // Update badge counts in left rail
   const countTracing = (state.lifecycles || []).length;
@@ -406,33 +419,50 @@ function renderAreaTracing(lifecycles) {
             <strong style="color: #0284c7; display: block; margin-bottom: 4px;">📍 Stage 1: Authority Approval</strong>
             <div>Allocated: <b>${item.resourcesAllocated || 'Pending'}</b></div>
             <div>Order ID: <b>${item.allocId || 'ALC-565'}</b></div>
-            <div>Escort Lead: ${item.designatedLead || 'NDRF 1st Bn'}</div>
+            <div>Handover Lead: <b>${item.designatedLead || 'NDRF 1st Bn'}</b></div>
           </div>
 
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
             <strong style="color: #d97706; display: block; margin-bottom: 4px;">🚚 Stage 2: Warehouse Dispatch</strong>
             <div>Gate-Pass: <b>${item.dispatchRef || 'DSP-2026-932'}</b></div>
-            <div>Dispatched: ${item.resourcesDispatched || 'Awaiting Loading'}</div>
-            <div>Vehicle: ${item.vehicle || 'Heavy Swaraj Truck'}</div>
+            <div>Loaded: <b>${item.resourcesDispatched || 'Awaiting Loading'}</b></div>
+            <div>Vehicle: <b>${item.vehicle || 'Heavy Truck AS-01-EC-4210'}</b></div>
+            <div>Driver: <b>${item.driver || 'Rajesh Das (+91 98640-21943)'}</b></div>
           </div>
 
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
             <strong style="color: #16a34a; display: block; margin-bottom: 4px;">✅ Stage 3: Ground Receipt</strong>
+            <div>Verified: <b>${item.resourcesReceived || 'En Route'}</b></div>
+            <div>Officer: <b>Bhaskar Jyoti Das (Ground Officer)</b></div>
             <div>Status: <b>${item.groundVerificationStatus || 'Pending Intake'}</b></div>
-            <div>Received: ${item.resourcesReceived || 'En Route'}</div>
-            <div>Shortage Flag: ${item.shortageCount > 0 ? `<b style="color:#dc2626;">-${item.shortageCount} Units</b>` : 'None (Matched)'}</div>
+            <div>Variance: ${item.shortageCount > 0 ? `<b style="color:#dc2626;">-${item.shortageCount} Short</b>` : '<b style="color:#16a34a;">0 Short</b>'}, ${item.damagedCount > 0 ? `<b style="color:#d97706;">${item.damagedCount} Dmg</b>` : '0 Dmg'}</div>
           </div>
 
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
             <strong style="color: #4338ca; display: block; margin-bottom: 4px;">⚖️ Stage 4: DEOC Audit</strong>
             <div>Audit Status: <b style="color:#0284c7;">${item.auditStatus || 'Reconciled'}</b></div>
             <div>Escalation: ${item.hasEscalation ? '⚠️ Escalated to DDMA' : 'Zero Mismatch'}</div>
+            <div>Ledger: Matched</div>
           </div>
 
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
             <strong style="color: #7c3aed; display: block; margin-bottom: 4px;">🔄 Stage 5: Return Restock</strong>
-            <div>Status: ${s5 ? 'Units Reconciled to Stock' : (s4 ? 'Cleared for Return' : 'Operation Active')}</div>
+            <div>Condition: ${s5 ? 'Units Reconciled to Stock' : (s4 ? 'Cleared for Return' : 'Operation Active')}</div>
+            <div>Intake Bay: WH-MIRZA</div>
           </div>
+        </div>
+
+        <!-- SECTOR AUDIT ACTION STRIP -->
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #e2e8f0; flex-wrap: wrap;">
+          <button class="btn-mo" style="padding: 4px 12px; font-size: 11px; background: #0284c7; color: #fff;" onclick="window.requestDeliveryEvidence('${areaName}', '${item.dispatchRef}')">
+            <i class="fas fa-file-shield"></i> Request Evidence (साक्ष्य मांगें)
+          </button>
+          <button class="btn-mo" style="padding: 4px 12px; font-size: 11px;" onclick="window.requestDiscrepancyClarification('${areaName}', '${item.dispatchRef}', 'Dispatch and delivery reconciliation')">
+            <i class="fas fa-question-circle"></i> Direct Clarification
+          </button>
+          <button class="btn-mo" style="padding: 4px 12px; font-size: 11px;" onclick="window.inspectSectorByName('${areaName}')">
+            <i class="fas fa-crosshairs"></i> Telemetry Details
+          </button>
         </div>
       </div>
     `;
@@ -570,65 +600,27 @@ export async function escalateDiscrepancy(id, area, issue) {
   showToast(`Discrepancy for ${area} successfully escalated to DC!`, 'success');
 }
 
-// FUNCTION 5: DELIVERY VERIFICATION AUDIT (Ground Officer delivery records audit)
-function renderDeliveryAudits(deliveryAudits) {
-  const container = document.getElementById('deliveryAuditGrid');
-  if (!container) return;
-
-  if (deliveryAudits.length === 0) {
-    container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: #64748b; padding: 24px;">No field delivery verification records to audit.</div>`;
-    return;
-  }
-
-  container.innerHTML = deliveryAudits.map(a => {
-    const isOk = a.auditResult.includes('Consistent');
-    return `
-      <div className="audit-card tone-ok anim-card" style="padding: 14px; border-left: 4px solid ${isOk ? '#16a34a' : '#d97706'};">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-          <div>
-            <strong style="font-size: 13.5px; color: #0f172a;">${a.destination} Intake Audit</strong>
-            <div style="font-size: 10.5px; color: #64748b;">Gate-Pass Ref: <b>${a.dispatchId}</b> • Alloc ID: <b>${a.allocId}</b></div>
-          </div>
-          <span class="badge ${isOk ? 'badge-good' : 'badge-transit'}">${a.auditResult}</span>
-        </div>
-
-        <div style="font-size: 11.5px; line-height: 1.5; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 10px;">
-          <div><b>Dispatched by Warehouse:</b> ${a.dispatchedSupplies}</div>
-          <div><b>Verified on Ground:</b> ${a.receivedSupplies}</div>
-          <div><b>Shortages / Damage:</b> ${a.shortage > 0 ? `<b style="color:#dc2626;">${a.shortage} Short</b>, ` : '0 Short, '} ${a.damaged} Damaged</div>
-          <div><b>Field Officer Remarks:</b> "${a.remarks}"</div>
-          <div style="color: #64748b; font-size: 10.5px; margin-top: 4px;">Verified at: <b>${a.verifiedAt}</b> by <b>${a.verifiedBy}</b> (Escort: ${a.leadOfficer})</div>
-        </div>
-
-        <div style="display:flex; justify-content:flex-end; gap: 8px;">
-          <button class="btn-mo" style="padding: 4px 10px; font-size: 11px;" onclick="window.requestDiscrepancyClarification('${a.destination}', '${a.dispatchId}', 'Field delivery count verification audit')">
-            <i class="fas fa-question-circle"></i> Request Evidence
-          </button>
-          <button class="btn-mo" style="padding: 4px 10px; font-size: 11px; background:#0284c7; color:#fff;" onclick="window.showToast('Delivery audit record for ${a.destination} confirmed and logged in DEOC ledger.', 'success')">
-            <i class="fas fa-check"></i> Sign Off Audit
-          </button>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-// FUNCTION 6: RETURN & RESOURCE AUDIT (Individual Ground Officer & Godown Verifications + Case Closure)
+// FUNCTION 5: RETURN & RESOURCE AUDIT (Individual Ground Officer & Godown Verifications + Case Closure)
 function renderReturns(returns) {
   const cardsGrid = document.getElementById('returnAuditCardsGrid');
   const tbody = document.getElementById('returnAuditBody');
 
+  const filtered = activeReturnSectorFilter === 'ALL'
+    ? returns
+    : returns.filter(r => (r.area === activeReturnSectorFilter || r.village === activeReturnSectorFilter));
+
   if (cardsGrid) {
-    if (!returns || returns.length === 0) {
-      cardsGrid.innerHTML = `<div style="grid-column:1/-1; text-align: center; color: #64748b; padding: 24px; background:#fff; border-radius:12px; border:1px dashed #cbd5e1;">No post-operation asset return cases found in database.</div>`;
+    if (!filtered || filtered.length === 0) {
+      cardsGrid.innerHTML = `<div style="grid-column:1/-1; text-align: center; color: #64748b; padding: 24px; background:#fff; border-radius:12px; border:1px dashed #cbd5e1;">No post-operation asset return cases found for selected filter.</div>`;
     } else {
-      cardsGrid.innerHTML = returns.map(ret => {
+      cardsGrid.innerHTML = filtered.map(ret => {
         const isClosed = Boolean(ret.caseClosed || ret.status === 'Closed');
         const ground = ret.ground || {};
         const godown = ret.godown || {};
         const isGroundOk = Boolean(ground.isVerified || ground.status?.includes('Verified'));
         const isGodownOk = Boolean(godown.isVerified || godown.status?.includes('Restocked'));
         const bothOk = isGroundOk && isGodownOk;
+        const canClose = Boolean(ret.canClose || (bothOk && !isClosed && (ground.good > 0 || godown.good > 0)));
 
         return `
           <div class="return-case-card" style="border-left: 5px solid ${isClosed ? '#15803d' : (bothOk ? '#0284c7' : '#f59e0b')};">
@@ -651,6 +643,26 @@ function renderReturns(returns) {
                       : `<span class="status-pill status-under-review"><i class="fas fa-hourglass-half"></i> Awaiting Full Verification</span>`
                     )
                 }
+              </div>
+            </div>
+
+            <!-- Itemized Consignment Dispatch vs Return Condition Audit -->
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; margin: 8px 0;">
+              <strong style="font-size: 11px; color: #334155; display: block; margin-bottom: 5px;">
+                <i class="fas fa-boxes-stacked" style="color: #0284c7;"></i> Itemized Consignment Dispatch vs Return Condition Breakdown:
+              </strong>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                ${(ret.items || []).map(it => `
+                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 4px 8px; background: #f8fafc; border-radius: 5px; border: 1px solid #f1f5f9; flex-wrap: wrap; gap: 4px;">
+                    <div>
+                      <b>${it.name}</b> <span style="color:#64748b;">(Dispatched: <b>${it.dispatched}</b>)</span>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                      <span style="color:#15803d; font-weight:700;"><i class="fas fa-person-military-rifle"></i> Field: ${it.groundStatus}</span>
+                      <span style="color:#0284c7; font-weight:700;"><i class="fas fa-warehouse"></i> Warehouse: ${it.godownStatus}</span>
+                    </div>
+                  </div>
+                `).join('')}
               </div>
             </div>
 
@@ -713,12 +725,20 @@ function renderReturns(returns) {
                   ? `<span class="badge-sealed">
                        <i class="fas fa-stamp"></i> Audit Sealed & Case Closed by DEOC (Seal: <b>${ret.sealNo || 'DEOC-AUD-2026'}</b>)
                      </span>`
-                  : `<button class="btn-close-case" onclick="window.closeReturnAuditCase('${ret.caseId}', '${ret.area}')">
-                       <i class="fas fa-stamp"></i> Close Case & Sign-Off Audit (केस बंद करें)
-                     </button>
-                     <button class="btn-mo" style="padding: 5px 10px; font-size:11px;" onclick="window.requestReturnClarification('${ret.area}')">
-                       <i class="fas fa-question-circle"></i> Ask Clarification
-                     </button>`
+                  : (canClose
+                      ? `<button class="btn-close-case" onclick="window.closeReturnAuditCase('${ret.caseId}', '${ret.area}')">
+                           <i class="fas fa-stamp"></i> Close Case & Sign-Off Audit (केस बंद करें)
+                         </button>
+                         <button class="btn-mo" style="padding: 5px 10px; font-size:11px;" onclick="window.requestReturnClarification('${ret.area}')">
+                           <i class="fas fa-question-circle"></i> Ask Clarification
+                         </button>`
+                      : `<button class="btn-mo" disabled style="opacity:0.55; cursor:not-allowed;" title="Cannot close: Ground Officer and Warehouse Manager must both complete physical verification before sign-off.">
+                           <i class="fas fa-lock"></i> Verification Pending (Cannot Close)
+                         </button>
+                         <button class="btn-mo" style="padding: 5px 10px; font-size:11px; background:#0284c7; color:#fff;" onclick="window.requestReturnClarification('${ret.area}')">
+                           <i class="fas fa-question-circle"></i> Request Verification
+                         </button>`
+                    )
                 }
               </div>
             </div>
@@ -729,11 +749,11 @@ function renderReturns(returns) {
   }
 
   if (tbody) {
-    if (!returns || returns.length === 0) {
+    if (!filtered || filtered.length === 0) {
       tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #64748b; padding: 18px;">No return cases recorded.</td></tr>`;
       return;
     }
-    tbody.innerHTML = returns.map(ret => {
+    tbody.innerHTML = filtered.map(ret => {
       const isClosed = Boolean(ret.caseClosed || ret.status === 'Closed');
       const ground = ret.ground || {};
       const godown = ret.godown || {};
@@ -768,6 +788,13 @@ function renderReturns(returns) {
   }
 }
 
+export function filterReturnSector(val) {
+  activeReturnSectorFilter = val;
+  if (latestMonitoringState) {
+    renderReturns(latestMonitoringState.returns || []);
+  }
+}
+
 export async function closeReturnAuditCase(caseId, area) {
   showToast(`Sealing audit & closing case for ${area}...`, 'info');
   try {
@@ -788,155 +815,100 @@ export function requestReturnClarification(area) {
   showToast(`Switched to Godown channel for ${area} return clarification.`, 'info');
 }
 
-// FUNCTION 7: RESCUE & OPERATION MONITORING (Active rescue ops, citizen evacuation, anomaly escalation)
-function renderOpsMonitor(operations) {
-  const container = document.getElementById('opsMonitorGrid');
-  if (!container) return;
-
-  if (!operations || operations.length === 0) {
-    container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: #64748b; padding: 24px;">No active rescue operations in progress.</div>`;
-    return;
-  }
-
-  container.innerHTML = operations.map(op => {
-    const isAnomaly = Boolean(op.anomalyFlagged || op.status?.includes('Anomaly') || op.status?.includes('Escalated'));
-
-    return `
-      <div class="audit-card ${isAnomaly ? 'tone-warn' : 'tone-blue'} anim-card" style="padding: 14px; border-left: 5px solid ${isAnomaly ? '#dc2626' : '#0284c7'};">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 8px;">
-          <div>
-            <strong style="font-size: 14px; color: #0f172a;">${op.location} Tactical Sector</strong>
-            <div style="font-size: 10.5px; color: #64748b;">Operation ID: <b>${op.opId}</b> • Lead Agency: <b>${op.agency}</b></div>
-          </div>
-          <div>
-            ${isAnomaly
-              ? `<span class="badge" style="background:#dc2626; color:#fff; font-weight:700;"><i class="fas fa-triangle-exclamation"></i> ANOMALY ESCALATED TO DDMA</span>`
-              : `<span class="badge badge-good"><i class="fas fa-shield-halved"></i> ${op.status}</span>`
-            }
-          </div>
-        </div>
-
-        ${isAnomaly
-          ? `<div class="ops-anomaly-banner">
-               <i class="fas fa-bell" style="font-size:14px; color:#dc2626;"></i>
-               <div>
-                 <strong>Critical Rescue Anomaly Active:</strong> ${op.notes || 'Evacuation bottleneck / critical rescue delay escalated to District Magistrate Control Room.'}
-                 <div style="font-size:10px; color:#7f1d1d; margin-top:2px;">Escalated by State Monitoring Officer • High Priority Attention Required</div>
-               </div>
-             </div>`
-          : ''
-        }
-
-        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px;">
-          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 8px; border-radius: 6px; text-align: center;">
-            <div style="font-size: 18px; font-weight: 800; color: #16a34a;">${op.rescued}</div>
-            <div style="font-size: 10px; font-weight: 700; color: #166534; text-transform: uppercase;">Rescued Citizens</div>
-          </div>
-          <div style="background: #fffbeb; border: 1px solid #fde68a; padding: 8px; border-radius: 6px; text-align: center;">
-            <div style="font-size: 18px; font-weight: 800; color: #d97706;">${op.stranded}</div>
-            <div style="font-size: 10px; font-weight: 700; color: #92400e; text-transform: uppercase;">Awaiting Extraction</div>
-          </div>
-        </div>
-
-        <div style="font-size: 11.5px; color: #475569; background: #f8fafc; padding: 8px 10px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 10px;">
-          <b>Tactical SITREP:</b> "${op.notes}"
-        </div>
-
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-          <span style="font-size: 10.5px; color: #64748b;">Non-command surveillance</span>
-          <div style="display:flex; gap:6px;">
-            ${isAnomaly
-              ? `<button class="btn-mo" style="padding: 4px 10px; font-size: 11px; background:#16a34a; color:#fff; border-color:#15803d;" onclick="window.resolveOpsAnomaly('${op.opId}', '${op.location}')">
-                   <i class="fas fa-circle-check"></i> Mark Anomaly Resolved
-                 </button>
-                 <button class="btn-mo" style="padding: 4px 10px; font-size: 11px; background:#0284c7; color:#fff;" onclick="window.directMessageTacticalTeam('${op.location}', '${op.agency}')">
-                   <i class="fas fa-paper-plane"></i> Directive to NDRF
-                 </button>`
-              : `<button class="btn-mo" style="padding: 4px 10px; font-size: 11px; background:#dc2626; color:#fff; border-color:#b91c1c;" onclick="window.flagOpsAnomaly('${op.opId}', '${op.location}')">
-                   <i class="fas fa-flag"></i> Flag Anomaly to DDMA
-                 </button>
-                 <button class="btn-mo" style="padding: 4px 10px; font-size: 11px;" onclick="window.directMessageTacticalTeam('${op.location}', '${op.agency}')">
-                   <i class="fas fa-paper-plane"></i> Direct Message
-                 </button>`
-            }
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-export async function flagOpsAnomaly(opId, location) {
-  showToast(`Escalating rescue anomaly for ${location} to DDMA Control Room...`, 'info');
-  try {
-    await updateOpsAnomalyApi({
-      opId,
-      location,
-      status: 'Anomaly Escalated to DDMA',
-      notes: `Critical evacuation bottleneck / citizen extraction delay flagged at ${location}. Urgent motorized boat reinforcement requested.`
-    });
-    showToast(`Rescue anomaly for ${location} escalated to District Magistrate & DDMA!`, 'success');
-    refreshMonitoringData();
-  } catch (err) {
-    console.error('flagOpsAnomaly error:', err);
-  }
-}
-
-export async function resolveOpsAnomaly(opId, location) {
-  showToast(`Marking anomaly for ${location} as resolved...`, 'info');
-  try {
-    await updateOpsAnomalyApi({
-      opId,
-      location,
-      status: 'Active Operation (Normal)',
-      notes: `NDRF team evacuated stranded victims; operation stabilized at ${location}.`
-    });
-    showToast(`Anomaly for ${location} resolved & closed in DEOC records.`, 'success');
-    refreshMonitoringData();
-  } catch (err) {
-    console.error('resolveOpsAnomaly error:', err);
-  }
-}
-
-export function directMessageTacticalTeam(location, agency) {
+export function requestDeliveryEvidence(village, dispatchRef) {
   switchMonitorTab('dashboard', document.querySelector('[data-tab=dashboard]'));
   toggleCommsMode('direct');
   switchChatChannel('ground', document.querySelector('[onclick*="ground"]'));
-  insertQuickChat(`[TACTICAL RESCUE DIRECTIVE] To: ${agency} at ${location}. Report immediate waterlevel status, evacuated citizen count, and if additional boat fuel/reinforcements are required.`);
-  showToast(`Switched to Ground channel with tactical directive for ${agency}.`, 'info');
+  insertQuickChat(`[OFFICIAL AUDIT REQUISITION] Re: Consignment ${dispatchRef} for ${village}. Monitoring Officer requests physical delivery intake verification evidence, gate-pass counterfoil, and NDRF handover sign-off.`);
+  showToast(`Switched to Ground Officer channel. Evidence request prompt ready.`, 'info');
 }
 
-// FUNCTION 8: USER ACTIVITY & MULTI-AGENCY AUDIT LOGS
+export function filterLogsByAgency(agency) {
+  activeLogsAgencyFilter = agency;
+  if (latestMonitoringState) {
+    renderLogs(latestMonitoringState.logs || []);
+  }
+}
+
+// FUNCTION 8: USER ACTIVITY & MULTI-AGENCY NOTIFICATION FEED
 function renderLogs(logs) {
   const container = document.getElementById('fullActivityLogsGrid');
   if (!container) return;
 
-  if (logs.length === 0) {
-    container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: #64748b; padding: 30px;">No activity logs recorded.</div>`;
+  const filtered = activeLogsAgencyFilter === 'ALL'
+    ? logs
+    : logs.filter(l => {
+        const portal = (l.portal || '').toLowerCase();
+        const agency = activeLogsAgencyFilter.toLowerCase();
+        if (agency === 'admin') return portal.includes('admin') || portal.includes('gis');
+        if (agency === 'authority') return portal.includes('authority') || portal.includes('ddma');
+        if (agency === 'godown') return portal.includes('godown') || portal.includes('warehouse');
+        if (agency === 'ground') return portal.includes('ground') || portal.includes('field');
+        return true;
+      });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div style="text-align: center; color: #64748b; padding: 30px; background:#fff; border-radius:10px;">No operational activities found for selected agency filter.</div>`;
     return;
   }
 
-  container.innerHTML = logs.map(l => `
-    <div className="audit-card tone-indigo anim-card" style="font-size: 11.5px; padding: 12px 14px; border-left: 4px solid #4338ca;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
-        <span style="font-weight: 800; color:#0f172a; font-size: 12px; display:inline-flex; align-items:center; gap:6px;">
-          <span style="width:7px; height:7px; border-radius:50%; background:#0284c7;"></span>
-          ${l.portal}
-        </span>
-        <span style="color:#64748b; font-size: 10px;">${l.time || 'Live'}</span>
+  container.innerHTML = filtered.map(l => {
+    let portalClass = 'portal-admin';
+    let iconClass = 'fa-satellite-dish';
+    let badgeColor = '#dc2626';
+    let badgeBg = '#fef2f2';
+
+    const p = (l.portal || '').toLowerCase();
+    if (p.includes('authority') || p.includes('ddma')) {
+      portalClass = 'portal-authority';
+      iconClass = 'fa-building-columns';
+      badgeColor = '#4338ca';
+      badgeBg = '#eef2ff';
+    } else if (p.includes('godown') || p.includes('warehouse')) {
+      portalClass = 'portal-godown';
+      iconClass = 'fa-truck-fast';
+      badgeColor = '#0284c7';
+      badgeBg = '#f0f9ff';
+    } else if (p.includes('ground') || p.includes('field')) {
+      portalClass = 'portal-ground';
+      iconClass = 'fa-person-military-rifle';
+      badgeColor = '#16a34a';
+      badgeBg = '#f0fdf4';
+    }
+
+    return `
+      <div class="log-notif-card ${portalClass}">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom: 6px;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="background:${badgeBg}; color:${badgeColor}; font-weight:800; font-size:10.5px; padding:2px 8px; border-radius:5px; display:inline-flex; align-items:center; gap:5px;">
+              <i class="fas ${iconClass}"></i> ${l.portal}
+            </span>
+            <span style="background:#f1f5f9; color:#334155; font-weight:700; font-size:10.5px; padding:2px 7px; border-radius:4px;">
+              📍 ${l.area}
+            </span>
+          </div>
+          <span style="color:#64748b; font-size:10px; font-weight:600;">
+            <i class="far fa-clock"></i> ${l.time || 'Live'}
+          </span>
+        </div>
+
+        <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">
+          ${l.action}
+        </div>
+        <div style="font-size: 11px; color: #64748b; margin-bottom: 4px;">
+          Action Lead: <b>${l.actor}</b>
+        </div>
+        <div style="font-size: 11.5px; color: #334155; line-height: 1.45; margin-bottom: 6px;">
+          ${l.detail}
+        </div>
+
+        <div class="log-impact-box">
+          <i class="fas fa-circle-check" style="color:#16a34a; font-size:12px;"></i>
+          <span><b>Area Impact:</b> ${l.impact}</span>
+        </div>
       </div>
-      <div style="margin-bottom: 4px;">
-        <span style="background: #e0f2fe; color: #0369a1; font-weight: 700; padding: 2px 7px; border-radius: 4px; font-size: 10.5px; margin-right: 6px;">
-          ${l.area} Sector
-        </span>
-        <strong style="color: #1e293b;">${l.action}</strong>
-      </div>
-      <div style="color: #475569; margin-bottom: 6px; line-height: 1.4;">${l.detail}</div>
-      <div style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;">
-        <i class="fas fa-bullseye"></i> <b>Impact in Area:</b> ${l.impact || 'Relief operations progressing.'}
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 // FUNCTION 9: REPORTS & AUDIT HISTORY

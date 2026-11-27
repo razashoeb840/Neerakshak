@@ -336,8 +336,8 @@
             margin: 0;
             padding: 10px 14px 24px;
             display: grid;
-            grid-template-columns: 70px minmax(0, 1fr) 375px;
-            gap: 14px;
+            grid-template-columns: 70px minmax(0, 1fr) 390px;
+            gap: 16px;
             align-items: start;
             box-sizing: border-box;
             min-height: calc(100vh - 360px);
@@ -1510,10 +1510,53 @@
             background: #fffbeb;
         }
 
-        /* Compact Chat Hub Width */
+        /* Clean Sized Chat Hub */
         .mo-chat-hub-card {
-            max-width: 780px !important;
+            max-width: 100% !important;
             margin-bottom: 16px;
+        }
+
+        /* Activity Logs / Notification Feed Stream */
+        .log-notif-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px 14px;
+            box-shadow: 0 2px 8px rgba(6, 37, 74, 0.04);
+            transition: all 0.15s ease;
+        }
+        .log-notif-card:hover {
+            box-shadow: 0 4px 14px rgba(6, 37, 74, 0.08);
+            border-color: #cbd5e1;
+        }
+        .log-notif-card.portal-admin {
+            border-left: 4.5px solid #dc2626;
+            background: #fffdfd;
+        }
+        .log-notif-card.portal-authority {
+            border-left: 4.5px solid #4338ca;
+            background: #fdfdfe;
+        }
+        .log-notif-card.portal-godown {
+            border-left: 4.5px solid #0284c7;
+            background: #fdfeff;
+        }
+        .log-notif-card.portal-ground {
+            border-left: 4.5px solid #16a34a;
+            background: #fcfdfc;
+        }
+        .log-impact-box {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         /* Dual-Verification Return Case Cards */
