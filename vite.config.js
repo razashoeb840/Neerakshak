@@ -336,8 +336,9 @@ function godownBackendPlugin() {
               res.end(JSON.stringify({ success: true, data: item }));
               return;
             }
-            if (method === 'PATCH') {
-              const item = await godownDb.updateStock(body.id, body);
+            if (method === 'PATCH' || method === 'PUT') {
+              const id = body.id || (data.inventory && data.inventory[body.index] && data.inventory[body.index].id);
+              const item = await godownDb.updateStock(id, body);
               res.statusCode = 200;
               res.end(JSON.stringify({ success: true, data: item }));
               return;

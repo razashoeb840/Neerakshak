@@ -733,9 +733,15 @@ export default function initGroundOfficerPage() {
 
               <div class="sub-card-footer" style="padding-top:10px; border-top:1px dashed #cbd5e1; margin-top:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                 <span style="font-size:10.5px; color:var(--text-muted);"><i class="fas fa-link"></i> Dual-verification protocol with Central Godown WH-MIRZA</span>
-                <button type="button" class="btn-go primary" style="padding:7px 14px; font-weight:700;" onclick="window.openReturnVerifyModal('${(r.location || '').replace(/'/g, "\\'")}')">
-                  <i class="fas fa-clipboard-check"></i> Log Field Equipment Condition & Handover (उपकरण स्थिति व वापसी दर्ज करें)
-                </button>
+                ${r.groundVerified ? `
+                  <span style="display:inline-flex; align-items:center; gap:6px; padding:6px 14px; background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; border-radius:6px; font-weight:700; font-size:11.5px;">
+                    <i class="fas fa-circle-check"></i> Condition Logged & Ready for Godown Restock (वापसी दर्ज हो चुकी है)
+                  </span>
+                ` : `
+                  <button type="button" class="btn-go primary" style="padding:7px 14px; font-weight:700;" onclick="window.openReturnVerifyModal('${(r.location || '').replace(/'/g, "\\'")}')">
+                    <i class="fas fa-clipboard-check"></i> Log Field Equipment Condition & Handover (उपकरण स्थिति व वापसी दर्ज करें)
+                  </button>
+                `}
               </div>
             </div>
           `;
@@ -969,6 +975,14 @@ export default function initGroundOfficerPage() {
     const evidenceRef = document.getElementById('frEvidenceRef')?.value?.trim() || `EVD-${Math.floor(100 + Math.random() * 900)}`;
     const remarks = document.getElementById('frRemarks')?.value?.trim() || '';
 
+    // Extra item requirements from ground
+    const extraBoats = Number(document.getElementById('frExtraBoats')?.value || 0);
+    const extraJackets = Number(document.getElementById('frExtraJackets')?.value || 0);
+    const extraFood = Number(document.getElementById('frExtraFood')?.value || 0);
+    const extraMeds = Number(document.getElementById('frExtraMeds')?.value || 0);
+    const extraTents = Number(document.getElementById('frExtraTents')?.value || 0);
+    const priority = document.getElementById('frReqPriority')?.value || 'CRITICAL';
+
     showToast('Transmitting immutable Field Report to DEOC & Authority...');
 
     try {
@@ -980,6 +994,12 @@ export default function initGroundOfficerPage() {
         stranded,
         road,
         needs,
+        extraBoats,
+        extraJackets,
+        extraFood,
+        extraMeds,
+        extraTents,
+        priority,
         coords,
         evidenceRef,
         remarks,
@@ -988,8 +1008,19 @@ export default function initGroundOfficerPage() {
 
       const remArea = document.getElementById('frRemarks');
       if (remArea) remArea.value = '';
+      if (document.getElementById('frExtraBoats')) document.getElementById('frExtraBoats').value = '0';
+      if (document.getElementById('frExtraJackets')) document.getElementById('frExtraJackets').value = '0';
+      if (document.getElementById('frExtraFood')) document.getElementById('frExtraFood').value = '0';
+      if (document.getElementById('frExtraMeds')) document.getElementById('frExtraMeds').value = '0';
+      if (document.getElementById('frExtraTents')) document.getElementById('frExtraTents').value = '0';
+
       renderAllGroundViews();
-      showToast(`Immutable Field SITREP ${savedReport.refId || 'filed'} recorded in database.`);
+      const hasExtra = (extraBoats > 0 || extraJackets > 0 || extraFood > 0 || extraMeds > 0 || extraTents > 0);
+      showToast(hasExtra 
+        ? `Field SITREP filed! Extra supply requisition auto-routed to District Authority requests.` 
+        : `Field SITREP ${savedReport.refId || 'filed'} recorded in DEOC ledger.`,
+        'success'
+      );
     } catch (err) {
       console.error('Field report error:', err);
       showToast('Field Report recorded.');

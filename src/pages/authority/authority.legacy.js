@@ -567,7 +567,71 @@ export default function initAuthorityPage() {
           `).join('');
       }
 
-      // 8. Reports & Activity Logs
+      // 8. Notifications Stream & Decision Audit Logs
+      const notifFeed = document.getElementById('authorityNotifFeed');
+      if (notifFeed) {
+        const notifItems = [];
+
+        // 1. Pending field requests from Ground Officer
+        (requests || []).filter(r => r.status === 'Pending').forEach(r => {
+          notifItems.push(`
+            <div style="background:#fffbeb; border:1px solid #fde68a; border-left:4px solid #f59e0b; padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <div>
+                <div style="font-weight:700; color:#92400e; font-size:12px;">
+                  <i class="fas fa-triangle-exclamation"></i> PENDING REQUISITION: ${r.village}
+                </div>
+                <div style="font-size:11.5px; color:#475569; margin-top:2px;">
+                  Requested: <b>${r.items}</b> • From: <b>${r.from}</b> • Priority: <span style="color:#b45309; font-weight:700;">${r.urgency || 'Urgent'}</span>
+                </div>
+                <div style="font-size:10.5px; color:#64748b; font-style:italic; margin-top:2px;">"${r.reason || 'Awaiting authority approval'}"</div>
+              </div>
+              <button class="btn-mo" style="padding:5px 12px; font-size:11px; background:#16a34a; color:#fff; border-color:#15803d; cursor:pointer;" onclick="window.switchAuthTab('requests', document.querySelector('[data-tab=requests]'))">
+                Review & Approve →
+              </button>
+            </div>
+          `);
+        });
+
+        // 2. Active dispatches & convoys
+        (allocations || []).forEach(a => {
+          const isEnRoute = String(a.godownStatus || '').toLowerCase().includes('en-route') || String(a.godownStatus || '').toLowerCase().includes('dispatched');
+          notifItems.push(`
+            <div style="background:${isEnRoute ? '#f0fdf4' : '#f0f9ff'}; border:1px solid ${isEnRoute ? '#bbf7d0' : '#bae6fd'}; border-left:4px solid ${isEnRoute ? '#16a34a' : '#0284c7'}; padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <div>
+                <div style="font-weight:700; color:${isEnRoute ? '#166534' : '#0369a1'}; font-size:12px;">
+                  <i class="fas fa-truck-fast"></i> CONVOY DISPATCH: ${a.village}
+                </div>
+                <div style="font-size:11.5px; color:#475569; margin-top:2px;">
+                  Allocated: <b>${a.summary}</b> • Escort: <b>${a.leadAgency || 'NDRF (1st Bn)'} ${a.leadOfficerName || ''}</b>
+                </div>
+                <div style="font-size:10.5px; color:#64748b; margin-top:2px;">Status: <b>${a.godownStatus || 'In Transit'}</b> • Ref: ${a.refNo || a.id}</div>
+              </div>
+              <button class="btn-mo" style="padding:5px 12px; font-size:11px; background:#0284c7; color:#fff; cursor:pointer;" onclick="window.switchAuthTab('tracking', document.querySelector('[data-tab=tracking]'))">
+                Track Convoy →
+              </button>
+            </div>
+          `);
+        });
+
+        // 3. Critical flood sectors
+        (villages || []).filter(v => v.severity === 'Critical').forEach(v => {
+          notifItems.push(`
+            <div style="background:#fef2f2; border:1px solid #fecaca; border-left:4px solid #dc2626; padding:10px 14px; border-radius:8px;">
+              <div style="font-weight:700; color:#991b1b; font-size:12px;">
+                <i class="fas fa-house-flood-water"></i> CRITICAL INUNDATION WATCH: ${v.name} (${v.block})
+              </div>
+              <div style="font-size:11px; color:#7f1d1d; margin-top:2px;">
+                Population: <b>${Number(v.pop || 0).toLocaleString()} citizens</b> • Water observation: ${v.waterStatus || 'Embankment overflow risk'}
+              </div>
+            </div>
+          `);
+        });
+
+        notifFeed.innerHTML = notifItems.length === 0
+          ? `<div style="text-align:center; padding:18px; color:var(--text-muted); font-size:12px;">All district sectors stabilized. Zero critical escalations pending.</div>`
+          : notifItems.join('');
+      }
+
       const reportBox = document.getElementById('reportSummaryCards');
       if (reportBox) {
         reportBox.innerHTML = `

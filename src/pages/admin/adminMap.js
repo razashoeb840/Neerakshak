@@ -598,6 +598,21 @@ async function completeMapPick(lat, lng) {
   const banner = document.getElementById('mapPickBanner');
   if (banner) banner.style.display = 'none';
 
+  // If user was picking a facility location
+  if (window.pickingFacilityLocation) {
+    window.pickingFacilityLocation = false;
+    const facLat = document.getElementById('inpFacLat');
+    const facLng = document.getElementById('inpFacLng');
+    const hint = document.getElementById('facPinStatusHint');
+    if (facLat) facLat.value = Number(lat).toFixed(4);
+    if (facLng) facLng.value = Number(lng).toFixed(4);
+    if (hint) hint.textContent = `📍 Map Location Pinned: ${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}`;
+    const fModal = document.getElementById('facilityModal');
+    if (fModal) fModal.classList.add('open');
+    if (window.showToast) window.showToast(`Facility GPS set to ${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}`, 'success');
+    return;
+  }
+
   // Drop temporary highlight marker
   if (tempPickLayer) {
     tempPickLayer.clearLayers();

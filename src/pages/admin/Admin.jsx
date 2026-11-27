@@ -710,43 +710,68 @@ const markup = (
         </div>
       </div>
       <div className="modal-overlay" id="facilityModal" onClick={(event) => window.closeModal('facilityModal')}>
-        <div className="modal-box" onClick={(event) => event.stopPropagation()}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-            <h3 style={{ margin: "0", fontSize: "16px", color: "var(--navy-deep)" }}>Add Emergency Facility Marker</h3>
+        <div className="modal-box" onClick={(event) => event.stopPropagation()} style={{ maxWidth: "520px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+            <h3 style={{ margin: "0", fontSize: "16px", color: "var(--navy-deep)", display: "flex", alignItems: "center", gap: "8px" }}>
+              <i className="fas fa-hospital" style={{ color: "#16a34a" }}></i> Add Emergency Facility on GIS Map
+            </h3>
             <button onClick={(event) => window.closeModal('facilityModal')} style={{ border: "none", background: "#e2e8f0", width: "28px", height: "28px", borderRadius: "50%", cursor: "pointer" }}>
               <i className="fas fa-times"></i>
             </button>
           </div>
           <form onSubmit={(event) => window.saveFacilityRecord(event)}>
+            <div className="form-group" style={{ marginBottom: "10px" }}>
+              <label>Select Sector / Affected Area *</label>
+              <select id="inpFacArea" className="form-control" onChange={(e) => { if (window.onFacilityAreaSelect) window.onFacilityAreaSelect(e.currentTarget.value); }} required>
+                <option value="">-- Select Affected Area / Sector --</option>
+              </select>
+            </div>
             <div className="form-grid-2">
               <div className="form-group">
-                <label>Facility Name *</label>
-                {" "}
-                <input type="text" id="inpFacName" className="form-control" placeholder="e.g. Chaygaon PHC" required />
+                <label>Facility / Base Name *</label>
+                <input type="text" id="inpFacName" className="form-control" placeholder="e.g. Nirmali Field PHC & Trauma Post" required />
               </div>
               <div className="form-group">
-                <label>Category *</label>
-                {" "}
+                <label>Emergency Service Category *</label>
                 <select id="inpFacCat" className="form-control">
-                  <option value="Relief Camp">Relief Camp</option>
-                  <option value="Hospital">Hospital</option>
-                  <option value="Police Station">Police Station</option>
+                  <option value="Relief Camp">Relief Shelter Camp</option>
+                  <option value="Hospital">Medical Hospital & Trauma Post</option>
+                  <option value="Police Station">Police & Security Post</option>
+                  <option value="Boat Station">NDRF Boat Launch Hub</option>
+                  <option value="Fire Station">Fire & Water Rescue Station</option>
                 </select>
               </div>
             </div>
             <div className="form-grid-2">
               <div className="form-group">
-                <label>Sector / Distance *</label>
-                {" "}
-                <input type="text" id="inpFacDist" className="form-control" placeholder="e.g. 2.1 km • Chaygaon" required />
+                <label>Helpline / Contact Number *</label>
+                <input type="text" id="inpFacPhone" className="form-control" placeholder="+91 94350-12345 or 1077 / 108" required />
               </div>
               <div className="form-group">
-                <label>Helpline / Contact *</label>
-                {" "}
-                <input type="text" id="inpFacPhone" className="form-control" defaultValue="1077 / 108" required />
+                <label>Capacity / Beds</label>
+                <input type="text" id="inpFacCap" className="form-control" placeholder="e.g. 500 citizens / 60 beds" defaultValue="500 Evacuees" />
               </div>
             </div>
-            <button type="submit" className="btn-save-primary">Save Facility Marker</button>
+            <div className="form-grid-2">
+              <div className="form-group">
+                <label>Latitude (GPS) *</label>
+                <input type="number" step="0.0001" id="inpFacLat" className="form-control" placeholder="26.1500" required />
+              </div>
+              <div className="form-group">
+                <label>Longitude (GPS) *</label>
+                <input type="number" step="0.0001" id="inpFacLng" className="form-control" placeholder="86.6000" required />
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px", marginBottom: "12px" }}>
+              <button type="button" className="btn-mo" style={{ padding: "5px 12px", fontSize: "11.5px", background: "#f0fdf4", color: "#166534", border: "1px solid #86efac" }} onClick={() => window.startFacilityMapPick && window.startFacilityMapPick()}>
+                <i className="fas fa-location-crosshairs"></i> Pick Location on Leaflet Map
+              </button>
+              <input type="hidden" id="inpFacDist" defaultValue="0.8 km • Sector Base" />
+              <span id="facPinStatusHint" style={{ fontSize: "11px", color: "#64748b" }}>Coordinates auto-fill when area selected</span>
+            </div>
+            <button type="submit" className="btn-save-primary" style={{ background: "#16a34a" }}>
+              <i className="fas fa-map-pin"></i> Save & Pin Facility on Map
+            </button>
           </form>
         </div>
       </div>

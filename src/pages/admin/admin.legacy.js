@@ -645,24 +645,91 @@ export default function initAdminPage() {
   }
 
   // --- FACILITY MODAL & CRUD ---
+  let pickingFacilityLocation = false;
+
   function openFacilityModal() {
-    document.getElementById('inpFacName').value = '';
-    document.getElementById('inpFacDist').value = '';
+    const areaSel = document.getElementById('inpFacArea');
+    if (areaSel && state && state.areas) {
+      areaSel.innerHTML = '<option value="">-- Select Affected Area / Sector --</option>' +
+        state.areas.map(a => `<option value="${a.name || a.village}">${a.name || a.village} (${a.severity || 'Critical'})</option>`).join('');
+    }
+    const nameInp = document.getElementById('inpFacName');
+    if (nameInp) nameInp.value = '';
+    const phoneInp = document.getElementById('inpFacPhone');
+    if (phoneInp && !phoneInp.value) phoneInp.value = '1077 / 108';
     document.getElementById('facilityModal').classList.add('open');
+  }
+
+  function onFacilityAreaSelect(areaName) {
+    if (!areaName || !state || !state.areas) return;
+    const found = state.areas.find(a => (a.name || a.village || '').toLowerCase() === areaName.toLowerCase());
+    if (found) {
+      const latInp = document.getElementById('inpFacLat');
+      const lngInp = document.getElementById('inpFacLng');
+      const distInp = document.getElementById('inpFacDist');
+      const nameInp = document.getElementById('inpFacName');
+      const hint = document.getElementById('facPinStatusHint');
+
+      if (latInp) latInp.value = Number(found.lat || 26.15).toFixed(4);
+      if (lngInp) lngInp.value = Number(found.lng || 86.60).toFixed(4);
+      if (distInp) distInp.value = `0.8 km • ${areaName}`;
+      if (nameInp && !nameInp.value.trim()) nameInp.value = `${areaName} Relief Care Post`;
+      if (hint) hint.textContent = `Auto-aligned to ${areaName} (${found.lat}, ${found.lng})`;
+    }
+  }
+
+  function startFacilityMapPick() {
+    window.pickingFacilityLocation = true;
+    closeModal('facilityModal');
+    if (typeof startMapPickMode === 'function') {
+      startMapPickMode();
+    }
+    showToast('Click anywhere on the Leaflet GIS Map to pin facility location.', 'info');
   }
 
   async function saveFacilityRecord(e) {
     e.preventDefault();
+    const area = document.getElementById('inpFacArea')?.value || '';
+    const name = document.getElementById('inpFacName').value.trim();
+    const category = document.getElementById('inpFacCat').value;
+    const distance = document.getElementById('inpFacDist').value.trim() || `0.8 km • ${area}`;
+    const contact = document.getElementById('inpFacPhone').value.trim();
+    const capacity = document.getElementById('inpFacCap')?.value.trim() || '500 Evacuees';
+    const lat = Number(document.getElementById('inpFacLat')?.value) || 26.15;
+    const lng = Number(document.getElementById('inpFacLng')?.value) || 86.60;
+
     const fac = {
-      name: document.getElementById('inpFacName').value.trim(),
-      category: document.getElementById('inpFacCat').value,
-      distance: document.getElementById('inpFacDist').value.trim(),
-      contact: document.getElementById('inpFacPhone').value.trim()
+      name,
+      category,
+      area,
+      distance,
+      contact,
+      capacity,
+      lat,
+      lng
     };
+
     closeModal('facilityModal');
     await addFacilityApi(fac);
+
+    // Plot on map if leaflet map instance exists
+    if (leafletMap && typeof L !== 'undefined') {
+      try {
+        const facMarker = L.marker([lat, lng], {
+          icon: L.divIcon({
+            className: 'facility-leaflet-icon',
+            html: `<div style="background:#16a34a; color:#fff; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 8px rgba(0,0,0,0.3); border:2px solid #fff; font-size:14px;"><i class="fas fa-hospital"></i></div>`,
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+          })
+        }).addTo(leafletMap);
+        facMarker.bindPopup(`<b>${name}</b><br><span style="color:#16a34a; font-weight:700;">${category}</span><br>Area: ${area}<br>Contact: ${contact}<br>Capacity: ${capacity}`).openPopup();
+        leafletMap.setView([lat, lng], 13);
+      } catch (err) {}
+    }
+
     renderAllCards();
-    showToast('Emergency facility pinned on GIS map & registered.');
+    showToast(`Emergency facility "${name}" pinned on GIS map & logged!`, 'success');
   }
 
   async function deleteFacilityRecord(idx) {
@@ -823,6 +890,8 @@ export default function initAdminPage() {
     openAlertModal,
     openAreaModal,
     openFacilityModal,
+    onFacilityAreaSelect,
+    startFacilityMapPick,
     openRiverModal,
     openWeatherModal,
     renderAllCards,

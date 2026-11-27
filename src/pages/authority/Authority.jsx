@@ -140,16 +140,10 @@ const markup = (
             <span>NDRF/SDRF</span>
           </button>
           {" "}
-          <button className="rail-btn auth-nav-btn" data-tab="operations" onClick={(event) => window.switchAuthTab('operations', event.currentTarget)} title="Active Rescue Operations">
-            <i className="fas fa-person-military-pointing"></i>
+          <button className="rail-btn auth-nav-btn" data-tab="reports-logs" onClick={(event) => window.switchAuthTab('reports-logs', event.currentTarget)} title={"Audit Notifications & Action Stream"}>
+            <i className="fas fa-bell"></i>
             {" "}
-            <span>Ops Mgmt</span>
-          </button>
-          {" "}
-          <button className="rail-btn auth-nav-btn" data-tab="reports-logs" onClick={(event) => window.switchAuthTab('reports-logs', event.currentTarget)} title={"DDMA Reports & Audit Logs"}>
-            <i className="fas fa-file-contract"></i>
-            {" "}
-            <span>Logs</span>
+            <span>Alerts & Logs</span>
           </button>
           {" "}
           <button className="rail-btn auth-nav-btn" data-tab="interportal-comms" onClick={(event) => window.switchAuthTab('interportal-comms', event.currentTarget)} title="Live Inter-Portal Multi-Agency Comms & Direct Dispatch">
@@ -340,21 +334,26 @@ const markup = (
             </div>
           </div>
           {/* ===============================================================
-                 SECTION 10: REPORTS & ACTIVITY LOGS
+                 SECTION 10: AUDIT NOTIFICATIONS & ACTIVITY LOGS
                  =============================================================== */}
           <div className="tab-view-pane" id="tab-reports-logs">
             <div className="aqua-card">
               <div className="card-head">
-                <h2>
-                  <i className="fas fa-chart-pie" style={{ color: "var(--river-blue)" }}></i>
-                  {" District Resource Allocation & Operations Reports"}
-                </h2>
-                <button className="btn-card-action approve" onClick={(event) => window.showToast('District Authority Report generated and downloaded.')}>
-                  <i className="fas fa-download"></i>
-                  {" Export Report"}
+                <div>
+                  <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                    <i className="fas fa-bell" style={{ color: "#dc2626" }}></i>
+                    {" District Audit Notifications & Emergency Escalation Feed"}
+                  </h2>
+                  <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                    Live chronological notifications of critical shortages, unverified deliveries, pending allocations & flood telemetry.
+                  </div>
+                </div>
+                <button className="btn-card-action approve" onClick={() => { if (window.refreshAuthorityData) window.refreshAuthorityData(); if (window.showToast) window.showToast('Notification feed refreshed.'); }}>
+                  <i className="fas fa-arrows-rotate"></i>
+                  {" Refresh Feed"}
                 </button>
               </div>
-              <div className="cards-grid-3" id="reportSummaryCards"></div>
+              <div id="authorityNotifFeed" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}></div>
             </div>
             <div className="aqua-card">
               <div className="card-head">

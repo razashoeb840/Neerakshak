@@ -99,104 +99,63 @@ export function initInterPortalChat({
   // 1. Render Workspace HTML Skeleton
   mountEl.innerHTML = `
     <div class="intercomms-container">
-      <!-- 1. Header Bar -->
-      <div class="intercomms-header">
-        <div class="intercomms-title-block">
-          <div class="intercomms-radio-icon">
-            <i class="fas fa-tower-broadcast"></i>
-          </div>
-          <div class="intercomms-title-text">
-            <h3>
-              Multi-Agency Live Comms & Direct Dispatch Channel
-              <span class="intercomms-live-badge">
-                <span class="intercomms-pulse-dot"></span> Real-Time Connected
-              </span>
-            </h3>
-            <p>
-              Direct personal messaging & common broadcasts between State Monitoring, Authority, Godown, Ground Units & Admin GIS.
-            </p>
-          </div>
+      <!-- 1. Header with Slider Toggle (All vs For You) -->
+      <div class="intercomms-header-chat">
+        <div class="comms-slider-track">
+          <button type="button" class="comms-slide-btn ${activeFilter === 'all' ? 'active' : ''}" data-filter="all">
+            <i class="fas fa-bullhorn"></i> All Messages (<span id="commsCountAll">0</span>)
+          </button>
+          <button type="button" class="comms-slide-btn ${activeFilter === 'direct' ? 'active' : ''}" data-filter="direct">
+            <i class="fas fa-lock"></i> 🔒 For You / Direct (<span id="commsCountDirect">0</span>)
+          </button>
         </div>
 
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-size:11.5px; color:#475569; background:#ffffff; padding:5px 12px; border-radius:8px; border:1px solid #cbd5e1; font-weight:600;">
-            <i class="fas fa-id-badge" style="color:#0284c7;"></i> Logged as: <strong>${currentProfile.name}</strong>
+        <div class="comms-header-right-meta">
+          <span class="comms-role-badge-current">
+            <span class="comms-status-pulse"></span>
+            <strong>${currentProfile.name}</strong>
           </span>
-          <button type="button" class="btn-mo" id="btnCommsManualSync" style="padding:6px 14px; font-size:11.5px; background:#ffffff; color:#0f172a; border:1px solid #cbd5e1; border-radius:8px; cursor:pointer; font-weight:600;">
-            <i class="fas fa-arrows-rotate"></i> Sync
+          <button type="button" class="comms-sync-btn" id="btnCommsManualSync" title="Sync Live Messages">
+            <i class="fas fa-arrows-rotate"></i>
           </button>
         </div>
       </div>
 
-      <!-- 2. Filter Strip -->
-      <div class="intercomms-filter-strip">
-        <div class="intercomms-pills">
-          <button type="button" class="comms-filter-pill active" data-filter="all">
-            <i class="fas fa-inbox"></i> All Comms (<span id="commsCountAll">0</span>)
-          </button>
-          <button type="button" class="comms-filter-pill pill-direct" data-filter="direct">
-            <i class="fas fa-lock"></i> 🔒 Direct to You (<span id="commsCountDirect">0</span>)
-          </button>
-          <button type="button" class="comms-filter-pill pill-common" data-filter="common">
-            <i class="fas fa-bullhorn"></i> 📢 Common Broadcasts (<span id="commsCountCommon">0</span>)
-          </button>
-          <button type="button" class="comms-filter-pill" data-filter="outgoing">
-            <i class="fas fa-paper-plane"></i> ↗️ Sent by You (<span id="commsCountOutgoing">0</span>)
-          </button>
-        </div>
-
-        <div class="intercomms-stats-pill" id="commsStatusFeedback">
-          Auto-polling real-time updates (every 2.8s)
-        </div>
-      </div>
-
-      <!-- 3. Messages Feed -->
-      <div class="intercomms-feed" id="commsFeedArea">
+      <!-- 2. Messenger Bubble Feed -->
+      <div class="intercomms-bubble-feed" id="commsFeedArea">
         <div class="intercomms-empty">
-          <i class="fas fa-circle-notch fa-spin"></i>
-          <div>Connecting to multi-agency inter-portal channel...</div>
+          <i class="fas fa-comments"></i>
+          <div style="font-weight:700; color:#475569; margin: 4px 0;">No communications yet.</div>
+          <div style="font-size:12px; color:#64748b;">Send a direct message or broadcast to coordinate below.</div>
         </div>
       </div>
 
-      <!-- 4. Comms Composer -->
-      <div class="intercomms-composer">
-        <form id="commsComposerForm">
-          <div class="composer-meta-row">
-            <div class="composer-recipient-select-wrap">
-              <label class="composer-recipient-label" for="commsRecipientSelect">
-                <i class="fas fa-paper-plane"></i> Send Official Communication To:
-              </label>
-              <select class="composer-recipient-select" id="commsRecipientSelect">
-                <option value="all">📢 All Portals (Common Broadcast / सार्वजनिक निर्देश)</option>
-                <option value="monitoring">🛡️ State Monitoring Officer (DEOC Command)</option>
-                <option value="authority">🏛️ District Magistrate / DDMA Head (Dr. A. K. Sharma)</option>
-                <option value="godown">🏭 Central Godown Manager (Rajesh Das - WH-MIRZA)</option>
-                <option value="ground">🦺 Ground Field Officer (Bhaskar Jyoti Das - GO-KAM-04)</option>
-                <option value="admin">🛰️ State Admin GIS Desk</option>
-              </select>
-            </div>
-
-            <div>
-              <span class="composer-mode-indicator mode-common" id="composerModeBadge">
-                <i class="fas fa-bullhorn"></i> Mode: Common Broadcast
-              </span>
-            </div>
+      <!-- 3. Rectangular Bottom Input Field -->
+      <div class="intercomms-bottom-bar">
+        <form id="commsComposerForm" class="comms-bottom-form">
+          <div class="comms-target-selector-box">
+            <span class="comms-to-label">To:</span>
+            <select class="comms-select-recipient" id="commsRecipientSelect">
+              <option value="all">📢 All Portals (Common Broadcast)</option>
+              <option value="monitoring">🛡️ State Monitoring (DEOC Command)</option>
+              <option value="authority">🏛️ District Authority (DDMA / DM)</option>
+              <option value="godown">🏭 Central Godown Manager (WH-MIRZA)</option>
+              <option value="ground">🦺 Ground Field Officer (GO-KAM-04)</option>
+              <option value="admin">🛰️ State Admin GIS Command</option>
+            </select>
           </div>
 
-          <!-- Quick Response Chips -->
-          <div class="composer-quick-chips" id="commsQuickChips"></div>
-
-          <!-- Message Input Row -->
-          <div class="composer-input-row">
-            <textarea
-              class="composer-textarea"
+          <div class="comms-input-action-box">
+            <input
+              type="text"
+              class="comms-chat-input"
               id="commsTextInput"
-              rows="2"
-              placeholder="Type your official direct directive or common message..."
+              placeholder="Type official message or dispatch instruction..."
+              autocomplete="off"
               required
-            ></textarea>
-            <button type="submit" class="composer-btn-send" id="btnCommsSend">
-              <i class="fas fa-paper-plane"></i> Send Dispatch
+            />
+            <button type="submit" class="comms-btn-send" id="btnCommsSend">
+              <i class="fas fa-paper-plane"></i> Send
             </button>
           </div>
         </form>
@@ -252,10 +211,10 @@ export function initInterPortalChat({
     updateModeIndicator();
   }
 
-  // 4. Filter Button Handlers
-  mountEl.querySelectorAll('.comms-filter-pill').forEach(pill => {
-    pill.addEventListener('click', (e) => {
-      mountEl.querySelectorAll('.comms-filter-pill').forEach(p => p.classList.remove('active'));
+  // 4. Slider Toggle Button Handlers (All vs For You)
+  mountEl.querySelectorAll('.comms-slide-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      mountEl.querySelectorAll('.comms-slide-btn').forEach(p => p.classList.remove('active'));
       e.currentTarget.classList.add('active');
       activeFilter = e.currentTarget.getAttribute('data-filter') || 'all';
       renderMessagesFeed();
@@ -317,8 +276,6 @@ export function initInterPortalChat({
 
     setTxt('#commsCountAll', allMessages.length);
     setTxt('#commsCountDirect', directCount);
-    setTxt('#commsCountCommon', commonCount);
-    setTxt('#commsCountOutgoing', outgoingCount);
 
     // Update left rail badge
     const railBadge = document.querySelector(badgeSelector);
@@ -334,7 +291,7 @@ export function initInterPortalChat({
     }
   }
 
-  // 7. Render Messages Feed with Bold Distinction (Personal vs Common vs Outgoing)
+  // 7. Render Messages as Classic Messenger Chat Bubbles (Left for Incoming, Right for Outgoing)
   function renderMessagesFeed() {
     const feed = mountEl.querySelector('#commsFeedArea');
     if (!feed) return;
@@ -346,21 +303,14 @@ export function initInterPortalChat({
         const toRole = (m.toRole || m.channel || 'all').toLowerCase();
         return fromRole !== currentRole && (toRole === currentRole || m.isDirect);
       });
-    } else if (activeFilter === 'common') {
-      filtered = filtered.filter(m => {
-        const toRole = (m.toRole || m.channel || 'all').toLowerCase();
-        return toRole === 'all' || m.channel === 'all';
-      });
-    } else if (activeFilter === 'outgoing') {
-      filtered = filtered.filter(m => (m.fromRole || '').toLowerCase() === currentRole);
     }
 
     if (filtered.length === 0) {
       feed.innerHTML = `
         <div class="intercomms-empty">
-          <i class="fas fa-comment-slash"></i>
-          <div style="font-weight:700; color:#475569; margin-bottom:4px;">No messages found in this view</div>
-          <div style="font-size:11.5px;">Choose another tab or dispatch a message using the composer below.</div>
+          <i class="fas fa-comments"></i>
+          <div style="font-weight:700; color:#475569; margin-bottom:4px;">No messages in this view</div>
+          <div style="font-size:11.5px; color:#64748b;">Type your message in the rectangular box below and click Send.</div>
         </div>
       `;
       return;
@@ -371,12 +321,6 @@ export function initInterPortalChat({
       const toRole = (m.toRole || m.channel || 'all').toLowerCase();
       const isOutgoing = fromRole === currentRole;
       const isDirectToMe = !isOutgoing && (toRole === currentRole || m.isDirect);
-      const isCommon = toRole === 'all' || m.channel === 'all';
-
-      // Card class
-      let cardModifier = 'comms-card-common';
-      if (isOutgoing) cardModifier = 'comms-card-outgoing';
-      else if (isDirectToMe) cardModifier = 'comms-card-direct';
 
       // Sender Profile
       const senderProfile = ROLE_PROFILES[fromRole] || {
@@ -388,76 +332,54 @@ export function initInterPortalChat({
 
       // Destination Label
       const targetLabel = toRole === 'all'
-        ? 'All Portals (Common Broadcast)'
+        ? 'All Portals (Broadcast)'
         : (ROLE_PROFILES[toRole]?.label || toRole.toUpperCase());
 
-      // Distinct Badge HTML
-      let badgeHtml = '';
       if (isOutgoing) {
-        badgeHtml = `
-          <span class="comms-badge-pill comms-badge-outgoing">
-            <i class="fas fa-paper-plane"></i> ↗️ SENT BY YOU (आपके द्वारा भेजा गया)
-          </span>
-        `;
-      } else if (isDirectToMe) {
-        badgeHtml = `
-          <span class="comms-badge-pill comms-badge-direct">
-            <i class="fas fa-lock"></i> 🔒 DIRECT TO YOU (व्यक्तिगत संदेश)
-          </span>
-        `;
-      } else {
-        badgeHtml = `
-          <span class="comms-badge-pill comms-badge-common">
-            <i class="fas fa-bullhorn"></i> 📢 COMMON BROADCAST (सार्वजनिक निर्देश)
-          </span>
+        return `
+          <div class="comms-bubble-row comms-outgoing-row">
+            <div class="comms-bubble comms-bubble-outgoing">
+              <div class="comms-bubble-header outgoing-header">
+                <span class="comms-bubble-sender">You → <strong>${targetLabel}</strong></span>
+                <span class="comms-bubble-badge-outgoing">${m.badge || (toRole === 'all' ? 'BROADCAST' : 'DIRECT')}</span>
+              </div>
+              <div class="comms-bubble-body">${m.message || m.text || ''}</div>
+              <div class="comms-bubble-meta outgoing-meta">
+                <span class="comms-bubble-time">${m.timestamp || 'Live'}</span>
+                <span class="comms-bubble-ticks" title="Delivered"><i class="fas fa-check-double"></i></span>
+              </div>
+            </div>
+          </div>
         `;
       }
 
-      // Reply Button
-      const replyBtn = !isOutgoing
-        ? `<button type="button" class="btn-reply-direct" data-reply-role="${fromRole}" data-reply-name="${encodeURIComponent(senderProfile.name)}">
-             <i class="fas fa-reply"></i> Reply Directly (व्यक्तिगत उत्तर दें)
-           </button>`
-        : `<span style="font-size:10px; color:#10b981; font-weight:700;"><i class="fas fa-check-double"></i> Delivered</span>`;
-
       return `
-        <div class="comms-card ${cardModifier}">
-          <div class="comms-card-meta">
-            <div class="comms-sender-info">
-              <div class="comms-sender-avatar ${senderProfile.avatarClass}">
-                <i class="fas fa-user-shield"></i>
-              </div>
-              <div>
-                <div style="display:flex; align-items:center; gap:6px;">
-                  <span class="comms-sender-name">${m.from || senderProfile.name}</span>
-                  <span class="comms-role-tag ${senderProfile.roleTagClass}">[${senderProfile.label}]</span>
-                </div>
-                <div class="comms-target-hint">
-                  <i class="fas fa-arrow-right"></i> Addressed To: <strong>${targetLabel}</strong>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              ${badgeHtml}
-            </div>
+        <div class="comms-bubble-row comms-incoming-row">
+          <div class="comms-bubble-avatar ${senderProfile.avatarClass}">
+            <i class="fas fa-user-shield"></i>
           </div>
-
-          <div class="comms-card-text">
-            ${m.message || m.text || ''}
-          </div>
-
-          <div class="comms-card-footer">
-            <span class="comms-time">
-              <i class="far fa-clock"></i> ${m.timestamp || 'Live'}
-            </span>
-            ${replyBtn}
+          <div class="comms-bubble comms-bubble-incoming ${isDirectToMe ? 'bubble-direct-border' : ''}">
+            <div class="comms-bubble-header">
+              <span class="comms-bubble-sender">${m.from || senderProfile.name}</span>
+              <span class="comms-bubble-role-pill ${senderProfile.roleTagClass}">${senderProfile.label}</span>
+              ${isDirectToMe
+                ? `<span class="comms-bubble-type-tag tag-direct"><i class="fas fa-lock"></i> PERSONAL DIRECT</span>`
+                : `<span class="comms-bubble-type-tag tag-common"><i class="fas fa-bullhorn"></i> COMMON BROADCAST</span>`
+              }
+            </div>
+            <div class="comms-bubble-body">${m.message || m.text || ''}</div>
+            <div class="comms-bubble-meta">
+              <span class="comms-bubble-time"><i class="far fa-clock"></i> ${m.timestamp || 'Live'}</span>
+              <button type="button" class="btn-reply-direct" data-reply-role="${fromRole}" data-reply-name="${encodeURIComponent(senderProfile.name)}">
+                <i class="fas fa-reply"></i> Reply Direct
+              </button>
+            </div>
           </div>
         </div>
       `;
     }).join('');
 
-    // Attach Reply Button Click Handlers
+    feed.scrollTop = feed.scrollHeight;
     feed.querySelectorAll('.btn-reply-direct').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const replyRole = e.currentTarget.getAttribute('data-reply-role');

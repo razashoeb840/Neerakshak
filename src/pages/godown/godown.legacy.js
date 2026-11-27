@@ -100,6 +100,7 @@ export default function initGodownPage() {
       btnEl = document.querySelector('[data-tab=approved-req]');
     }
     document.querySelectorAll('.gd-nav-btn').forEach(b => b.classList.remove('active'));
+    if (!btnEl) btnEl = document.querySelector(`[data-tab="${tabKey}"]`);
     if (btnEl) btnEl.classList.add('active');
     document.querySelectorAll('.gd-tab-pane').forEach(p => p.classList.remove('active'));
     const target = document.getElementById(`tab-${tabKey}`);
@@ -270,7 +271,7 @@ export default function initGodownPage() {
                   <span style="display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:700; color:#15803d; background:#dcfce7; padding:4px 8px; border-radius:6px; border:1px solid #bbf7d0;">
                     <i class="fas fa-lock"></i> Dispatched & Locked (${a.refNo && a.refNo !== '—' ? a.refNo : 'DSP'})
                   </span>
-                  <button class="btn-gd" style="color:#15803d; border-color:#86efac;" onclick="window.centerOnMap(${a.lat}, ${a.lng})">
+                  <button class="btn-gd" style="color:#15803d; border-color:#86efac;" onclick="window.trackConvoyOnMap(${a.lat || 26.132}, ${a.lng || 91.515}, '${(a.destination || 'Sector').replace(/'/g, "\\'")}', '${a.refNo || 'DSP-2026'}', '${(a.vehicle || '').replace(/'/g, "\\'")}', '${(a.driver || '').replace(/'/g, "\\'")}')">
                     <i class="fas fa-route"></i> Track Convoy
                   </button>
                 `}
@@ -420,7 +421,7 @@ export default function initGodownPage() {
                   ? `<button class="btn-gd primary" onclick="window.openDispatchModal('${a.id}')">Reserve & Dispatch</button>
                      <button class="btn-gd warn" onclick="window.reportShortageToAuthority('${a.id}')">Report Shortage</button>`
                   : `<span style="font-weight:700; color:#15803d; font-size:11px;"><i class="fas fa-lock"></i> Dispatched & Locked (${a.refNo})</span>
-                     <button class="btn-gd" style="color:#15803d; border-color:#86efac; font-size:11px;" onclick="window.centerOnMap(${a.lat}, ${a.lng})"><i class="fas fa-route"></i> Track</button>`}
+                     <button class="btn-gd" style="color:#15803d; border-color:#86efac; font-size:11px;" onclick="window.trackConvoyOnMap(${a.lat || 26.132}, ${a.lng || 91.515}, '${(a.destination || 'Sector').replace(/'/g, "\\'")}', '${a.refNo || 'DSP-2026'}', '${(a.vehicle || '').replace(/'/g, "\\'")}', '${(a.driver || '').replace(/'/g, "\\'")}')"><i class="fas fa-route"></i> Track</button>`}
               </div>
             </div>
           `;
@@ -447,16 +448,24 @@ export default function initGodownPage() {
         returnsAreaList.innerHTML = `
           <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:12px;">
             ${dispatchedAllocations.map(a => {
+              const isAlreadyReturned = (returns || []).some(r => 
+                ((r.area && r.area.toLowerCase() === a.destination.toLowerCase()) || 
+                 (r.destination && r.destination.toLowerCase() === a.destination.toLowerCase()) ||
+                 (r.refNo && a.refNo && r.refNo === a.refNo) || 
+                 (r.allocId && r.allocId === a.id) ||
+                 (r.id && r.id === a.id)) &&
+                (r.warehouseRestocked === true || r.godownVerified === true || String(r.status || '').includes('Restocked'))
+              );
               const isCleared = Boolean(a.groundOfficerCleared || a.reliefClearedForReturn);
               return `
-                <div class="sub-card ${isCleared ? 'tone-good' : 'tone-amber'}" style="border:1.5px solid ${isCleared ? '#86efac' : '#fcd34d'}; transition:all 0.2s;">
+                <div class="sub-card ${isAlreadyReturned ? 'tone-good' : (isCleared ? 'tone-good' : 'tone-amber')}" style="border:1.5px solid ${isAlreadyReturned ? '#bbf7d0' : (isCleared ? '#86efac' : '#fcd34d')}; transition:all 0.2s;">
                   <div class="sub-card-top" style="margin-bottom:6px;">
                     <div>
-                      <h4 style="color:#0f172a; margin:0 0 2px;"><i class="fas fa-location-dot" style="color:${isCleared ? '#16a34a' : '#d97706'}; margin-right:4px;"></i>${a.destination}</h4>
+                      <h4 style="color:#0f172a; margin:0 0 2px;"><i class="fas fa-location-dot" style="color:${isAlreadyReturned ? '#16a34a' : (isCleared ? '#16a34a' : '#d97706')}; margin-right:4px;"></i>${a.destination}</h4>
                       <span style="font-size:11px; color:var(--text-muted); font-weight:600;">Gate-Pass Ref: <strong>${a.refNo && a.refNo !== '—' ? a.refNo : 'DSP-2026'}</strong></span>
                     </div>
-                    <span class="pill ${isCleared ? 'p-good' : 'p-amber'}" style="font-size:9.5px; padding:2px 7px;">
-                      ${isCleared ? '✓ Cleared for Return' : '⏳ Awaiting Ground Officer'}
+                    <span class="pill ${isAlreadyReturned ? 'p-good' : (isCleared ? 'p-good' : 'p-amber')}" style="font-size:9.5px; padding:2px 7px;">
+                      ${isAlreadyReturned ? '✓ Restocked into Warehouse' : (isCleared ? '✓ Cleared for Return' : '⏳ Awaiting Ground Officer')}
                     </span>
                   </div>
 
@@ -465,17 +474,24 @@ export default function initGodownPage() {
                   </div>
 
                   <!-- Ground Officer Clearance Requirement Notice -->
-                  <div style="background:${isCleared ? '#f0fdf4' : '#fffbeb'}; border-left:3.5px solid ${isCleared ? '#16a34a' : '#f59e0b'}; padding:6px 8px; border-radius:4px; font-size:10.5px; color:${isCleared ? '#166534' : '#92400e'}; margin-bottom:8px;">
-                    ${isCleared
-                      ? `<i class="fas fa-check-double"></i> <strong>Situation Controlled:</strong> Ground Officer (${a.clearedByOfficer || 'Ground Officer'}) confirmed rescue completed. Resources released for return intake.`
-                      : `<i class="fas fa-shield-halved"></i> <strong>Operation Active:</strong> Return intake locked until Ground Officer confirms situation is under control and equipment is released.`
+                  <div style="background:${isAlreadyReturned ? '#f0fdf4' : (isCleared ? '#f0fdf4' : '#fffbeb')}; border-left:3.5px solid ${isAlreadyReturned ? '#16a34a' : (isCleared ? '#16a34a' : '#f59e0b')}; padding:6px 8px; border-radius:4px; font-size:10.5px; color:${isAlreadyReturned ? '#166534' : (isCleared ? '#166534' : '#92400e')}; margin-bottom:8px;">
+                    ${isAlreadyReturned
+                      ? `<i class="fas fa-check-circle"></i> <strong>Intake Completed:</strong> Relief equipment returned from field and restocked into warehouse inventory.`
+                      : (isCleared
+                        ? `<i class="fas fa-check-double"></i> <strong>Situation Controlled:</strong> Ground Officer (${a.clearedByOfficer || 'Ground Officer'}) confirmed rescue completed. Resources released for return intake.`
+                        : `<i class="fas fa-shield-halved"></i> <strong>Operation Active:</strong> Return intake locked until Ground Officer confirms situation is under control and equipment is released.`
+                      )
                     }
                   </div>
 
                   <div style="display:flex; justify-content:space-between; align-items:center; font-size:10.5px; color:#475569; gap:6px; flex-wrap:wrap;">
                     <span><i class="fas fa-user-shield" style="color:#0284c7;"></i> ${a.leadOfficerName ? `${a.leadAgency || 'NDRF'} ${a.leadOfficerName}` : (a.driver || 'Field Convoy')}</span>
                     <div style="display:flex; gap:6px; align-items:center;">
-                      ${!isCleared ? `
+                      ${isAlreadyReturned ? `
+                        <span style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; font-size:10.5px; background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; border-radius:6px; font-weight:700;">
+                          <i class="fas fa-check-double"></i> ✓ Restocked in Warehouse
+                        </span>
+                      ` : (!isCleared ? `
                         <span style="display:inline-flex; align-items:center; gap:5px; padding:4px 9px; font-size:10.5px; background:#fff7ed; color:#c2410c; border:1px solid #ffedd5; border-radius:6px; font-weight:600;" title="Return is locked. Ground Officer must confirm situation is under control from Ground Officer portal.">
                           <i class="fas fa-lock"></i> Return Locked (Awaiting Ground Officer)
                         </span>
@@ -483,7 +499,7 @@ export default function initGodownPage() {
                         <button class="btn-gd primary" style="padding:4px 9px; font-size:10.5px;" onclick="window.selectAreaForReturn('${a.destination.replace(/'/g, "\\'")}', '${a.id}', '${a.refNo || 'DSP-2026'}')">
                           <i class="fas fa-rotate-left"></i> Log Return
                         </button>
-                      `}
+                      `)}
                     </div>
                   </div>
                 </div>
@@ -1132,6 +1148,11 @@ export default function initGodownPage() {
 
     closeModal('updateStockModal');
 
+    if (item) {
+      item.available = newAvail;
+      item.condition = cond;
+    }
+
     try {
       await updateStockItemApi({
         index: idx,
@@ -1140,10 +1161,13 @@ export default function initGodownPage() {
         condition: cond,
         reason
       });
+      const fresh = await fetchGodownState();
+      if (fresh) state = fresh;
       renderAllGodownViews();
-      showToast(`Inventory updated for ${item ? item.name : 'item'}.`);
+      showToast(`Inventory updated for ${item ? item.name : 'item'}.`, 'success');
     } catch (err) {
       console.error('Stock correction error:', err);
+      renderAllGodownViews();
       showToast('Correction saved locally.');
     }
   }
@@ -1556,8 +1580,57 @@ export default function initGodownPage() {
     }
   }
 
+  function trackConvoyOnMap(lat, lng, destName, refNo, vehicle, driver) {
+    switchGodownTab('dashboard');
+    setTimeout(() => {
+      invalidateGodownMapSize();
+      const nLat = Number(lat) || 26.132;
+      const nLng = Number(lng) || 91.515;
+      if (typeof window.centerOnMap === 'function') {
+        window.centerOnMap(nLat, nLng, 13);
+      }
+      if (window.godownLeafletMapInstance && typeof L !== 'undefined') {
+        window.godownLeafletMapInstance.invalidateSize();
+        try {
+          L.popup()
+            .setLatLng([nLat, nLng])
+            .setContent(`
+              <div style="font-family:sans-serif; min-width:220px; padding:4px;">
+                <strong style="color:#15803d; font-size:13px; display:flex; align-items:center; gap:6px;">
+                  <i class="fas fa-truck-fast"></i> Convoy En-Route: ${refNo && refNo !== '—' ? refNo : 'DSP-2026'}
+                </strong>
+                <div style="font-size:11.5px; margin-top:5px; color:#1e293b;">
+                  Destination: <b>${destName || 'Sector'}</b>
+                </div>
+                <div style="font-size:11px; color:#475569; margin-top:2px;">
+                  Vehicle: <b>${vehicle || 'Heavy Truck AS-01-EC-4210'}</b>
+                </div>
+                <div style="font-size:11px; color:#475569;">
+                  Driver: <b>${driver || 'Rajesh Das (+91 98640-21943)'}</b>
+                </div>
+                <div style="font-size:10.5px; color:#16a34a; font-weight:700; margin-top:6px; background:#dcfce7; padding:4px 6px; border-radius:4px;">
+                  <i class="fas fa-satellite-dish"></i> GPS Telemetry Active • En-Route
+                </div>
+              </div>
+            `)
+            .openOn(window.godownLeafletMapInstance);
+        } catch (e) {}
+      }
+      const match = (state.allocations || []).find(a => 
+        (refNo && a.refNo === refNo) ||
+        (destName && a.destination && a.destination.toLowerCase() === destName.toLowerCase())
+      );
+      if (match) {
+        selectedAllocId = match.id;
+        renderSelectedAllocBox(match.id);
+      }
+      showToast(`Tracking Convoy ${refNo && refNo !== '—' ? refNo : ''} en route to ${destName || 'Sector'} on GIS Map.`, 'success');
+    }, 200);
+  }
+
   // Assign global window handles for inline onclick events
   Object.assign(window, {
+    trackConvoyOnMap,
     closeModal,
     confirmDispatchSubmission,
     getCardToneClass,

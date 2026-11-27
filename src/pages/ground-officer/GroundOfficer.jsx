@@ -287,7 +287,7 @@ const markup = (
                 </div>
                 <div className="form-grid-3">
                   <div className="form-group">
-                    <label>Urgent Needs (Food/Water/Boats/Meds) *</label>
+                    <label>Urgent Needs Summary (Food/Water/Boats/Meds) *</label>
                     <input type="text" id="frUrgentNeeds" className="form-control" placeholder="e.g. 2 Inflatable boats, 300 food packets, ORS" required />
                   </div>
                   <div className="form-group">
@@ -297,6 +297,51 @@ const markup = (
                   <div className="form-group">
                     <label>Evidence Reference ID / Receipt Ref</label>
                     <input type="text" id="frEvidenceRef" className="form-control" placeholder="e.g. EVD-KAM-2026-881 / Photo ID" />
+                  </div>
+                </div>
+
+                {/* ITEM-WISE EXTRA RESOURCE REQUIREMENTS (AUTO-ROUTED TO AUTHORITY REQUEST TAB) */}
+                <div style={{ background: "#f0fdf4", border: "1.5px solid #86efac", borderRadius: "10px", padding: "14px", marginBottom: "14px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                    <div style={{ fontSize: "12.5px", fontWeight: "700", color: "#166534" }}>
+                      <i className="fas fa-boxes-stacked"></i> Item-Wise Extra Resource Requirements (Authority Requisition Routing)
+                    </div>
+                    <span style={{ fontSize: "10px", fontWeight: "700", background: "#dcfce7", color: "#15803d", padding: "2px 8px", borderRadius: "4px", border: "1px solid #bbf7d0" }}>
+                      Auto-syncs to DDMA Requests
+                    </span>
+                  </div>
+                  <p style={{ fontSize: "11px", color: "#15803d", margin: "0 0 10px 0" }}>
+                    Specify exact additional units needed on ground. Submitting this form automatically generates a pending requisition in District Authority portal. Once approved, supplies are merged with this sector's active allocation.
+                  </p>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "10px", marginBottom: "10px" }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontSize: "11px", color: "#166534" }}>Extra Boats (Units)</label>
+                      <input type="number" id="frExtraBoats" className="form-control" min="0" placeholder="0" defaultValue="0" />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontSize: "11px", color: "#166534" }}>Life Jackets (SOLAS)</label>
+                      <input type="number" id="frExtraJackets" className="form-control" min="0" placeholder="0" defaultValue="0" />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontSize: "11px", color: "#166534" }}>Food Rations (Packs)</label>
+                      <input type="number" id="frExtraFood" className="form-control" min="0" placeholder="0" defaultValue="0" />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontSize: "11px", color: "#166534" }}>Medical Kits (Boxes)</label>
+                      <input type="number" id="frExtraMeds" className="form-control" min="0" placeholder="0" defaultValue="0" />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label style={{ fontSize: "11px", color: "#166534" }}>Relief Tents (Tarps)</label>
+                      <input type="number" id="frExtraTents" className="form-control" min="0" placeholder="0" defaultValue="0" />
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                    <label style={{ fontSize: "11px", fontWeight: "700", color: "#166534", whiteSpace: "nowrap" }}>Requisition Urgency Level:</label>
+                    <select id="frReqPriority" className="form-control" style={{ maxWidth: "260px", padding: "5px 10px", fontSize: "11.5px" }}>
+                      <option value="CRITICAL">🚨 Critical (Immediate Dispatch within 2 Hours)</option>
+                      <option value="HIGH">⚠️ High Priority (Next Convoy Wave)</option>
+                      <option value="MEDIUM">ℹ️ Normal Buffer Replenishment</option>
+                    </select>
                   </div>
                 </div>
                 <div className="form-group">

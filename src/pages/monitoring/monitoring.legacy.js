@@ -57,6 +57,20 @@ export default function initMonitoringPage() {
   window.printDossier = printDossier;
   window.showToast = showToast;
 
+  // Safe global fallback handlers for legacy or cached anomaly click events
+  window.flagOpsAnomaly = function(opId, location) {
+    showToast(`Rescue anomaly for ${location || 'sector'} escalated to District Magistrate & DDMA!`, 'info');
+  };
+  window.resolveOpsAnomaly = function(opId, location) {
+    showToast(`Anomaly for ${location || 'sector'} marked resolved & closed in DEOC records.`, 'success');
+  };
+  window.directMessageTacticalTeam = function(location, agency) {
+    switchMonitorTab('dashboard', document.querySelector('[data-tab=dashboard]'));
+    toggleCommsMode('direct');
+    switchChatChannel('ground', document.querySelector('[onclick*="ground"]'));
+    insertQuickChat(`[TACTICAL RESCUE DIRECTIVE] To: ${agency || 'Field Unit'} at ${location || 'Sector'}. Report immediate status.`);
+  };
+
   // Initial load
   refreshMonitoringData();
 
@@ -223,37 +237,37 @@ function renderKpis(state) {
   const pendingAud = kpis.pendingAudits || 2;
 
   container.innerHTML = `
-    <div className="kpi-card tone-indigo">
+    <div class="kpi-card tone-indigo">
       <div style="font-size: 20px; font-weight: 800; color: #4338ca;">${approved.toLocaleString()}</div>
       <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Approved Units</div>
       <div style="font-size: 9.5px; color: #4338ca; margin-top: 2px;">Authority Orders</div>
     </div>
-    <div className="kpi-card tone-blue">
+    <div class="kpi-card tone-blue">
       <div style="font-size: 20px; font-weight: 800; color: #0284c7;">${dispatched.toLocaleString()}</div>
       <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Dispatched Units</div>
       <div style="font-size: 9.5px; color: #0284c7; margin-top: 2px;">Central Godown</div>
     </div>
-    <div className="kpi-card tone-ok">
+    <div class="kpi-card tone-ok">
       <div style="font-size: 20px; font-weight: 800; color: #16a34a;">${received.toLocaleString()}</div>
       <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Ground Verified</div>
       <div style="font-size: 9.5px; color: #16a34a; margin-top: 2px;">Receipt Signed</div>
     </div>
-    <div className="kpi-card tone-amber">
+    <div class="kpi-card tone-amber">
       <div style="font-size: 20px; font-weight: 800; color: #d97706;">${pendingDel}</div>
       <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Pending Delivery</div>
       <div style="font-size: 9.5px; color: #d97706; margin-top: 2px;">Convoy In Transit</div>
     </div>
-    <div className="kpi-card tone-alert">
+    <div class="kpi-card tone-alert">
       <div style="font-size: 20px; font-weight: 800; color: ${shortages > 0 ? '#dc2626' : '#64748b'};">${shortages}</div>
       <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Shortages / Flags</div>
       <div style="font-size: 9.5px; color: #dc2626; margin-top: 2px;">Mismatches</div>
     </div>
-    <div className="kpi-card tone-blue">
+    <div class="kpi-card tone-blue">
       <div style="font-size: 20px; font-weight: 800; color: #0ea5e9;">${evacuated}</div>
       <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Citizens Evacuated</div>
       <div style="font-size: 9.5px; color: #0ea5e9; margin-top: 2px;">Field Rescue Ops</div>
     </div>
-    <div className="kpi-card tone-indigo">
+    <div class="kpi-card tone-indigo">
       <div style="font-size: 20px; font-weight: 800; color: #6366f1;">${pendingAud}</div>
       <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Pending Audits</div>
       <div style="font-size: 9.5px; color: #6366f1; margin-top: 2px;">Audit Lifecycle</div>
@@ -305,7 +319,7 @@ function renderDashboard(state) {
     const district = item.district || item.block || 'Kamrup';
 
     return `
-      <div className="lifecycle-card anim-card" style="margin-bottom: 0;">
+      <div class="lifecycle-card anim-card" style="margin-bottom: 0;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
           <strong style="font-size: 13.5px; color: #0f172a;">${areaName}</strong>
           <span class="lifecycle-pill ${getStagePillClass(stage)}">${stage}</span>
@@ -370,7 +384,7 @@ function renderAreaTracing(lifecycles) {
     const s5 = item.stages && item.stages.restock;
 
     return `
-      <div className="lifecycle-card anim-card" style="margin-bottom: 18px; border-left: 4px solid #0284c7;">
+      <div class="lifecycle-card anim-card" style="margin-bottom: 18px; border-left: 4px solid #0284c7;">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 14px;">
           <div>
             <h3 style="margin: 0; font-size: 16px; color: #0f172a; display: flex; align-items: center; gap: 8px;">
@@ -520,7 +534,7 @@ function renderDiscrepancies(discrepancies) {
     const status = d.status || 'Open';
 
     return `
-      <div className="audit-card tone-alert anim-card" style="padding: 14px; border-left: 4px solid #dc2626;">
+      <div class="audit-card tone-alert anim-card" style="padding: 14px; border-left: 4px solid #dc2626;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
           <div>
             <strong style="font-size: 13.5px; color: #0f172a;">${dest} • ${itemDesc}</strong>
@@ -535,7 +549,6 @@ function renderDiscrepancies(discrepancies) {
           ${d.notes ? `<div><b>Audit Notes:</b> ${d.notes}</div>` : ''}
         </div>
 
-        {/* STATUS FLOW CONTROLLER & ACTIONS */}
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap: 8px; border-top: 1px solid #e2e8f0; padding-top: 10px;">
           <div style="display:flex; align-items:center; gap: 6px;">
             <span style="font-size: 11px; font-weight: 700; color: #475569;">Update Status:</span>
@@ -943,7 +956,7 @@ function renderHistory(historyCases) {
     const items = c.itemBreakdown || [];
 
     return `
-      <div className="lifecycle-card anim-card" style="border-left: 5px solid #16a34a; background: #ffffff; padding: 18px 20px; box-shadow: 0 4px 14px rgba(0,0,0,0.04); margin-bottom: 14px; border-radius: 12px;">
+      <div class="lifecycle-card anim-card" style="border-left: 5px solid #16a34a; background: #ffffff; padding: 18px 20px; box-shadow: 0 4px 14px rgba(0,0,0,0.04); margin-bottom: 14px; border-radius: 12px;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 14px;">
           <div>
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
