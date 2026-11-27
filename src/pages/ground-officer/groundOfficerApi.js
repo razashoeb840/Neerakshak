@@ -218,24 +218,88 @@ export async function confirmSituationControlledApi(allocId, area, notes) {
 }
 
 /**
+ * Mark Delivery Verified and Ready for Citizen Distribution / Field Deployed
+ */
+export async function markReadyForDistributionApi(dispatchId, area) {
+  if (!cachedState) cachedState = getDefaultGroundSeed();
+  const d = (cachedState.deliveries || []).find(item => 
+    item.dispatchId === dispatchId || (area && item.destination === area)
+  );
+  if (d) {
+    d.readyForDistribution = true;
+    d.distributionStatus = 'Ready for Citizen Distribution & Field Deployed';
+    notifySync(cachedState);
+  }
+
+  const payload = { dispatchId, area };
+  const endpoints = [`${API_BASE}/ready-distribution`, `${API_FALLBACK}/ready-distribution`];
+  for (const url of endpoints) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data) return json.data;
+      }
+    } catch (e) {}
+  }
+
+  return { success: true };
+}
+
+/**
  * Submit Post-Operation Return Verification
  */
 export async function submitReturnVerificationApi(returnData) {
   if (!cachedState) cachedState = getDefaultGroundSeed();
   if (!cachedState.returns) cachedState.returns = [];
 
+  const boatsGood = Number(returnData.boatsGood ?? 2);
+  const boatsDamaged = Number(returnData.boatsDamaged ?? 1);
+  const boatsMissing = Number(returnData.boatsMissing ?? 0);
+  const jacketsGood = Number(returnData.jacketsGood ?? 31);
+  const jacketsDamaged = Number(returnData.jacketsDamaged ?? 1);
+  const jacketsMissing = Number(returnData.jacketsMissing ?? 1);
+  const tentsGood = Number(returnData.tentsGood ?? 11);
+  const tentsDamaged = Number(returnData.tentsDamaged ?? 1);
+  const tentsMissing = Number(returnData.tentsMissing ?? 0);
+
+  const totalGood = boatsGood + jacketsGood + tentsGood;
+  const totalDamaged = boatsDamaged + jacketsDamaged + tentsDamaged;
+  const totalMissing = boatsMissing + jacketsMissing + tentsMissing;
+
   const localRet = {
     retId: 'RV-' + Math.floor(110 + Math.random() * 880),
-    item: returnData.item,
+    item: returnData.item || `Relief Consignment Equipment (${returnData.location})`,
     location: returnData.location,
-    good: Number(returnData.good) || 0,
-    damaged: Number(returnData.damaged) || 0,
-    missing: Number(returnData.missing) || 0,
+    area: returnData.location,
+    good: totalGood,
+    damaged: totalDamaged,
+    missing: totalMissing,
+    boatsGood,
+    boatsDamaged,
+    boatsMissing,
+    jacketsGood,
+    jacketsDamaged,
+    jacketsMissing,
+    tentsGood,
+    tentsDamaged,
+    tentsMissing,
     remarks: returnData.remarks || 'Condition verified on ground',
-    time: 'Just now (GO-KAM-04)'
+    time: 'Just now (GO-KAM-04)',
+    canReturnInput: true,
+    groundVerified: true
   };
 
-  cachedState.returns.unshift(localRet);
+  const existingIdx = cachedState.returns.findIndex(r => r.location === returnData.location || r.area === returnData.location);
+  if (existingIdx !== -1) {
+    cachedState.returns[existingIdx] = { ...cachedState.returns[existingIdx], ...localRet };
+  } else {
+    cachedState.returns.unshift(localRet);
+  }
   notifySync(cachedState);
 
   const endpoints = [`${API_BASE}/returns`, `${API_FALLBACK}/returns`];

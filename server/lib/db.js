@@ -91,8 +91,12 @@ export const adminDb = {
           };
         });
 
+        // Filter out closed/recovered areas from active emergency map and operational tracking
+        const activeAreas = mappedAreas.filter(a => !a.isClosed && a.status !== 'Closed / Recovered');
+
         cache.admin = {
-          areas: mappedAreas,
+          areas: activeAreas,
+          closedAreas: mappedAreas.filter(a => a.isClosed || a.status === 'Closed / Recovered'),
           rivers: rivers || [],
           alerts: alerts || [],
           facilities: facilities || [],
@@ -313,8 +317,8 @@ export const authorityDb = {
         ]);
         cache.authority = {
           villages: [],
-          requests: requests || [],
-          allocations: allocations || [],
+          requests: (requests || []).filter(r => !r.isClosed && r.status !== 'Case Closed & Archived'),
+          allocations: (allocations || []).filter(a => !a.isClosed && !a.caseClosed && a.status !== 'Operation Closed & Restocked'),
           coordinations: coordinations || [],
           operations: operations || [],
           logs: logs || []
@@ -650,11 +654,11 @@ export const godownDb = {
           mergedRets.unshift(mappedGr);
         }
       });
-      cache.godown.returns = mergedRets;
+      cache.godown.returns = mergedRets.filter(r => !r.isClosed && r.status !== 'Case Closed & Archived');
     }
 
-    // Map Authority allocations into Godown in real time
-    cache.godown.allocations = authAllocations.map(authAlloc => {
+    // Map Authority allocations into Godown in real time (excluding closed cases)
+    cache.godown.allocations = authAllocations.filter(a => !a.isClosed && !a.caseClosed && a.status !== 'Operation Closed & Restocked').map(authAlloc => {
       const destName = (authAlloc.village || authAlloc.destination || 'Assigned Area').trim();
       const areaMatch = adminAreas.find(a => (a.name || '').toLowerCase() === destName.toLowerCase());
       const isDispatched = String(authAlloc.godownStatus || '').toLowerCase().includes('dispatched') ||
@@ -1281,11 +1285,13 @@ export const groundDb = {
       const medsDmg = isVerified ? Number(savedVerif?.medsDamaged ?? 0) : 0;
 
       const itemBreakdown = [
-        { name: 'Rescue Boats', category: 'Inflatable Motor Boats', requested: boatsReq, dispatched: boatsDisp, received: boatsRecv, damaged: boatsDmg, shortage: isVerified ? Math.max(0, boatsDisp - boatsRecv) : boatsDisp },
-        { name: 'Life Jackets', category: 'Buoyancy Vests (SOLAS)', requested: jacketsReq, dispatched: jacketsDisp, received: jacketsRecv, damaged: jacketsDmg, shortage: isVerified ? Math.max(0, jacketsDisp - jacketsRecv) : jacketsDisp },
-        { name: 'Food Rations', category: 'Emergency Dry Rations Packets', requested: foodReq, dispatched: foodDisp, received: foodRecv, damaged: foodDmg, shortage: isVerified ? Math.max(0, foodDisp - foodRecv) : foodDisp },
-        { name: 'Medical Kits', category: 'First Aid & Halazone Kits', requested: medsReq, dispatched: medsDisp, received: medsRecv, damaged: medsDmg, shortage: isVerified ? Math.max(0, medsDisp - medsRecv) : medsDisp }
+        { name: 'Rescue Boats', category: 'Inflatable Motor Boats', requested: boatsReq, dispatched: boatsDisp, received: boatsRecv, damaged: boatsDmg, shortage: isVerified ? Math.max(0, boatsDisp - boatsRecv) : 0 },
+        { name: 'Life Jackets', category: 'Buoyancy Vests (SOLAS)', requested: jacketsReq, dispatched: jacketsDisp, received: jacketsRecv, damaged: jacketsDmg, shortage: isVerified ? Math.max(0, jacketsDisp - jacketsRecv) : 0 },
+        { name: 'Food Rations', category: 'Emergency Dry Rations Packets', requested: foodReq, dispatched: foodDisp, received: foodRecv, damaged: foodDmg, shortage: isVerified ? Math.max(0, foodDisp - foodRecv) : 0 },
+        { name: 'Medical Kits', category: 'First Aid & Halazone Kits', requested: medsReq, dispatched: medsDisp, received: medsRecv, damaged: medsDmg, shortage: isVerified ? Math.max(0, medsDisp - medsRecv) : 0 }
       ];
+
+      const isReadyForDistribution = Boolean(savedVerif?.readyForDistribution || a.readyForDistribution);
 
       return {
         dispatchId,
@@ -1301,6 +1307,8 @@ export const groundDb = {
         remarks: savedVerif ? savedVerif.remarks : `Escort: ${a.leadOfficerName ? `${a.leadAgency || 'NDRF'} ${a.leadOfficerName}` : (a.driver || 'Field Convoy')}. Vehicle: ${a.vehicle || 'Relief Truck'}.`,
         groundOfficerCleared: isCleared,
         reliefClearedForReturn: isCleared,
+        readyForDistribution: isReadyForDistribution,
+        distributionStatus: isReadyForDistribution ? 'Ready for Citizen Distribution & Field Deployed' : (isVerified ? 'Intake Verified - Ready to Distribute' : 'Awaiting Delivery Intake'),
         verifiedAt: isVerified ? (savedVerif?.verifiedAt || null) : null,
         verifiedBy: isVerified ? (savedVerif?.verifiedBy || null) : null,
         
@@ -1445,7 +1453,7 @@ export const groundDb = {
       const matchedDelivery = deliveries.find(d => d.destination.toLowerCase() === secName.toLowerCase());
       const isVerified = matchedDelivery ? matchedDelivery.status === 'Verified' : false;
       const isCleared = matchedDelivery ? Boolean(matchedDelivery.groundOfficerCleared) : false;
-      const canReturn = isVerified && isCleared;
+      const canReturn = true; // Ground Officer is authorized to audit & log return equipment condition at any time
 
       const savedRet = dbReturns.find(r => 
         (r.location && r.location.toLowerCase() === secName.toLowerCase()) || 
@@ -1456,18 +1464,22 @@ export const groundDb = {
       const jacketsDisp = matchedDelivery ? (matchedDelivery.itemBreakdown?.[1]?.dispatched || 33) : 33;
       const tentsDisp = 12;
 
-      const boatsGood = savedRet ? Number(savedRet.boatsGood ?? savedRet.good ?? (canReturn ? Math.max(0, boatsDisp - 1) : 0)) : (canReturn ? Math.max(0, boatsDisp - 1) : 0);
-      const boatsDmg = savedRet ? Number(savedRet.boatsDamaged ?? savedRet.damaged ?? (canReturn ? 1 : 0)) : (canReturn ? 1 : 0);
+      const boatsGood = savedRet ? Number(savedRet.boatsGood ?? savedRet.good ?? Math.max(1, boatsDisp - 1)) : Math.max(1, boatsDisp - 1);
+      const boatsDmg = savedRet ? Number(savedRet.boatsDamaged ?? savedRet.damaged ?? 1) : 1;
       const boatsMiss = savedRet ? Number(savedRet.boatsMissing ?? 0) : 0;
 
-      const jacketsGood = savedRet ? Number(savedRet.jacketsGood ?? (canReturn ? Math.max(0, jacketsDisp - 2) : 0)) : (canReturn ? Math.max(0, jacketsDisp - 2) : 0);
-      const jacketsDmg = savedRet ? Number(savedRet.jacketsDamaged ?? (canReturn ? 1 : 0)) : (canReturn ? 1 : 0);
-      const jacketsMiss = savedRet ? Number(savedRet.jacketsMissing ?? (canReturn ? 1 : 0)) : (canReturn ? 1 : 0);
+      const jacketsGood = savedRet ? Number(savedRet.jacketsGood ?? Math.max(1, jacketsDisp - 2)) : Math.max(1, jacketsDisp - 2);
+      const jacketsDmg = savedRet ? Number(savedRet.jacketsDamaged ?? 1) : 1;
+      const jacketsMiss = savedRet ? Number(savedRet.jacketsMissing ?? 1) : 1;
+
+      const tentsGood = savedRet ? Number(savedRet.tentsGood ?? 11) : 11;
+      const tentsDmg = savedRet ? Number(savedRet.tentsDamaged ?? 1) : 1;
+      const tentsMiss = savedRet ? Number(savedRet.tentsMissing ?? 0) : 0;
 
       const items = [
-        { name: 'Inflatable Rescue Boats', category: 'Rescue Craft', dispatched: boatsDisp, good: boatsGood, damaged: boatsDmg, missing: boatsMiss, status: savedRet ? 'Ground Verified' : (canReturn ? 'Field Inspected' : 'Awaiting Clearance') },
-        { name: 'Life Jackets (SOLAS)', category: 'Safety Buoyancy', dispatched: jacketsDisp, good: jacketsGood, damaged: jacketsDmg, missing: jacketsMiss, status: savedRet ? 'Ground Verified' : (canReturn ? 'Field Inspected' : 'Awaiting Clearance') },
-        { name: 'Relief Tents & Stretchers', category: 'Camp Shelter', dispatched: tentsDisp, good: canReturn ? 11 : 0, damaged: canReturn ? 1 : 0, missing: 0, status: savedRet ? 'Ground Verified' : (canReturn ? 'Field Inspected' : 'Awaiting Clearance') }
+        { name: 'Inflatable Rescue Boats', category: 'Rescue Craft', dispatched: boatsDisp, good: boatsGood, damaged: boatsDmg, missing: boatsMiss, status: savedRet ? 'Ground Verified' : (isCleared ? 'Field Inspected' : 'Ready for Return Handover') },
+        { name: 'Life Jackets (SOLAS)', category: 'Safety Buoyancy', dispatched: jacketsDisp, good: jacketsGood, damaged: jacketsDmg, missing: jacketsMiss, status: savedRet ? 'Ground Verified' : (isCleared ? 'Field Inspected' : 'Ready for Return Handover') },
+        { name: 'Relief Tents & Stretchers', category: 'Camp Shelter', dispatched: tentsDisp, good: tentsGood, damaged: tentsDmg, missing: tentsMiss, status: savedRet ? 'Ground Verified' : (isCleared ? 'Field Inspected' : 'Ready for Return Handover') }
       ];
 
       return {
@@ -1475,36 +1487,46 @@ export const groundDb = {
         item: `Relief Consignment Equipment (${secName})`,
         location: secName,
         area: secName,
-        good: boatsGood + jacketsGood + (canReturn ? 11 : 0),
-        damaged: boatsDmg + jacketsDmg + (canReturn ? 1 : 0),
-        missing: boatsMiss + jacketsMiss,
+        good: boatsGood + jacketsGood + tentsGood,
+        damaged: boatsDmg + jacketsDmg + tentsDmg,
+        missing: boatsMiss + jacketsMiss + tentsMiss,
         boatsGood,
         boatsDamaged: boatsDmg,
         boatsMissing: boatsMiss,
         jacketsGood,
         jacketsDamaged: jacketsDmg,
         jacketsMissing: jacketsMiss,
-        remarks: savedRet ? savedRet.remarks : (canReturn ? 'Ground operations completed; flood receded. Equipment physically inspected at field relief camp.' : 'Operation active in sector. Warehouse return locked until ground verification and situation clearance.'),
+        tentsGood,
+        tentsDamaged: tentsDmg,
+        tentsMissing: tentsMiss,
+        remarks: savedRet ? savedRet.remarks : (isCleared ? 'Ground rescue operations completed; floodwaters receded. Equipment physically inspected at field relief depot.' : 'Field relief operations active. Equipment inspected and ready for Central Godown return handover.'),
         time: savedRet?.time || 'Today',
-        canReturnInput: canReturn,
+        canReturnInput: true,
         isVerified,
         isCleared,
         isSubmittedByGround: Boolean(savedRet),
-        groundVerified: Boolean(savedRet || canReturn),
+        groundVerified: Boolean(savedRet || isCleared),
         godownVerified: Boolean(savedRet?.godownVerified),
         warehouseRestocked: Boolean(savedRet?.warehouseRestocked),
-        lockReason: !isVerified 
-          ? 'Physical delivery must be verified first on ground.' 
-          : (!isCleared ? 'Rescue operations active in sector: confirm situation controlled in Return Ops to release equipment.' : null),
+        lockReason: null,
         groundOfficer: savedRet?.officer || 'Bhaskar Jyoti Das (GO-KAM-04)',
         godownOfficer: savedRet?.verifiedByManager || 'Rajesh Das (WH-MIRZA)',
         items
       };
     });
 
+    // Exclude closed sectors from active operational tabs
+    const activeAreas = areas.filter(a => !a.isClosed && a.status !== 'Closed / Recovered');
+    const activeDeliveries = deliveries.filter(d => !d.isClosed && d.status !== 'Case Closed & Restocked');
+    const activeOperations = operations.filter(o => !o.isClosed && o.status !== 'Operation Closed & Demobilized');
+    const activeReturns = returns.filter(r => !r.isClosed && r.status !== 'Closed & Restocked in Central Godown');
+
     cache.groundOfficer = {
-      areas,
-      deliveries,
+      areas: activeAreas,
+      deliveries: activeDeliveries,
+      fieldReports: dbReports.length > 0 ? dbReports : (cache.groundOfficer.fieldReports || []),
+      operations: activeOperations,
+      returns: activeReturns,
       fieldReports: dbReports.length > 0 ? dbReports : (cache.groundOfficer.fieldReports || []),
       operations,
       returns,
@@ -1716,17 +1738,76 @@ export const groundDb = {
     return { success: true, targetAuth };
   },
 
+  async markReadyForDistribution(payload) {
+    const dispatchId = payload.dispatchId;
+    const area = payload.area;
+    const nowTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    const nowDate = new Date().toLocaleDateString('en-IN');
+
+    const updateDoc = {
+      readyForDistribution: true,
+      distributionStatus: 'Ready for Citizen Distribution & Field Deployed',
+      readyAt: `${nowTime}, ${nowDate}`,
+      readyBy: 'Bhaskar Jyoti Das (GO-KAM-04)'
+    };
+
+    const db = await getDatabase();
+    if (db) {
+      try {
+        if (dispatchId) {
+          await db.collection('deliveryverifications').updateOne(
+            { dispatchId },
+            { $set: updateDoc },
+            { upsert: true }
+          );
+        }
+        if (area) {
+          await db.collection('resourceallocations').updateMany(
+            { $or: [{ village: area }, { destination: area }, { refNo: dispatchId }, { id: dispatchId }] },
+            { 
+              $set: updateDoc,
+              $push: {
+                timeline: {
+                  step: 'Relief Supplies Ready for Citizen Distribution & Deployed',
+                  time: 'Just now',
+                  status: 'done',
+                  detail: 'Ground Officer verified physical delivery. Dry food rations and medical kits cleared for immediate citizen distribution. Motorized rescue boats and life jackets deployed with tactical response teams.'
+                }
+              }
+            }
+          );
+        }
+      } catch (e) {
+        console.warn('markReadyForDistribution MongoDB write notice:', e.message);
+      }
+    }
+
+    if (cache.groundOfficer && cache.groundOfficer.deliveries) {
+      const d = cache.groundOfficer.deliveries.find(item => item.dispatchId === dispatchId || item.destination === area);
+      if (d) {
+        d.readyForDistribution = true;
+        d.distributionStatus = 'Ready for Citizen Distribution & Field Deployed';
+      }
+    }
+
+    return { success: true, ...updateDoc };
+  },
+
   async submitReturnVerification(returnData) {
     const loc = returnData.location || returnData.area || 'Assigned Sector';
     const boatsGood = Number(returnData.boatsGood ?? returnData.good ?? 2);
     const jacketsGood = Number(returnData.jacketsGood ?? 31);
+    const tentsGood = Number(returnData.tentsGood ?? 11);
     const boatsDamaged = Number(returnData.boatsDamaged ?? returnData.damaged ?? 1);
     const jacketsDamaged = Number(returnData.jacketsDamaged ?? 1);
+    const tentsDamaged = Number(returnData.tentsDamaged ?? 1);
     const boatsMissing = Number(returnData.boatsMissing ?? 0);
     const jacketsMissing = Number(returnData.jacketsMissing ?? 0);
-    const totalGood = boatsGood + jacketsGood;
-    const totalDamaged = boatsDamaged + jacketsDamaged;
-    const totalMissing = boatsMissing + jacketsMissing;
+    const tentsMissing = Number(returnData.tentsMissing ?? 0);
+
+    const totalGood = boatsGood + jacketsGood + tentsGood;
+    const totalDamaged = boatsDamaged + jacketsDamaged + tentsDamaged;
+    const totalMissing = boatsMissing + jacketsMissing + tentsMissing;
 
     const record = {
       retId: returnData.retId || `RET-${Date.now().toString(36).toUpperCase()}`,
@@ -1743,6 +1824,9 @@ export const groundDb = {
       jacketsGood,
       jacketsDamaged,
       jacketsMissing,
+      tentsGood,
+      tentsDamaged,
+      tentsMissing,
       groundVerified: true,
       godownVerified: false,
       warehouseRestocked: false,
@@ -1788,6 +1872,17 @@ export const groundDb = {
         console.warn('submitReturnVerification MongoDB write notice:', e.message);
       }
     }
+
+    if (cache.groundOfficer && cache.groundOfficer.returns) {
+      const existing = cache.groundOfficer.returns.find(r => r.location === loc || r.area === loc);
+      if (existing) {
+        Object.assign(existing, record, {
+          canReturnInput: true,
+          groundVerified: true
+        });
+      }
+    }
+
     return record;
   }
 };
@@ -1843,17 +1938,19 @@ export const monitoringDb = {
     let dbDiscrepancies = [];
     let dbCases = [];
     let dbAnomalies = [];
+    let dbHistoryCases = [];
 
     if (db) {
       try {
-        const [chats, escs, resols, anns, discs, cases, anomalies] = await Promise.all([
+        const [chats, escs, resols, anns, discs, cases, anomalies, histCases] = await Promise.all([
           db.collection('monitoring_chats').find({}, { projection: { _id: 0 } }).sort({ timestamp: 1 }).toArray(),
           db.collection('monitoring_escalations').find({}, { projection: { _id: 0 } }).sort({ timestamp: -1 }).toArray(),
           db.collection('monitoring_resolutions').find({}, { projection: { _id: 0 } }).toArray(),
           db.collection('broadcast_announcements').find({ pinned: true }, { projection: { _id: 0 } }).sort({ createdAt: -1 }).toArray(),
           db.collection('monitoring_discrepancies').find({}, { projection: { _id: 0 } }).toArray(),
           db.collection('monitoring_return_cases').find({}, { projection: { _id: 0 } }).toArray(),
-          db.collection('monitoring_ops_anomalies').find({}, { projection: { _id: 0 } }).toArray()
+          db.collection('monitoring_ops_anomalies').find({}, { projection: { _id: 0 } }).toArray(),
+          db.collection('monitoring_history_cases').find({}, { projection: { _id: 0 } }).sort({ updatedAt: -1 }).toArray()
         ]);
         dbChats = chats || [];
         dbEscalations = escs || [];
@@ -1862,10 +1959,28 @@ export const monitoringDb = {
         dbDiscrepancies = discs || [];
         dbCases = cases || [];
         dbAnomalies = anomalies || [];
+        dbHistoryCases = histCases || [];
       } catch (e) {
         console.warn('monitoringDb MongoDB read notice:', e.message);
       }
     }
+
+    if (cache.monitoringHistory && cache.monitoringHistory.length > 0) {
+      const mergedHist = [...cache.monitoringHistory];
+      dbHistoryCases.forEach(dh => {
+        if (!mergedHist.some(m => m.caseId === dh.caseId || m.area === dh.area)) {
+          mergedHist.push(dh);
+        }
+      });
+      dbHistoryCases = mergedHist;
+    }
+
+    const isAreaClosed = (areaName) => {
+      const aLower = (areaName || '').trim().toLowerCase();
+      if (!aLower) return false;
+      return dbHistoryCases.some(h => (h.area || h.village || '').toLowerCase() === aLower) ||
+        dbCases.some(c => c.status === 'Closed' && (c.area || '').toLowerCase() === aLower);
+    };
 
     if (!dbAnnouncements.length && cache.announcements) {
       dbAnnouncements = cache.announcements.filter(a => a.pinned);
@@ -1978,8 +2093,9 @@ export const monitoringDb = {
       }
     });
 
-    // Construct Area Lifecycle Traces
-    const lifecycles = Array.from(sectorMap.values()).map((sector, idx) => {
+    // Construct Area Lifecycle Traces for active crisis sectors (closed cases move to History)
+    const activeSectors = Array.from(sectorMap.values()).filter(s => !isAreaClosed(s.village));
+    const lifecycles = activeSectors.map((sector, idx) => {
       const vKey = sector.village.toLowerCase();
       
       // Match Authority Allocation
@@ -2285,7 +2401,7 @@ export const monitoringDb = {
     });
 
     // 6. Returns Audit - Dual Verification (Ground Officer Field Return + Godown Warehouse Restock)
-    const returnsAudit = Array.from(sectorMap.values()).map((sector, idx) => {
+    const returnsAudit = activeSectors.map((sector, idx) => {
       const vKey = sector.village.toLowerCase();
       const lc = lifecycles.find(l => l.village.toLowerCase() === vKey);
       const godownRet = godownReturns.find(r => (r.area && r.area.toLowerCase() === vKey) || (r.from && r.from.toLowerCase() === vKey));
@@ -2566,7 +2682,8 @@ export const monitoringDb = {
       announcements: dbAnnouncements,
       notifications,
       logs: auditLogs,
-      areas: Array.from(sectorMap.values())
+      areas: activeSectors,
+      history: dbHistoryCases
     };
 
     cache.monitoring = statePayload;
@@ -2643,18 +2760,36 @@ export const monitoringDb = {
   async closeReturnCase(payload) {
     const caseId = payload.caseId || `CASE-RET-${Date.now()}`;
     const area = payload.area || 'Field Sector';
-    const sealNo = `DEOC-AUD-${Math.floor(1000 + Math.random() * 9000)}`;
+    const sealNo = payload.sealNo || `DEOC-AUD-${Math.floor(1000 + Math.random() * 9000)}`;
     const nowTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
     const nowDate = new Date().toLocaleDateString('en-IN');
 
-    const record = {
+    const historyRecord = {
       caseId,
       area,
-      status: 'Closed',
-      closedBy: payload.closedBy || 'State Monitoring Officer (MO-DEOC-02)',
-      closedAt: `${nowTime}, ${nowDate}`,
+      village: area,
       sealNo,
-      notes: payload.notes || 'Full dual verification approved: Ground field return & Godown warehouse restock reconciled. Case closed.',
+      closedAt: `${nowTime}, ${nowDate}`,
+      closedBy: payload.closedBy || 'State Monitoring Officer (MO-DEOC-02)',
+      status: 'Closed & Audited',
+      notes: payload.notes || 'Full dual verification approved: Ground field return & Godown warehouse restock reconciled. Balanced zero-variance audit sealed.',
+      summary: `${area} flood emergency response successfully resolved and audited. 5-stage lifecycle confirmed: Emergency pin classified, DDMA allocation approved, Godown consignment dispatched under NDRF escort, Ground Officer confirmed physical receipt, and rescue craft & life jackets restocked into Central Godown WH-MIRZA. Balanced 0-variance reconciliation achieved.`,
+      itemBreakdown: [
+        { name: 'Rescue Boats (Inflatable Motor Craft)', approved: 3, dispatched: 3, received: 3, returned: 3, variance: 0, status: 'Restocked in Central Godown WH-MIRZA' },
+        { name: 'Life Jackets (SOLAS Standard)', approved: 35, dispatched: 33, received: 33, returned: 33, variance: 0, status: 'Restocked in Central Godown WH-MIRZA' },
+        { name: 'Food Rations (Dry Emergency Packets)', approved: 300, dispatched: 264, received: 264, distributed: 264, variance: 0, status: '100% Distributed on Ground' },
+        { name: 'Medical Kits (First Aid & Halazone)', approved: 50, dispatched: 44, received: 44, distributed: 44, variance: 0, status: '100% Distributed on Ground' }
+      ],
+      personnel: {
+        adminGis: 'State DEOC GIS Command',
+        allocatingAuthority: 'Dr. A. K. Sharma (DM / DDMA Head)',
+        warehouseManager: 'Rajesh Das (Warehouse Manager - WH-MIRZA)',
+        convoyDriver: 'Rajesh Das (+91 98640-21943)',
+        vehicle: 'Heavy Truck AS-01-EC-4210 (6-Ton Swaraj)',
+        groundOfficer: 'Bhaskar Jyoti Das (Field Officer - GO-KAM-04)',
+        escortOfficer: 'Inspector Rajesh Kalita (NDRF 1st Bn)',
+        monitoringAuditor: 'State Monitoring Officer (MO-DEOC-02)'
+      },
       updatedAt: new Date()
     };
 
@@ -2663,14 +2798,78 @@ export const monitoringDb = {
       try {
         await db.collection('monitoring_return_cases').updateOne(
           { caseId },
-          { $set: record },
+          { $set: historyRecord },
           { upsert: true }
+        );
+
+        await db.collection('monitoring_history_cases').updateOne(
+          { $or: [{ caseId }, { area }] },
+          { $set: historyRecord },
+          { upsert: true }
+        );
+
+        // Mark closed in affectedareas (disappears from Admin GIS Map)
+        await db.collection('affectedareas').updateMany(
+          { $or: [{ name: area }, { village: area }] },
+          { $set: { isClosed: true, status: 'Closed / Recovered', closedAt: `${nowTime}, ${nowDate}`, sealNo } }
+        );
+
+        // Mark closed in resourceallocations (disappears from Authority & Godown pending lists)
+        await db.collection('resourceallocations').updateMany(
+          { $or: [{ village: area }, { destination: area }] },
+          { $set: { isClosed: true, caseClosed: true, status: 'Operation Closed & Restocked', closedAt: `${nowTime}, ${nowDate}`, sealNo } }
+        );
+
+        // Mark closed in groundoperations
+        await db.collection('groundoperations').updateMany(
+          { $or: [{ location: area }, { sector: area }] },
+          { $set: { isClosed: true, status: 'Operation Closed & Demobilized', closedAt: `${nowTime}, ${nowDate}`, sealNo } }
+        );
+
+        // Mark closed in groundreturns and returnrecords
+        await db.collection('groundreturns').updateMany(
+          { $or: [{ location: area }, { area }] },
+          { $set: { isClosed: true, status: 'Closed & Restocked in Central Godown', closedAt: `${nowTime}, ${nowDate}`, sealNo } }
+        );
+        await db.collection('returnrecords').updateMany(
+          { $or: [{ location: area }, { area }] },
+          { $set: { isClosed: true, status: 'Closed & Restocked in Central Godown', closedAt: `${nowTime}, ${nowDate}`, sealNo } }
         );
       } catch (e) {
         console.warn('closeReturnCase MongoDB error:', e.message);
       }
     }
-    return record;
+
+    // Purge in-memory active caches so all active maps and tables instantly clear the area
+    if (cache.admin && cache.admin.areas) {
+      cache.admin.areas = cache.admin.areas.filter(a => (a.name || a.village || '').toLowerCase() !== area.toLowerCase());
+    }
+    if (cache.authority && cache.authority.allocations) {
+      cache.authority.allocations = cache.authority.allocations.filter(a => (a.village || a.destination || '').toLowerCase() !== area.toLowerCase());
+    }
+    if (cache.godown && cache.godown.allocations) {
+      cache.godown.allocations = cache.godown.allocations.filter(a => (a.village || a.destination || '').toLowerCase() !== area.toLowerCase());
+    }
+    if (cache.godown && cache.godown.returns) {
+      cache.godown.returns = cache.godown.returns.filter(r => (r.area || r.location || '').toLowerCase() !== area.toLowerCase());
+    }
+    if (cache.groundOfficer && cache.groundOfficer.areas) {
+      cache.groundOfficer.areas = cache.groundOfficer.areas.filter(a => (a.village || '').toLowerCase() !== area.toLowerCase());
+    }
+    if (cache.groundOfficer && cache.groundOfficer.deliveries) {
+      cache.groundOfficer.deliveries = cache.groundOfficer.deliveries.filter(d => (d.destination || '').toLowerCase() !== area.toLowerCase());
+    }
+    if (cache.groundOfficer && cache.groundOfficer.operations) {
+      cache.groundOfficer.operations = cache.groundOfficer.operations.filter(o => (o.location || o.sector || '').toLowerCase() !== area.toLowerCase());
+    }
+    if (cache.groundOfficer && cache.groundOfficer.returns) {
+      cache.groundOfficer.returns = cache.groundOfficer.returns.filter(r => (r.location || r.area || '').toLowerCase() !== area.toLowerCase());
+    }
+
+    if (!cache.monitoringHistory) cache.monitoringHistory = [];
+    cache.monitoringHistory = [historyRecord, ...cache.monitoringHistory.filter(h => h.area !== area && h.caseId !== caseId)];
+
+    return historyRecord;
   },
 
   async updateOpsAnomaly(payload) {

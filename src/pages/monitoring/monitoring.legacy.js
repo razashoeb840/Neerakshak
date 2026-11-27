@@ -52,6 +52,9 @@ export default function initMonitoringPage() {
   window.refreshMonitoringData = refreshMonitoringData;
   window.exportAuditSitrepReport = exportAuditSitrepReport;
   window.downloadSpecificReport = downloadSpecificReport;
+  window.exportAllHistoryCsv = exportAllHistoryCsv;
+  window.exportSingleCaseCsv = exportSingleCaseCsv;
+  window.printDossier = printDossier;
   window.showToast = showToast;
 
   // Initial load
@@ -177,6 +180,7 @@ function renderAllViews(state) {
   renderDiscrepancies(state.discrepancies || []); // Function 4
   renderReturns(state.returns || []); // Function 5 (Itemized return condition breakdown & dual-verification sign-off)
   renderLogs(state.logs || []); // Function 6 (State multi-agency notification feed with Admin flood pins)
+  renderHistory(state.history || []); // Function 7 (Archived Emergency Cases & Audit Dossiers)
   renderNotifications(state.notifications || []);
   renderInspector(state);
   renderRiverTelemetry();
@@ -195,10 +199,13 @@ function renderAllViews(state) {
   // Update badge counts in left rail
   const countTracing = (state.lifecycles || []).length;
   const countDisc = (state.discrepancies || []).filter(d => d.status !== 'Closed' && d.status !== 'Resolved').length;
+  const countHistory = (state.history || []).length;
   const elTracing = document.getElementById('navTracingCount');
   const elDisc = document.getElementById('navDiscCount');
+  const elHistory = document.getElementById('navHistoryCount');
   if (elTracing) elTracing.innerText = countTracing;
   if (elDisc) elDisc.innerText = countDisc;
+  if (elHistory) elHistory.innerText = countHistory;
 }
 
 // FUNCTION 1: DASHBOARD EXECUTIVE OVERVIEW KPIS
@@ -795,8 +802,14 @@ export async function closeReturnAuditCase(caseId, area) {
   showToast(`Sealing audit & closing case for ${area}...`, 'info');
   try {
     await closeReturnCaseApi({ caseId, area });
-    showToast(`Case ${caseId} for ${area} officially closed & signed off by State DEOC!`, 'success');
+    showToast(`Case ${caseId} for ${area} officially closed, sealed and moved to History!`, 'success');
     refreshMonitoringData();
+    setTimeout(() => {
+      const histBtn = document.querySelector('[data-tab=history]');
+      if (histBtn && window.switchMonitorTab) {
+        window.switchMonitorTab('history', histBtn);
+      }
+    }, 500);
   } catch (err) {
     console.error('closeReturnAuditCase error:', err);
     showToast(`Case closed locally.`, 'success');
@@ -907,72 +920,193 @@ function renderLogs(logs) {
   }).join('');
 }
 
-// FUNCTION 9: REPORTS & AUDIT HISTORY
-function renderReports(state) {
-  const container = document.getElementById('reportsContainerGrid');
+// FUNCTION 7: ARCHIVED EMERGENCY CASES & OFFICIAL AUDIT DOSSIERS
+function renderHistory(historyCases) {
+  const container = document.getElementById('archivedHistoryCardsGrid');
   if (!container) return;
 
-  container.innerHTML = `
-    <div className="report-tile-card anim-card">
-      <div>
-        <div style="display:flex; align-items:center; gap: 8px; margin-bottom: 4px;">
-          <i class="fas fa-route" style="color: #0284c7; font-size: 16px;"></i>
-          <strong style="font-size: 13.5px; color: #0f172a;">Complete Resource Lifecycle Trail</strong>
-        </div>
-        <p style="font-size: 11px; color: #64748b; margin: 0; line-height: 1.4;">
-          Comprehensive journey report tracing approved, dispatched, received, and returned quantities across all active sectors with timestamps.
+  if (!historyCases || historyCases.length === 0) {
+    container.innerHTML = `
+      <div style="text-align: center; color: #64748b; padding: 40px 20px; background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 12px;">
+        <i class="fas fa-box-archive" style="font-size: 36px; color: #94a3b8; margin-bottom: 12px; display: block;"></i>
+        <strong style="font-size: 14.5px; color: #334155;">No Archived Cases in DEOC Ledger Yet</strong>
+        <p style="font-size: 11.5px; color: #64748b; max-width: 520px; margin: 8px auto 0 auto; line-height: 1.5;">
+          When an affected sector completes all 5 lifecycle stages and is signed off in the Returns tab by the Monitoring Officer, its full tamper-proof case dossier, multi-agency audit chain, and official recovery certificate are archived here permanently.
         </p>
       </div>
-      <button class="btn-mo" style="width: 100%; background: #0284c7; color: #fff; padding: 7px;" onclick="window.downloadSpecificReport('lifecycle')">
-        <i class="fas fa-download"></i> Download Lifecycle Report (CSV)
-      </button>
-    </div>
+    `;
+    return;
+  }
 
-    <div className="report-tile-card anim-card">
-      <div>
-        <div style="display:flex; align-items:center; gap: 8px; margin-bottom: 4px;">
-          <i class="fas fa-scale-balanced" style="color: #4338ca; font-size: 16px;"></i>
-          <strong style="font-size: 13.5px; color: #0f172a;">Reconciliation & Variance Ledger</strong>
-        </div>
-        <p style="font-size: 11px; color: #64748b; margin: 0; line-height: 1.4;">
-          Detailed reconciliation cross-referencing DDMA approved allocations vs Central Godown dispatched units vs Ground Officer receipt confirmations.
-        </p>
-      </div>
-      <button class="btn-mo" style="width: 100%; background: #4338ca; color: #fff; padding: 7px;" onclick="window.downloadSpecificReport('reconciliation')">
-        <i class="fas fa-download"></i> Download Reconciliation (CSV)
-      </button>
-    </div>
+  container.innerHTML = historyCases.map(c => {
+    const p = c.personnel || {};
+    const items = c.itemBreakdown || [];
 
-    <div className="report-tile-card anim-card">
-      <div>
-        <div style="display:flex; align-items:center; gap: 8px; margin-bottom: 4px;">
-          <i class="fas fa-triangle-exclamation" style="color: #dc2626; font-size: 16px;"></i>
-          <strong style="font-size: 13.5px; color: #0f172a;">Discrepancy & Shortage Investigation Dossier</strong>
-        </div>
-        <p style="font-size: 11px; color: #64748b; margin: 0; line-height: 1.4;">
-          Complete list of all supply shortages, damaged items, escalation statuses, and audit clarifications requested from field officers.
-        </p>
-      </div>
-      <button class="btn-mo" style="width: 100%; background: #dc2626; color: #fff; padding: 7px;" onclick="window.downloadSpecificReport('discrepancies')">
-        <i class="fas fa-download"></i> Download Discrepancy Dossier (CSV)
-      </button>
-    </div>
+    return `
+      <div className="lifecycle-card anim-card" style="border-left: 5px solid #16a34a; background: #ffffff; padding: 18px 20px; box-shadow: 0 4px 14px rgba(0,0,0,0.04); margin-bottom: 14px; border-radius: 12px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 14px;">
+          <div>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+              <span style="background: #fef3c7; border: 1px solid #fde68a; color: #92400e; font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 6px; letter-spacing: 0.5px; display: inline-flex; align-items: center; gap: 5px;">
+                <i class="fas fa-stamp" style="color: #d97706;"></i> ${c.sealNo || 'DEOC-AUD-SEALED'}
+              </span>
+              <span style="background: #f0fdf4; border: 1px solid #86efac; color: #166534; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                <i class="fas fa-circle-check"></i> Case Closed & Recovered
+              </span>
+            </div>
+            <h3 style="margin: 0; font-size: 16px; color: #0f172a; display: flex; align-items: center; gap: 6px;">
+              <i class="fas fa-box-archive" style="color:#16a34a;"></i>
+              ${c.area || c.village} Sector Crisis Audit Dossier
+            </h3>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">
+              Case ID: <strong style="color:#0284c7;">${c.caseId}</strong> • Closed On: <strong>${c.closedAt}</strong> • Sign-off Auditor: <strong>${c.closedBy || 'State Monitoring Officer'}</strong>
+            </div>
+          </div>
 
-    <div className="report-tile-card anim-card">
-      <div>
-        <div style="display:flex; align-items:center; gap: 8px; margin-bottom: 4px;">
-          <i class="fas fa-rotate-left" style="color: #0d9488; font-size: 16px;"></i>
-          <strong style="font-size: 13.5px; color: #0f172a;">Post-Operation Asset Return & Damage Audit</strong>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn-mo" style="padding: 6px 12px; font-size: 11.5px; background: #0284c7; color: #fff; border-color: #0284c7;" onclick="window.exportSingleCaseCsv('${c.caseId}')">
+              <i class="fas fa-file-csv"></i> Export Certificate (CSV)
+            </button>
+            <button type="button" class="btn-mo" style="padding: 6px 12px; font-size: 11.5px;" onclick="window.printDossier('${c.caseId}')">
+              <i class="fas fa-print"></i> Print SITREP
+            </button>
+          </div>
         </div>
-        <p style="font-size: 11px; color: #64748b; margin: 0; line-height: 1.4;">
-          Audit of returned relief equipment restocked to central warehouse inventory, broken down by good, damaged, and missing items.
-        </p>
+
+        <!-- 5-STAGE COMPLETED LIFECYCLE STEPPER (ALL CHECKED) -->
+        <div class="lifecycle-stepper-wrap" style="margin-bottom: 14px;">
+          <div class="lifecycle-step completed">
+            <div class="step-circle"><i class="fas fa-check"></i></div>
+            <div class="step-title">1. Flood Pin</div>
+            <div class="step-subtitle">Admin GIS Alert</div>
+          </div>
+          <div class="lifecycle-step completed">
+            <div class="step-circle"><i class="fas fa-check"></i></div>
+            <div class="step-title">2. Allocation</div>
+            <div class="step-subtitle">DDMA Approved</div>
+          </div>
+          <div class="lifecycle-step completed">
+            <div class="step-circle"><i class="fas fa-check"></i></div>
+            <div class="step-title">3. Dispatch</div>
+            <div class="step-subtitle">Convoy Gate-Pass</div>
+          </div>
+          <div class="lifecycle-step completed">
+            <div class="step-circle"><i class="fas fa-check"></i></div>
+            <div class="step-title">4. Ground Receipt</div>
+            <div class="step-subtitle">Field Intake Signed</div>
+          </div>
+          <div class="lifecycle-step completed">
+            <div class="step-circle"><i class="fas fa-check"></i></div>
+            <div class="step-title">5. Restock Sealed</div>
+            <div class="step-subtitle">Warehouse Reconciled</div>
+          </div>
+        </div>
+
+        <!-- BALANCED RECONCILIATION SUMMARY -->
+        <div style="font-size: 11px; font-weight: 700; color: #334155; text-transform: uppercase; margin-bottom: 6px;">
+          <i class="fas fa-scale-balanced" style="color: #0284c7;"></i> Final Balanced Resource Reconciliation Ledger (0 Variance):
+        </div>
+        <div style="overflow-x:auto; margin-bottom: 12px;">
+          <table class="item-audit-table" style="width:100%; font-size:11.5px;">
+            <thead>
+              <tr style="background:#f1f5f9; text-align:left;">
+                <th style="padding:6px 10px;">Resource Consignment Item</th>
+                <th style="padding:6px 10px;">Approved Quota</th>
+                <th style="padding:6px 10px;">Godown Dispatched</th>
+                <th style="padding:6px 10px;">Ground Received</th>
+                <th style="padding:6px 10px;">Returned / Restocked</th>
+                <th style="padding:6px 10px;">Audit Variance</th>
+                <th style="padding:6px 10px;">Final Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map(it => `
+                <tr style="border-bottom:1px solid #e2e8f0;">
+                  <td style="padding:6px 10px;"><strong>${it.name}</strong></td>
+                  <td style="padding:6px 10px;">${it.approved} Units</td>
+                  <td style="padding:6px 10px; color:#0369a1; font-weight:700;">${it.dispatched} Units</td>
+                  <td style="padding:6px 10px; color:#15803d; font-weight:700;">${it.received} Units</td>
+                  <td style="padding:6px 10px; color:#7c3aed; font-weight:700;">${it.returned ?? it.distributed ?? it.received} Units</td>
+                  <td style="padding:6px 10px; color:#16a34a; font-weight:800;">✓ 0 Variance</td>
+                  <td style="padding:6px 10px;"><span class="badge badge-good" style="font-size:9.5px;">${it.status}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- MULTI-AGENCY CHAIN OF CUSTODY PARTICIPANTS -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; font-size: 11px;">
+          <div style="font-weight: 700; color: #475569; margin-bottom: 6px; text-transform: uppercase;">
+            <i class="fas fa-users-gear" style="color:#0284c7;"></i> Verified Multi-Agency Participants & Custody Chain:
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; line-height: 1.4;">
+            <div>• <b>Authority:</b> ${p.allocatingAuthority || 'Dr. A. K. Sharma (DM / DDMA)'}</div>
+            <div>• <b>Central Godown:</b> ${p.warehouseManager || 'Rajesh Das (WH-MIRZA)'}</div>
+            <div>• <b>Convoy Vehicle:</b> ${p.vehicle || 'Heavy Truck AS-01-EC-4210'}</div>
+            <div>• <b>Convoy Driver:</b> ${p.convoyDriver || 'Rajesh Das (+91 98640-21943)'}</div>
+            <div>• <b>NDRF Escort:</b> ${p.escortOfficer || 'NDRF (1st Bn) - Inspector Rajesh Kalita'}</div>
+            <div>• <b>Ground Officer:</b> ${p.groundOfficer || 'Bhaskar Jyoti Das (GO-KAM-04)'}</div>
+          </div>
+        </div>
       </div>
-      <button class="btn-mo" style="width: 100%; background: #0d9488; color: #fff; padding: 7px;" onclick="window.downloadSpecificReport('returns')">
-        <i class="fas fa-download"></i> Download Asset Return Audit (CSV)
-      </button>
-    </div>
-  `;
+    `;
+  }).join('');
+}
+
+export function exportAllHistoryCsv() {
+  const state = getCurrentMonitoringState();
+  const history = state.history || [];
+  if (history.length === 0) {
+    showToast('No archived cases to export yet.', 'info');
+    return;
+  }
+  let csv = 'Case ID,Seal Number,Area / Sector,Status,Closed At,Closed By,Allocating Authority,Warehouse Manager,NDRF Escort,Ground Officer,Audit Notes\n';
+  history.forEach(c => {
+    const p = c.personnel || {};
+    csv += `"${c.caseId}","${c.sealNo || ''}","${c.area || c.village}","${c.status}","${c.closedAt}","${c.closedBy || ''}","${p.allocatingAuthority || ''}","${p.warehouseManager || ''}","${p.escortOfficer || ''}","${p.groundOfficer || ''}","${(c.notes || '').replace(/"/g, '""')}"\n`;
+  });
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `DEOC-Archived-Audit-Ledger-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Full DEOC Archived Audit Ledger CSV downloaded.', 'success');
+}
+
+export function exportSingleCaseCsv(caseId) {
+  const state = getCurrentMonitoringState();
+  const c = (state.history || []).find(h => h.caseId === caseId);
+  if (!c) {
+    showToast(`Case ${caseId} record not found.`, 'error');
+    return;
+  }
+  let csv = `OFFICIAL DEOC DISASTER RECOVERY & AUDIT CERTIFICATE\n`;
+  csv += `Case ID,${c.caseId}\n`;
+  csv += `Audit Seal No,${c.sealNo || 'DEOC-AUD-SEALED'}\n`;
+  csv += `Area / Flood Sector,${c.area || c.village}\n`;
+  csv += `Audit Status,${c.status}\n`;
+  csv += `Closed Timestamp,${c.closedAt}\n`;
+  csv += `Auditor Sign-off,${c.closedBy || 'State Monitoring Officer'}\n\n`;
+  csv += `BALANCED RECONCILIATION SUMMARY (0 VARIANCE)\n`;
+  csv += `Resource Item,Approved Quota,Godown Dispatched,Ground Received,Returned / Restocked,Variance,Final Status\n`;
+  (c.itemBreakdown || []).forEach(it => {
+    csv += `"${it.name}",${it.approved},${it.dispatched},${it.received},${it.returned ?? it.distributed ?? it.received},0,"${it.status}"\n`;
+  });
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Audit-Certificate-${c.caseId}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(`Official Audit Certificate for ${c.area || caseId} downloaded!`, 'success');
+}
+
+export function printDossier(caseId) {
+  window.print();
 }
 
 export function downloadSpecificReport(type) {

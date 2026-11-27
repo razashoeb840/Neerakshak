@@ -10,6 +10,7 @@ import {
   updateRescueProgressApi,
   confirmSituationControlledApi,
   submitReturnVerificationApi,
+  markReadyForDistributionApi,
   startGroundOfficerSync
 } from './groundOfficerApi.js';
 
@@ -487,8 +488,8 @@ export default function initGroundOfficerPage() {
                         <td>${it.requested} Units</td>
                         <td style="color:#0369a1; font-weight:700;">${it.dispatched} Units</td>
                         <td style="color:${it.received > 0 ? '#15803d' : '#64748b'}; font-weight:700;">${it.received > 0 ? `${it.received} Units` : (isVerified ? `${it.dispatched} Units` : 'Awaiting Count')}</td>
-                        <td style="color:${(it.shortage + it.damaged) > 0 ? '#dc2626' : '#15803d'}; font-weight:700;">
-                          ${(it.shortage + it.damaged) > 0 ? `${it.shortage} Short, ${it.damaged} Dmg` : '0 Variance'}
+                        <td style="color:${!isVerified ? '#64748b' : ((it.shortage + it.damaged) > 0 ? '#dc2626' : '#15803d')}; font-weight:700;">
+                          ${!isVerified ? '— (Awaiting Intake Count)' : ((it.shortage + it.damaged) > 0 ? `${it.shortage} Short, ${it.damaged} Dmg` : '0 Variance')}
                         </td>
                         <td>
                           <span class="pill ${isVerified ? 'p-good' : 'p-pending'}" style="font-size:9.5px;">${isVerified ? 'Verified' : 'Pending Intake'}</span>
@@ -511,44 +512,54 @@ export default function initGroundOfficerPage() {
                 ${d.verifiedAt ? `<span style="font-size:10.5px; color:#15803d; font-weight:700;"><i class="fas fa-clock-check"></i> Verified at: ${d.verifiedAt}</span>` : ''}
               </div>
 
-              ${isCleared ? `
-                <div class="return-ready-banner">
-                  <i class="fas fa-check-double" style="font-size:16px;"></i>
+              ${d.readyForDistribution ? `
+                <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:9px 13px; margin-top:8px; font-size:11.5px; color:#14532d; display:flex; align-items:center; gap:8px;">
+                  <i class="fas fa-people-carry-box" style="font-size:18px; color:#16a34a;"></i>
                   <div>
-                    <strong>Situation Controlled & Cleared:</strong>
-                    You have confirmed rescue operations are complete and situation in ${d.destination} is under control. Equipment is unlocked in the Returns portal.
+                    <strong>Relief Supplies Ready for Citizen Distribution & Deployed:</strong>
+                    Dry food rations and medical kits are verified and approved for immediate distribution to flood-affected citizens. Motorized rescue craft and life jackets deployed with field response teams.
+                  </div>
+                </div>
+              ` : (isVerified ? `
+                <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:9px 13px; margin-top:8px; font-size:11.5px; color:#1e40af; display:flex; align-items:center; gap:8px;">
+                  <i class="fas fa-boxes-packing" style="font-size:18px; color:#2563eb;"></i>
+                  <div>
+                    <strong>Consignment Intake Verified:</strong>
+                    Click "Mark Ready for Distribution" below to release dry food rations & medical kits for citizen distribution, and deploy rescue boats.
                   </div>
                 </div>
               ` : `
-                <div class="return-lock-banner">
-                  <i class="fas fa-hourglass-half" style="font-size:16px;"></i>
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; margin-top:8px; font-size:11.5px; color:#64748b; display:flex; align-items:center; gap:8px;">
+                  <i class="fas fa-truck-ramp-box" style="font-size:16px; color:#0284c7;"></i>
                   <div>
-                    <strong>Field Operation Active:</strong>
-                    Return restock is locked until you complete verification and confirm the situation is under control.
+                    <strong>Convoy Dispatched:</strong>
+                    Inspect truck seal and complete physical intake count to verify delivery.
                   </div>
                 </div>
-              `}
+              `)}
 
               <!-- ACTION FOOTER -->
               <div class="sub-card-footer" style="margin-top:12px; padding-top:10px; border-top:1px dashed #cbd5e1; flex-wrap:wrap; gap:8px;">
                 <span style="font-size:11px; color:var(--text-muted);"><i class="fas fa-link"></i> Linked to Central Godown Waybill <strong>${d.dispatchId}</strong></span>
-                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                   ${!isVerified ? `
                     <button type="button" class="btn-go primary" onclick="openVerifyDeliveryModal(${origIdx})">
                       <i class="fas fa-check-double"></i> Verify Physical Delivery Intake
                     </button>
                   ` : `
                     <span style="font-size:11px; font-weight:700; color:#15803d; padding:4px 10px; background:#f0fdf4; border-radius:6px; border:1px solid #bbf7d0;">
-                      <i class="fas fa-lock"></i> Physical Receipt Verified
+                      <i class="fas fa-clipboard-check"></i> Physical Receipt Verified
                     </span>
                   `}
-                  ${!isCleared ? `
-                    <button type="button" class="btn-go primary" style="background:#15803d; border-color:#16a34a; font-size:11px; padding:6px 12px;" onclick="window.confirmSituationControlledOnGround('${d.dispatchId}', '${(d.destination || '').replace(/'/g, "\\'")}')">
-                      <i class="fas fa-shield-check"></i> Confirm Situation Controlled & Release for Return
+                  ${d.readyForDistribution ? `
+                    <span style="font-size:11.5px; font-weight:700; color:#15803d; padding:5px 12px; background:#f0fdf4; border-radius:6px; border:1px solid #bbf7d0; display:inline-flex; align-items:center; gap:6px;">
+                      <i class="fas fa-circle-check"></i> ✓ Ready for Citizen Distribution & Field Deployed
+                    </span>
+                  ` : (isVerified ? `
+                    <button type="button" class="btn-go primary" style="background:#15803d; border-color:#16a34a; font-size:11.5px; padding:7px 14px; font-weight:700;" onclick="window.markReadyForDistribution('${d.dispatchId}', '${(d.destination || '').replace(/'/g, "\\'")}')">
+                      <i class="fas fa-people-carry-box"></i> Mark Ready for Distribution / Field Deployed (राहत वितरण हेतु तैयार)
                     </button>
-                  ` : `
-                    <span style="font-size:11px; font-weight:700; color:#15803d; padding:4px 8px;"><i class="fas fa-circle-check"></i> Cleared for Return</span>
-                  `}
+                  ` : '')}
                 </div>
               </div>
             </div>
@@ -660,7 +671,7 @@ export default function initGroundOfficerPage() {
         : visReturns.map(r => {
           const items = r.items || [];
           return `
-            <div class="sub-card ${r.canReturnInput ? 'tone-good' : 'tone-amber'}" style="margin-bottom:14px; padding:16px 18px;">
+            <div class="sub-card tone-good" style="margin-bottom:14px; padding:16px 18px;">
               <div class="sub-card-top" style="align-items:flex-start; margin-bottom:8px;">
                 <div>
                   <h4 style="margin:0 0 4px 0; font-size:14px; color:var(--navy-deep);">
@@ -671,28 +682,18 @@ export default function initGroundOfficerPage() {
                     Consignment: <strong>${r.item}</strong> • Ground Officer: <strong>${r.groundOfficer || 'Bhaskar Jyoti Das'}</strong>
                   </div>
                 </div>
-                <span class="pill ${r.canReturnInput ? 'p-good' : 'p-pending'}" style="font-size:10px;">
-                  ${r.canReturnInput ? 'Return Intake Ready' : 'Locked (Operation Active)'}
+                <span class="pill ${r.groundVerified ? 'p-good' : 'p-pending'}" style="font-size:10px;">
+                  ${r.groundVerified ? 'Return Condition Logged' : 'Return Handover Ready'}
                 </span>
               </div>
 
-              ${!r.canReturnInput ? `
-                <div class="return-lock-banner">
-                  <i class="fas fa-lock" style="font-size:18px;"></i>
-                  <div>
-                    <strong>Return Intake Guard Active:</strong>
-                    ${r.lockReason || 'Physical delivery must be verified and ground officer must confirm situation under control before equipment can be returned.'}
-                  </div>
+              <div class="return-ready-banner" style="background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:9px 13px; font-size:11.5px; color:#14532d; display:flex; align-items:center; gap:8px;">
+                <i class="fas fa-shield-check" style="font-size:18px; color:#16a34a;"></i>
+                <div>
+                  <strong>Field Equipment Audit & Restock Clearance:</strong>
+                  Inspect field condition of motorized rescue craft, life jackets, and tents. Record good vs damaged vs missing gear to clear consignment for warehouse restock.
                 </div>
-              ` : `
-                <div class="return-ready-banner">
-                  <i class="fas fa-shield-check" style="font-size:18px;"></i>
-                  <div>
-                    <strong>Ground Clearance Granted:</strong>
-                    Floodwaters have receded to safe marks. Field unit is clearing equipment for Central Godown return restock.
-                  </div>
-                </div>
-              `}
+              </div>
 
               <!-- ITEM-WISE RETURN CONDITION TABLE -->
               <div style="font-size:11px; font-weight:700; color:#334155; text-transform:uppercase; margin-top:10px;">
@@ -718,7 +719,7 @@ export default function initGroundOfficerPage() {
                         <td style="color:#15803d; font-weight:700;">${it.good} Units</td>
                         <td style="color:#d97706; font-weight:700;">${it.damaged} Units</td>
                         <td style="color:#dc2626; font-weight:700;">${it.missing} Units</td>
-                        <td><span class="pill ${it.status === 'Field Inspected' ? 'p-good' : 'p-pending'}" style="font-size:9px;">${it.status}</span></td>
+                        <td><span class="pill ${it.status === 'Ground Verified' ? 'p-good' : 'p-pending'}" style="font-size:9px;">${it.status}</span></td>
                       </tr>
                     `).join('')}
                   </tbody>
@@ -729,17 +730,11 @@ export default function initGroundOfficerPage() {
                 <strong>Field Officer Damage & Inspection Feedback:</strong> ${r.remarks}
               </p>
 
-              <div class="sub-card-footer" style="padding-top:10px; border-top:1px dashed #cbd5e1; margin-top:10px;">
-                <span style="font-size:10.5px; color:var(--text-muted);">Dual-verification protocol with Central Godown WH-MIRZA</span>
-                ${r.canReturnInput ? `
-                  <button type="button" class="btn-go primary" onclick="window.openReturnVerifyModal('${(r.location || '').replace(/'/g, "\\'")}')">
-                    <i class="fas fa-clipboard-check"></i> Submit Itemized Return Audit to Godown
-                  </button>
-                ` : `
-                  <button type="button" class="btn-go" disabled style="opacity:0.6; cursor:not-allowed;">
-                    <i class="fas fa-lock"></i> Return Input Locked
-                  </button>
-                `}
+              <div class="sub-card-footer" style="padding-top:10px; border-top:1px dashed #cbd5e1; margin-top:10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <span style="font-size:10.5px; color:var(--text-muted);"><i class="fas fa-link"></i> Dual-verification protocol with Central Godown WH-MIRZA</span>
+                <button type="button" class="btn-go primary" style="padding:7px 14px; font-weight:700;" onclick="window.openReturnVerifyModal('${(r.location || '').replace(/'/g, "\\'")}')">
+                  <i class="fas fa-clipboard-check"></i> Log Field Equipment Condition & Handover (उपकरण स्थिति व वापसी दर्ज करें)
+                </button>
               </div>
             </div>
           `;
@@ -1052,8 +1047,28 @@ export default function initGroundOfficerPage() {
       sel.innerHTML = areas.map(a => `<option value="${a.village}">${a.village}</option>`).join('');
       if (preSelectedLoc) sel.value = preSelectedLoc;
     }
+    const currentLoc = sel?.value || preSelectedLoc || 'Assigned Sector';
+    const ret = (state?.returns || []).find(r => r.location === currentLoc || r.area === currentLoc);
+
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.value = val;
+    };
+
+    setVal('rvBoatsGood', ret?.boatsGood ?? 2);
+    setVal('rvBoatsDmg', ret?.boatsDamaged ?? 1);
+    setVal('rvBoatsMiss', ret?.boatsMissing ?? 0);
+
+    setVal('rvJacketsGood', ret?.jacketsGood ?? 31);
+    setVal('rvJacketsDmg', ret?.jacketsDamaged ?? 1);
+    setVal('rvJacketsMiss', ret?.jacketsMissing ?? 1);
+
+    setVal('rvTentsGood', ret?.tentsGood ?? 11);
+    setVal('rvTentsDmg', ret?.tentsDamaged ?? 1);
+    setVal('rvTentsMiss', ret?.tentsMissing ?? 0);
+
     const remarks = document.getElementById('rvRemarks');
-    if (remarks) remarks.value = 'Rescue completed and situation controlled. 1 boat pontoon punctured during rescue near river dyke; 2 life jackets damaged. Packed for Godown intake.';
+    if (remarks) remarks.value = ret?.remarks || 'Field rescue completed. 1 boat pontoon punctured during river crossing; 1 life jacket torn. Cleaned and packaged for Central Godown restock.';
     document.getElementById('returnVerifyModal').classList.add('open');
   }
 
@@ -1061,10 +1076,20 @@ export default function initGroundOfficerPage() {
     e.preventDefault();
     const location = document.getElementById('rvLocationSel')?.value?.trim() || 'Assigned Sector';
     const item = document.getElementById('rvItemName')?.value?.trim() || 'Rescue Equipment';
-    const good = Number(document.getElementById('rvGoodQty')?.value) || 0;
-    const damaged = Number(document.getElementById('rvDmgQty')?.value) || 0;
-    const missing = Number(document.getElementById('rvMissQty')?.value) || 0;
-    const remarks = document.getElementById('rvRemarks')?.value?.trim() || 'Condition verified on ground';
+
+    const boatsGood = Number(document.getElementById('rvBoatsGood')?.value) || 0;
+    const boatsDamaged = Number(document.getElementById('rvBoatsDmg')?.value) || 0;
+    const boatsMissing = Number(document.getElementById('rvBoatsMiss')?.value) || 0;
+
+    const jacketsGood = Number(document.getElementById('rvJacketsGood')?.value) || 0;
+    const jacketsDamaged = Number(document.getElementById('rvJacketsDmg')?.value) || 0;
+    const jacketsMissing = Number(document.getElementById('rvJacketsMiss')?.value) || 0;
+
+    const tentsGood = Number(document.getElementById('rvTentsGood')?.value) || 0;
+    const tentsDamaged = Number(document.getElementById('rvTentsDmg')?.value) || 0;
+    const tentsMissing = Number(document.getElementById('rvTentsMiss')?.value) || 0;
+
+    const remarks = document.getElementById('rvRemarks')?.value?.trim() || 'Field condition verified on ground';
 
     closeModal('returnVerifyModal');
 
@@ -1072,18 +1097,40 @@ export default function initGroundOfficerPage() {
       await submitReturnVerificationApi({
         item,
         location,
-        good,
-        damaged,
-        missing,
+        boatsGood,
+        boatsDamaged,
+        boatsMissing,
+        jacketsGood,
+        jacketsDamaged,
+        jacketsMissing,
+        tentsGood,
+        tentsDamaged,
+        tentsMissing,
         remarks,
         officer: 'Bhaskar Jyoti Das (GO-KAM-04)'
       });
 
       renderAllGroundViews();
-      showToast('Return condition verification submitted & synced with Godown Manager.');
+      showToast(`Itemized return condition for ${location} submitted & synced with Godown Manager.`, 'success');
     } catch (err) {
       console.error('Return verification error:', err);
       showToast('Return verification submitted.');
+    }
+  }
+
+  async function markReadyForDistribution(dispatchId, area) {
+    try {
+      await markReadyForDistributionApi(dispatchId, area);
+      const d = (state?.deliveries || []).find(item => item.dispatchId === dispatchId || item.destination === area);
+      if (d) {
+        d.readyForDistribution = true;
+        d.distributionStatus = 'Ready for Citizen Distribution & Field Deployed';
+      }
+      renderAllGroundViews();
+      showToast(`Supplies for ${area || dispatchId} marked ready for distribution & deployed in field!`, 'success');
+    } catch (err) {
+      console.error('markReadyForDistribution error:', err);
+      showToast('Delivery marked ready for citizen distribution.');
     }
   }
 
@@ -1211,7 +1258,8 @@ export default function initGroundOfficerPage() {
     selectSosSector,
     quickFileSos,
     quickVerifyFirstPending,
-    quickOpenRescueModal
+    quickOpenRescueModal,
+    markReadyForDistribution
   });
 
   __ready.forEach((fn) => fn());

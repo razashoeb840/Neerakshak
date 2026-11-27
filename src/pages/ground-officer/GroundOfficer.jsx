@@ -632,19 +632,40 @@ const markup = (
                 <input type="text" id="rvItemName" className="form-control" defaultValue="Relief Consignment Rescue Craft & Equipment" required />
               </div>
             </div>
-            <div style={{ fontSize: "11px", fontWeight: "700", color: "#334155", margin: "6px 0" }}>Returned Items Condition Audit:</div>
-            <div className="form-grid-3">
-              <div className="form-group">
-                <label>Good Condition Qty *</label>
-                <input type="number" id="rvGoodQty" className="form-control" min="0" defaultValue="8" required />
+            <div style={{ fontSize: "11px", fontWeight: "700", color: "#334155", margin: "6px 0", textTransform: "uppercase" }}>Itemized Condition Breakdown (Handover to Central Godown):</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "12px" }}>
+              {/* Boats */}
+              <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "8px 10px" }}>
+                <span style={{ fontSize: "11.5px", fontWeight: "700", color: "#0369a1", display: "block", marginBottom: "4px" }}>
+                  <i className="fas fa-ship"></i> 1. Inflatable Rescue Boats (Rescue Craft)
+                </span>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
+                  <div><label style={{ fontSize: "10px", color: "#166534", fontWeight: "700" }}>Good Condition *</label><input type="number" id="rvBoatsGood" className="form-control" min="0" defaultValue="2" required /></div>
+                  <div><label style={{ fontSize: "10px", color: "#b45309", fontWeight: "700" }}>Damaged</label><input type="number" id="rvBoatsDmg" className="form-control" min="0" defaultValue="1" /></div>
+                  <div><label style={{ fontSize: "10px", color: "#991b1b", fontWeight: "700" }}>Missing</label><input type="number" id="rvBoatsMiss" className="form-control" min="0" defaultValue="0" /></div>
+                </div>
               </div>
-              <div className="form-group">
-                <label>Damaged Qty *</label>
-                <input type="number" id="rvDmgQty" className="form-control" min="0" defaultValue="1" required />
+              {/* Life Jackets */}
+              <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "8px 10px" }}>
+                <span style={{ fontSize: "11.5px", fontWeight: "700", color: "#0369a1", display: "block", marginBottom: "4px" }}>
+                  <i className="fas fa-vest"></i> 2. Life Jackets (SOLAS Standard)
+                </span>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
+                  <div><label style={{ fontSize: "10px", color: "#166534", fontWeight: "700" }}>Good Condition *</label><input type="number" id="rvJacketsGood" className="form-control" min="0" defaultValue="31" required /></div>
+                  <div><label style={{ fontSize: "10px", color: "#b45309", fontWeight: "700" }}>Damaged</label><input type="number" id="rvJacketsDmg" className="form-control" min="0" defaultValue="1" /></div>
+                  <div><label style={{ fontSize: "10px", color: "#991b1b", fontWeight: "700" }}>Missing</label><input type="number" id="rvJacketsMiss" className="form-control" min="0" defaultValue="1" /></div>
+                </div>
               </div>
-              <div className="form-group">
-                <label>Missing Qty *</label>
-                <input type="number" id="rvMissQty" className="form-control" min="0" defaultValue="0" required />
+              {/* Tents */}
+              <div style={{ background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "8px 10px" }}>
+                <span style={{ fontSize: "11.5px", fontWeight: "700", color: "#0369a1", display: "block", marginBottom: "4px" }}>
+                  <i className="fas fa-campground"></i> 3. Relief Tents & Stretchers
+                </span>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
+                  <div><label style={{ fontSize: "10px", color: "#166534", fontWeight: "700" }}>Good Condition *</label><input type="number" id="rvTentsGood" className="form-control" min="0" defaultValue="11" required /></div>
+                  <div><label style={{ fontSize: "10px", color: "#b45309", fontWeight: "700" }}>Damaged</label><input type="number" id="rvTentsDmg" className="form-control" min="0" defaultValue="1" /></div>
+                  <div><label style={{ fontSize: "10px", color: "#991b1b", fontWeight: "700" }}>Missing</label><input type="number" id="rvTentsMiss" className="form-control" min="0" defaultValue="0" /></div>
+                </div>
               </div>
             </div>
             <div className="form-group">

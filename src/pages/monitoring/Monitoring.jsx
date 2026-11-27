@@ -80,6 +80,11 @@ const markup = (
           <i className="fas fa-clock-rotate-left"></i>
           <span>Logs</span>
         </button>
+        <button className="rail-btn mon-nav-btn" data-tab="history" onClick={(e) => window.switchMonitorTab('history', e.currentTarget)} title="Archived & Closed Audit Cases">
+          <i className="fas fa-box-archive"></i>
+          <span>History</span>
+          <span className="rail-badge-count count-green" id="navHistoryCount">0</span>
+        </button>
 
         <div className="rail-bottom-cluster">
           <div className="rail-divider"></div>
@@ -410,6 +415,31 @@ const markup = (
             </div>
 
             <div id="fullActivityLogsGrid" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}></div>
+          </div>
+        </div>
+
+        {/* ===============================================================
+            TAB 7: ARCHIVED EMERGENCY CASES & OFFICIAL AUDIT DOSSIERS
+            Permanent DEOC record of closed & restocked disaster zones
+            =============================================================== */}
+        <div className="mo-tab-pane" id="tab-history">
+          <div className="aqua-card">
+            <div className="card-head">
+              <div>
+                <h2>
+                  <i className="fas fa-box-archive" style={{ color: "var(--teal-water)" }}></i>
+                  {" Archived Flood Emergency Cases & Closed Audit Dossiers"}
+                </h2>
+                <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>
+                  Permanent DEOC ledger of closed and recovered disaster zones. Signed dual-verifications, final balanced reconciliations, and downloadable certificates.
+                </div>
+              </div>
+              <button type="button" className="btn-mo" style={{ background: '#0284c7', color: '#fff' }} onClick={() => window.exportAllHistoryCsv && window.exportAllHistoryCsv()}>
+                <i className="fas fa-file-csv"></i> Export Full Audit Ledger
+              </button>
+            </div>
+
+            <div id="archivedHistoryCardsGrid" style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '12px' }}></div>
           </div>
         </div>
       </main>

@@ -466,6 +466,13 @@ function groundBackendPlugin() {
             return;
           }
 
+          if (pathname.endsWith('/ready-distribution') && method === 'POST') {
+            const result = await groundDb.markReadyForDistribution(body);
+            res.statusCode = 200;
+            res.end(JSON.stringify({ success: true, data: result }));
+            return;
+          }
+
           if (pathname.endsWith('/rescue-ops')) {
             if (method === 'POST') {
               const op = await groundDb.updateRescueProgress(body);
