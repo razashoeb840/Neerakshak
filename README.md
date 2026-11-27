@@ -301,9 +301,9 @@ The **NEERAKSHAK** Emergency Disaster Management & Forensic Telemetry System was
 
 <br/>
 
-| <img src="https://avatars.githubusercontent.com/u/108398836?v=4" width="130px;" style="border-radius:50%; box-shadow: 0 4px 10px rgba(0,0,0,0.2);" alt="Shoeb Raza"/><br/> **SHOEB RAZA** | <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" width="130px;" style="border-radius:50%; box-shadow: 0 4px 10px rgba(0,0,0,0.2);" alt="Sushant Ranjan"/><br/> **SUSHANT RANJAN** | <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80" width="130px;" style="border-radius:50%; box-shadow: 0 4px 10px rgba(0,0,0,0.2);" alt="Aditya Gupta"/><br/> **ADITYA GUPTA** |
+| ### 🚀 SHOEB RAZA | ### ⚡ SUSHANT RANJAN | ### 🛡️ ADITYA GUPTA |
 | :---: | :---: | :---: |
-| 🚀 **Lead Full-Stack Architect & Backend Systems** | ⚡ **Frontend Specialist & UI/UX Systems** | 🛡️ **GIS Systems & Database Infrastructure** |
+| ![Lead Architect](https://img.shields.io/badge/Role-Lead_Full--Stack_Architect-0284c7?style=for-the-badge) | ![Frontend Specialist](https://img.shields.io/badge/Role-Frontend_Specialist_%26_UI-10b981?style=for-the-badge) | ![GIS & Database](https://img.shields.io/badge/Role-GIS_Systems_%26_Infrastructure-8b5cf6?style=for-the-badge) |
 | *Core Architecture, Next.js API Services, MongoDB Engine, Dual-Verification & Audit Lifecycles* | *Interactive Portal Interfaces, Responsive Layouts, Multi-Portal State & Real-Time Chat Engine* | *Leaflet Geospatial Mapping, Telemetry Data Pipelines, Forensic Verification & System Security* |
 | [![GitHub](https://img.shields.io/badge/GitHub-Profile-181717?style=flat-square&logo=github)](https://github.com/razashoeb840) | [![LinkedIn](https://img.shields.io/badge/Portfolio-Connect-0A66C2?style=flat-square&logo=linkedin)](https://linkedin.com) | [![Network](https://img.shields.io/badge/Dev-Profile-0284c7?style=flat-square&logo=telegram)](https://github.com) |
 
