@@ -1,6 +1,7 @@
 // NEERAKSHAK Ground Officer Portal Logic & Live Integration
 // Connects UI with Next.js Backend & MongoDB Live Operations Engine
 
+import { initInterPortalChat } from '../../components/interportalChat.js';
 import {
   fetchFullGroundState,
   getCurrentGroundState,
@@ -1228,6 +1229,19 @@ export default function initGroundOfficerPage() {
         autoCenterGroundMapOnAreas(state.areas);
       }
     } catch (e) {}
+
+    // 6. Mount Inter-Portal Live Comms & Direct Dispatch Hub
+    try {
+      initInterPortalChat({
+        portalRole: 'ground',
+        portalName: 'Ground Field Officer',
+        officerName: 'Bhaskar Jyoti Das (Ground Officer - GO-KAM-04)',
+        mountSelector: '#portalChatMount_ground',
+        badgeSelector: '#groundCommsBadge'
+      });
+    } catch (commsErr) {
+      console.warn('Ground inter-portal chat mount notice:', commsErr);
+    }
 
     startGroundOfficerSync(12000);
   });

@@ -2,6 +2,7 @@
 // Fully connected with Admin (Areas) and Authority (Allocations) for shared real-time lifecycle.
 // Real-time API Client, Leaflet Convoy Map, Right Inspector Panel, and Inline Stock Management.
 
+import { initInterPortalChat } from '../../components/interportalChat.js';
 import {
   fetchGodownState,
   getCurrentGodownState,
@@ -1515,6 +1516,19 @@ export default function initGodownPage() {
     setInterval(() => {
       fetchGodownState().catch(() => {});
     }, 4000);
+
+    // 7. Mount Inter-Portal Multi-Agency Live Comms Hub
+    try {
+      initInterPortalChat({
+        portalRole: 'godown',
+        portalName: 'Central Godown Manager',
+        officerName: 'Rajesh Das (Warehouse Manager - WH-MIRZA)',
+        mountSelector: '#portalChatMount_godown',
+        badgeSelector: '#godownCommsBadge'
+      });
+    } catch (commsErr) {
+      console.warn('Godown inter-portal chat mount notice:', commsErr);
+    }
   });
 
   async function verifyWarehouseReturnRestock(id, area) {

@@ -1,0 +1,513 @@
+/* =====================================================================
+   INTER-PORTAL REAL-TIME CHAT & COMMS HUB STYLES (NEERAKSHAK)
+   Real-Time Direct & Common Broadcast Communications
+   ===================================================================== */
+
+.intercomms-container {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+  margin-bottom: 20px;
+  font-family: inherit;
+}
+
+/* 1. Header Bar */
+.intercomms-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 1.5px solid #e2e8f0;
+  gap: 12px;
+}
+
+.intercomms-title-block {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.intercomms-radio-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.25);
+}
+
+.intercomms-title-text h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.intercomms-title-text p {
+  margin: 3px 0 0;
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.intercomms-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 10.5px;
+  font-weight: 700;
+  border: 1px solid #bbf7d0;
+}
+
+.intercomms-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: pulseDot 1.5s infinite;
+}
+
+@keyframes pulseDot {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.8; }
+}
+
+/* 2. Controls & Filter Bar */
+.intercomms-filter-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+  gap: 10px;
+}
+
+.intercomms-pills {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.comms-filter-pill {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.comms-filter-pill:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.comms-filter-pill.active {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
+}
+
+.comms-filter-pill.pill-direct.active {
+  background: #7c3aed;
+  border-color: #7c3aed;
+}
+
+.comms-filter-pill.pill-common.active {
+  background: #d97706;
+  border-color: #d97706;
+}
+
+.intercomms-stats-pill {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 3. Messages Feed */
+.intercomms-feed {
+  padding: 16px 20px;
+  min-height: 280px;
+  max-height: 440px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: #f8fafc;
+}
+
+.intercomms-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.intercomms-empty i {
+  font-size: 32px;
+  margin-bottom: 10px;
+  color: #cbd5e1;
+}
+
+/* 4. Message Card */
+.comms-card {
+  position: relative;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 14px 16px;
+  border: 1.5px solid #e2e8f0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.comms-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* DISTINCT BADGING & BORDERS */
+/* A. Personal / Direct Message to this Portal */
+.comms-card.comms-card-direct {
+  border-left: 5px solid #7c3aed;
+  background: linear-gradient(180deg, #fbf7ff 0%, #ffffff 100%);
+  border-color: #ddd6fe;
+}
+
+/* B. Common Broadcast to All Portals */
+.comms-card.comms-card-common {
+  border-left: 5px solid #f59e0b;
+  background: linear-gradient(180deg, #fffdfa 0%, #ffffff 100%);
+  border-color: #fde68a;
+}
+
+/* C. Outgoing Message Sent by this Portal */
+.comms-card.comms-card-outgoing {
+  border-left: 5px solid #10b981;
+  background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 100%);
+  border-color: #a7f3d0;
+}
+
+/* Top Meta Row */
+.comms-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.comms-sender-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.comms-sender-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.avatar-monitoring { background: #0284c7; }
+.avatar-authority { background: #7c3aed; }
+.avatar-godown { background: #d97706; }
+.avatar-ground { background: #059669; }
+.avatar-admin { background: #2563eb; }
+
+.comms-sender-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.comms-role-tag {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.role-tag-monitoring { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+.role-tag-authority { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; }
+.role-tag-godown { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+.role-tag-ground { background: #d1fae5; color: #047857; border: 1px solid #a7f3d0; }
+.role-tag-admin { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+
+/* THE CRITICAL DISTINCTION BADGE (USER REQUIREMENT) */
+.comms-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.comms-badge-direct {
+  background: #7c3aed;
+  color: #ffffff;
+  border: 1px solid #6d28d9;
+}
+
+.comms-badge-common {
+  background: #d97706;
+  color: #ffffff;
+  border: 1px solid #b45309;
+}
+
+.comms-badge-outgoing {
+  background: #059669;
+  color: #ffffff;
+  border: 1px solid #047857;
+}
+
+.comms-target-hint {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+/* Card Message Body */
+.comms-card-text {
+  font-size: 12.5px;
+  color: #1e293b;
+  line-height: 1.55;
+  margin: 6px 0 10px;
+  word-break: break-word;
+}
+
+/* Card Footer with Timestamp & Reply Button */
+.comms-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 10.5px;
+  color: #94a3b8;
+}
+
+.comms-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+}
+
+.btn-reply-direct {
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.btn-reply-direct:hover {
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+}
+
+/* 5. Comms Composer Area */
+.intercomms-composer {
+  padding: 16px 20px;
+  background: #ffffff;
+  border-top: 1.5px solid #e2e8f0;
+}
+
+.composer-meta-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.composer-recipient-select-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.composer-recipient-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.composer-recipient-select {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f172a;
+  background: #ffffff;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.composer-recipient-select:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+}
+
+.composer-mode-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.mode-direct {
+  background: #ede9fe;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
+}
+
+.mode-common {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+/* Quick Response Phrase Chips */
+.composer-quick-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.quick-chip {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.quick-chip:hover {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+
+/* Composer Form */
+.composer-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.composer-textarea {
+  flex: 1;
+  min-height: 48px;
+  max-height: 120px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1.5px solid #cbd5e1;
+  font-size: 12.5px;
+  font-family: inherit;
+  color: #0f172a;
+  outline: none;
+  resize: vertical;
+  line-height: 1.45;
+  transition: border-color 0.15s ease;
+}
+
+.composer-textarea:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+}
+
+.composer-btn-send {
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 11px 22px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.composer-btn-send:hover {
+  background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+  transform: translateY(-1px);
+}
+
+.composer-btn-send:active {
+  transform: translateY(0);
+}

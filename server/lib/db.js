@@ -1987,12 +1987,89 @@ export const monitoringDb = {
     }
 
     // Default chat seed if empty
+    if (!dbChats.length) {
+      dbChats = [
+        {
+          id: 'chat-seed-1',
+          from: 'S. N. Bora (State Monitoring Officer - DEOC)',
+          fromRole: 'monitoring',
+          toRole: 'ground',
+          channel: 'ground',
+          isDirect: true,
+          message: 'Ground Officer GO-KAM-04: Dispatch DSP-2026-932 has departed warehouse. Please confirm intact arrival of 3 Boats and 33 Life Jackets at Nirmali.',
+          badge: 'DIRECTIVE',
+          timestamp: '10:15 AM',
+          createdAt: new Date(Date.now() - 3600000).toISOString()
+        },
+        {
+          id: 'chat-seed-2',
+          from: 'Bhaskar Jyoti Das (Ground Officer - GO-KAM-04)',
+          fromRole: 'ground',
+          toRole: 'monitoring',
+          channel: 'ground',
+          isDirect: true,
+          message: 'Confirmed DEOC. Convoy received at Nirmali sector gate under NDRF escort. Full count verified with zero transit damage.',
+          badge: 'FIELD ACK',
+          timestamp: '10:22 AM',
+          createdAt: new Date(Date.now() - 3200000).toISOString()
+        },
+        {
+          id: 'chat-seed-3',
+          from: 'S. N. Bora (State Monitoring Officer - DEOC)',
+          fromRole: 'monitoring',
+          toRole: 'all',
+          channel: 'all',
+          isDirect: false,
+          message: 'COMMON DIRECTIVE TO ALL SECTORS: Heavy upstream discharge reported in Kosi and Saura basins. All units maintain radio standby.',
+          badge: 'COMMON BROADCAST',
+          timestamp: '10:30 AM',
+          createdAt: new Date(Date.now() - 2500000).toISOString()
+        },
+        {
+          id: 'chat-seed-4',
+          from: 'Rajesh Das (Warehouse Manager - Central Godown WH-MIRZA)',
+          fromRole: 'godown',
+          toRole: 'monitoring',
+          channel: 'godown',
+          isDirect: true,
+          message: 'DEOC Monitoring: Emergency buffer of 500 Food Rations and 80 Life Jackets prepped for immediate secondary dispatch.',
+          badge: 'BUFFER READY',
+          timestamp: '10:45 AM',
+          createdAt: new Date(Date.now() - 1800000).toISOString()
+        },
+        {
+          id: 'chat-seed-5',
+          from: 'Dr. A. K. Sharma (DM / DDMA Chairman)',
+          fromRole: 'authority',
+          toRole: 'all',
+          channel: 'all',
+          isDirect: false,
+          message: 'DISTRICT ORDER: All circle officers to fast-track evacuation of low-lying flood sectors. Coordination with NDRF 1st Bn authorized.',
+          badge: 'DDMA ORDER',
+          timestamp: '11:00 AM',
+          createdAt: new Date(Date.now() - 1200000).toISOString()
+        },
+        {
+          id: 'chat-seed-6',
+          from: 'State Admin GIS Command Desk',
+          fromRole: 'admin',
+          toRole: 'authority',
+          channel: 'authority',
+          isDirect: true,
+          message: 'DM Authority: Ramnagar and Nirmali inundation polygons updated on GIS layer. 4,700 citizens in red danger zone.',
+          badge: 'GIS TELEMETRY',
+          timestamp: '11:15 AM',
+          createdAt: new Date(Date.now() - 600000).toISOString()
+        }
+      ];
+    }
+
     const chatsByRole = {
       ground: dbChats.filter(c => c.channel === 'ground' || c.toRole === 'ground' || c.fromRole === 'ground'),
       godown: dbChats.filter(c => c.channel === 'godown' || c.toRole === 'godown' || c.fromRole === 'godown'),
       authority: dbChats.filter(c => c.channel === 'authority' || c.toRole === 'authority' || c.fromRole === 'authority'),
       admin: dbChats.filter(c => c.channel === 'admin' || c.toRole === 'admin' || c.fromRole === 'admin'),
-      all: dbChats.filter(c => c.channel === 'all' || !c.channel)
+      all: dbChats.filter(c => c.channel === 'all' || !c.channel || c.toRole === 'all')
     };
 
     // 3. Build Full Area-Wise Lifecycle Tracing
@@ -2677,7 +2754,8 @@ export const monitoringDb = {
       deliveryAudits,
       returns: returnsAudit,
       operations: operationsWatch,
-      chats: chatsByRole,
+      chats: dbChats,
+      chatsByRole,
       escalations: dbEscalations,
       announcements: dbAnnouncements,
       notifications,
@@ -2691,16 +2769,22 @@ export const monitoringDb = {
   },
 
   async sendChat(chatData) {
+    const toRole = (chatData.toRole || chatData.channel || 'all').toLowerCase();
+    const fromRole = (chatData.fromRole || chatData.senderRole || 'monitoring').toLowerCase();
+    const isDirect = toRole !== 'all';
+    const channel = isDirect ? toRole : 'all';
+
     const record = {
       id: `chat-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      channel: chatData.channel || 'ground',
-      from: chatData.from || chatData.sender || 'Monitoring Officer (MO-DEOC-02)',
-      fromRole: chatData.fromRole || chatData.senderRole || 'monitoring',
-      toRole: chatData.channel || 'ground',
-      message: (chatData.message || '').trim(),
-      badge: chatData.badge || 'AUDIT NOTE',
+      channel,
+      from: chatData.from || chatData.sender || 'DEOC Officer',
+      fromRole,
+      toRole,
+      isDirect,
+      message: (chatData.message || chatData.text || '').trim(),
+      badge: chatData.badge || (isDirect ? 'PERSONAL DIRECT' : 'COMMON BROADCAST'),
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      createdAt: new Date()
+      createdAt: new Date().toISOString()
     };
 
     const db = await getDatabase();
@@ -2711,7 +2795,40 @@ export const monitoringDb = {
         console.warn('sendChat MongoDB write notice:', e.message);
       }
     }
+
+    if (!cache.chats) cache.chats = [];
+    cache.chats.push(record);
+
     return record;
+  },
+
+  async getChats(portalRole = null) {
+    const db = await getDatabase();
+    let dbChats = [];
+    if (db) {
+      try {
+        dbChats = await db.collection('monitoring_chats').find({}, { projection: { _id: 0 } }).sort({ createdAt: 1 }).toArray();
+      } catch (e) {}
+    }
+    if ((!dbChats || dbChats.length === 0) && cache.chats && cache.chats.length > 0) {
+      dbChats = [...cache.chats];
+    }
+    if (!dbChats || dbChats.length === 0) {
+      const state = await this.getState();
+      dbChats = Array.isArray(state.chats) ? state.chats : [];
+    }
+
+    const p = (portalRole || '').toLowerCase().trim();
+    if (!p || p === 'monitoring' || p === 'all') {
+      return dbChats;
+    }
+
+    return dbChats.filter(c => {
+      const to = (c.toRole || c.channel || 'all').toLowerCase();
+      const from = (c.fromRole || '').toLowerCase();
+      const chan = (c.channel || '').toLowerCase();
+      return to === 'all' || chan === 'all' || to === p || chan === p || from === p;
+    });
   },
 
   async updateDiscrepancyStatus(payload) {

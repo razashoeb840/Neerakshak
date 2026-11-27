@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import css from './admin.css?inline';
+import '../../components/interportalChat.css';
 import initAdminPage from './admin.legacy.js';
 import { setupRouteGuard } from '../../auth';
 
@@ -111,6 +112,14 @@ const markup = (
             <i className="fas fa-hospital-user"></i>
             {" "}
             <span>Facilities</span>
+          </button>
+          {" "}
+          <button className="rail-btn" data-tab="interportal-comms" onClick={(event) => window.switchTab('interportal-comms', event.currentTarget)} title="Live Inter-Portal Multi-Agency Comms & Direct Dispatch">
+            <i className="fas fa-tower-broadcast"></i>
+            {" "}
+            <span>Live Comms</span>
+            {" "}
+            <span className="rail-badge-count" id="adminCommsBadge" style={{ display: 'none' }}>0</span>
           </button>
           {" "}
           {/* Bottom Tools & Telemetry Sync Anchor */}
@@ -312,6 +321,10 @@ const markup = (
               </div>
               <div className="cards-grid-3" id="fullFacilitiesCardGrid"></div>
             </div>
+          </div>
+          {/* TAB 6: INTER-PORTAL REAL-TIME COMMS & DISPATCH CHAT */}
+          <div className="tab-view-pane" id="tab-interportal-comms">
+            <div id="portalChatMount_admin"></div>
           </div>
         </main>
         {/* 4. RIGHT PANEL (NAVIGATION REMOVED + COLORFUL QUICK ACTIONS + LIVE TELEMETRY) */}

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import css from './ground-officer.css?inline';
+import '../../components/interportalChat.css';
 import initGroundOfficerPage from './ground-officer.legacy.js';
 import { setupRouteGuard } from '../../auth';
 
@@ -144,6 +145,11 @@ const markup = (
           <button className="rail-btn go-nav-btn" data-tab="profile" onClick={(event) => window.switchGroundTab('profile', event.currentTarget)} title="Officer Profile & Settings">
             <i className="fas fa-user-gear"></i>
             <span>Settings</span>
+          </button>
+          <button className="rail-btn go-nav-btn" data-tab="interportal-comms" onClick={(event) => window.switchGroundTab('interportal-comms', event.currentTarget)} title="Live Inter-Portal Multi-Agency Comms & Direct Dispatch">
+            <i className="fas fa-tower-broadcast"></i>
+            <span>Live Comms</span>
+            <span className="rail-badge-count" id="groundCommsBadge" style={{ display: 'none' }}>0</span>
           </button>
           {/* Bottom Tools & Telemetry Sync Anchor (Matching 2admin.html & 3authority.html) */}
           <div className="rail-bottom-cluster">
@@ -410,6 +416,12 @@ const markup = (
                 </div>
               </div>
             </div>
+          </div>
+          {/* ===============================================================
+                 TAB 8: INTER-PORTAL REAL-TIME COMMS & DISPATCH CHAT
+                 =============================================================== */}
+          <div className="go-tab-pane" id="tab-interportal-comms">
+            <div id="portalChatMount_ground"></div>
           </div>
         </main>
         {/* 4. RIGHT PANEL (QUICK ACTIONS + SELECTED SECTOR + RIVER TELEMETRY + GODOWN SYNC) */}

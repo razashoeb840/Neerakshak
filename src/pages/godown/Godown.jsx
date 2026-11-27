@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import css from './godown.css?inline';
+import '../../components/interportalChat.css';
 import initGodownPage from './godown.legacy.js';
 import { setupRouteGuard } from '../../auth';
 
@@ -134,6 +135,14 @@ const markup = (
             <i className="fas fa-user-gear"></i>
             {" "}
             <span>Settings</span>
+          </button>
+          {" "}
+          <button className="rail-btn gd-nav-btn" data-tab="interportal-comms" onClick={(event) => window.switchGodownTab('interportal-comms', event.currentTarget)} title="Live Inter-Portal Multi-Agency Comms & Direct Dispatch">
+            <i className="fas fa-tower-broadcast"></i>
+            {" "}
+            <span>Live Comms</span>
+            {" "}
+            <span className="rail-badge-count" id="godownCommsBadge" style={{ display: 'none' }}>0</span>
           </button>
           {" "}
           {/* Bottom Tools & Telemetry Sync Anchor */}
@@ -463,6 +472,13 @@ const markup = (
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* ===============================================================
+                 TAB 10: INTER-PORTAL REAL-TIME COMMS & DISPATCH CHAT
+                 =============================================================== */}
+          <div className="gd-tab-pane" id="tab-interportal-comms">
+            <div id="portalChatMount_godown"></div>
           </div>
         </main>
 

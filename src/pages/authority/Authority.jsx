@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import css from './authority.css?inline';
+import '../../components/interportalChat.css';
 import initAuthorityPage from './authority.legacy.js';
 import { setupRouteGuard } from '../../auth';
 
@@ -149,6 +150,14 @@ const markup = (
             <i className="fas fa-file-contract"></i>
             {" "}
             <span>Logs</span>
+          </button>
+          {" "}
+          <button className="rail-btn auth-nav-btn" data-tab="interportal-comms" onClick={(event) => window.switchAuthTab('interportal-comms', event.currentTarget)} title="Live Inter-Portal Multi-Agency Comms & Direct Dispatch">
+            <i className="fas fa-tower-broadcast"></i>
+            {" "}
+            <span>Live Comms</span>
+            {" "}
+            <span className="rail-badge-count" id="authCommsBadge" style={{ display: 'none' }}>0</span>
           </button>
           {" "}
           {/* Bottom Tools & Telemetry Sync Anchor (Matching 2admin.html) */}
@@ -356,6 +365,12 @@ const markup = (
               </div>
               <div className="cards-grid-2" id="auditLogsGrid"></div>
             </div>
+          </div>
+          {/* ===============================================================
+                 SECTION 11: INTER-PORTAL LIVE COMMS & DIRECT CHAT
+                 =============================================================== */}
+          <div className="tab-view-pane" id="tab-interportal-comms">
+            <div id="portalChatMount_authority"></div>
           </div>
         </main>
         {/* 4. RIGHT PANEL (QUICK ACTIONS + SELECTED VILLAGE INSPECTOR + GODOWN SYNC) */}

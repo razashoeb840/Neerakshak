@@ -586,19 +586,18 @@ function monitoringBackendPlugin() {
             }
           }
 
-          if (pathname === '/api/monitoring/chat') {
+          if (pathname === '/api/monitoring/chat' || pathname === '/api/chat') {
             if (method === 'POST') {
               const result = await monitoringDb.sendChat(body);
               res.statusCode = 200;
               res.end(JSON.stringify({ success: true, data: result }));
               return;
             }
-            const data = await monitoringDb.getState();
+            const portal = parsedUrl.searchParams.get('portal') || parsedUrl.searchParams.get('role');
             const channel = parsedUrl.searchParams.get('channel');
-            const chats = data.chats || [];
-            const filtered = channel ? chats.filter(c => c.channel === channel) : chats;
+            const chats = await monitoringDb.getChats(portal || channel);
             res.statusCode = 200;
-            res.end(JSON.stringify({ success: true, data: filtered }));
+            res.end(JSON.stringify({ success: true, data: chats }));
             return;
           }
 

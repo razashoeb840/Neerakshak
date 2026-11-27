@@ -1244,7 +1244,7 @@ function renderChatFeed(chats = []) {
   if (Array.isArray(chats)) {
     filtered = activeChatChannel === 'all'
       ? chats
-      : chats.filter(c => c.channel === activeChatChannel || c.toRole === activeChatChannel);
+      : chats.filter(c => c.channel === activeChatChannel || c.toRole === activeChatChannel || c.fromRole === activeChatChannel);
   } else if (typeof chats === 'object' && chats !== null) {
     filtered = chats[activeChatChannel] || [];
   }
@@ -1258,23 +1258,29 @@ function renderChatFeed(chats = []) {
     const sender = msg.from || msg.sender || 'State DEOC Monitor';
     const role = msg.fromRole || msg.senderRole || 'monitoring';
     const isMonitor = role.toLowerCase().includes('monitor') || role.toLowerCase().includes('audit');
+    const isDirect = msg.isDirect || (msg.toRole && msg.toRole !== 'all' && msg.channel !== 'all');
     const time = msg.timestamp || msg.time || 'Live';
+
+    const typeBadge = isDirect
+      ? `<span style="display:inline-block; margin-top:4px; font-size: 8.5px; font-weight: 800; background: #ede9fe; color: #6d28d9; padding: 2px 7px; border-radius: 4px; border: 1px solid #ddd6fe;"><i class="fas fa-lock"></i> 🔒 PERSONAL DIRECT (TO: ${(msg.toRole || 'DIRECT').toUpperCase()})</span>`
+      : `<span style="display:inline-block; margin-top:4px; font-size: 8.5px; font-weight: 800; background: #fef3c7; color: #b45309; padding: 2px 7px; border-radius: 4px; border: 1px solid #fde68a;"><i class="fas fa-bullhorn"></i> 📢 COMMON BROADCAST</span>`;
 
     return `
       <div style="
-        background: ${isMonitor ? '#e0f2fe' : '#ffffff'};
-        border: 1px solid ${isMonitor ? '#7dd3fc' : '#e2e8f0'};
+        background: ${isMonitor ? '#f0f9ff' : '#ffffff'};
+        border: 1px solid ${isMonitor ? '#bae6fd' : (isDirect ? '#ddd6fe' : '#fde68a')};
+        border-left: 4px solid ${isMonitor ? '#0284c7' : (isDirect ? '#7c3aed' : '#f59e0b')};
         border-radius: 8px;
-        padding: 8px 12px;
+        padding: 9px 12px;
         font-size: 11.5px;
         line-height: 1.45;
       ">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 3px;">
-          <strong style="color: ${isMonitor ? '#0369a1' : '#0f172a'}; font-size: 11.5px;">${sender}</strong>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
+          <strong style="color: ${isMonitor ? '#0369a1' : '#0f172a'}; font-size: 12px;">${sender}</strong>
           <span style="font-size: 9.5px; color: #94a3b8;">${time}</span>
         </div>
-        <div style="color: #334155;">${msg.message}</div>
-        ${msg.badge ? `<span style="display:inline-block; margin-top:4px; font-size: 8.5px; font-weight: 700; background: #ede9fe; color: #6d28d9; padding: 1px 6px; border-radius: 4px;">${msg.badge}</span>` : ''}
+        <div style="color: #334155; margin-bottom: 4px;">${msg.message || msg.text || ''}</div>
+        <div>${typeBadge}</div>
       </div>
     `;
   }).join('');
@@ -1298,15 +1304,19 @@ export async function sendChatMessage(e) {
   const msgText = input.value.trim();
   input.value = '';
 
+  const isDirect = activeChatChannel !== 'all';
   await sendMonitoringChatMessage({
     channel: activeChatChannel,
-    sender: 'S. N. Bora (Monitoring Officer)',
-    senderRole: 'State DEOC Monitor',
+    toRole: activeChatChannel,
+    from: 'S. N. Bora (State Monitoring Officer - DEOC)',
+    fromRole: 'monitoring',
+    sender: 'S. N. Bora (State Monitoring Officer - DEOC)',
+    senderRole: 'monitoring',
     message: msgText,
-    badge: 'OFFICIAL DIRECTIVE'
+    badge: isDirect ? 'PERSONAL DIRECT' : 'COMMON BROADCAST'
   });
 
-  showToast('Directive message sent.', 'success');
+  showToast(`Official message sent (${isDirect ? 'Direct' : 'Broadcast'}).`, 'success');
 }
 
 export async function publishPinnedAnnouncement(e) {

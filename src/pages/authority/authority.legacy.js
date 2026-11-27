@@ -1,6 +1,7 @@
 // NEERAKSHAK District Authority Portal – Real-Time & GIS Controller
 // Connects DDMA assessment with Next.js Backend, Live River Telemetry, and Leaflet GIS Map
 
+import { initInterPortalChat } from '../../components/interportalChat.js';
 import {
   fetchFullAuthorityState,
   getCurrentAuthorityState,
@@ -1018,6 +1019,19 @@ export default function initAuthorityPage() {
             renderAuthorityRivers(userBasin.id);
           }
         }).catch(e => console.warn('Telemetry load notice:', e));
+      }
+
+      // 11. Mount Inter-Portal Live Comms Hub
+      try {
+        initInterPortalChat({
+          portalRole: 'authority',
+          portalName: 'District Authority / DDMA',
+          officerName: 'Dr. A. K. Sharma (DM / DDMA Chairman)',
+          mountSelector: '#portalChatMount_authority',
+          badgeSelector: '#authCommsBadge'
+        });
+      } catch (commsErr) {
+        console.warn('Authority inter-portal chat mount notice:', commsErr);
       }
     } catch (err) {
       console.error('initAuthorityPage initialization error:', err);

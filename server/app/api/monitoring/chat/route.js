@@ -16,11 +16,9 @@ export async function OPTIONS() {
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
-    const channel = searchParams.get('channel');
-    const data = await monitoringDb.getState();
-    const chats = data.chats || [];
-    const filtered = channel ? chats.filter(c => c.channel === channel) : chats;
-    return NextResponse.json({ success: true, data: filtered }, { headers: corsHeaders() });
+    const portal = searchParams.get('portal') || searchParams.get('role') || searchParams.get('channel');
+    const chats = await monitoringDb.getChats(portal);
+    return NextResponse.json({ success: true, data: chats }, { headers: corsHeaders() });
   } catch (err) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500, headers: corsHeaders() });
   }

@@ -1,4 +1,5 @@
 // NEERAKSHAK District Admin Portal – Real-Time & GIS Map Controller
+import { initInterPortalChat } from '../../components/interportalChat.js';
 import {
   fetchFullAdminState,
   getCurrentState,
@@ -772,6 +773,19 @@ export default function initAdminPage() {
       // 9. Focus on the primary sector
       if (initialSector && initialSector.id) {
         switchMonitoringDistrict(initialSector.id);
+      }
+
+      // 10. Mount Inter-Portal Multi-Agency Real-Time Comms
+      try {
+        initInterPortalChat({
+          portalRole: 'admin',
+          portalName: 'State Admin GIS Command Desk',
+          officerName: 'State Admin GIS Command Desk',
+          mountSelector: '#portalChatMount_admin',
+          badgeSelector: '#adminCommsBadge'
+        });
+      } catch (commsErr) {
+        console.warn('Inter-portal chat mount notice:', commsErr);
       }
     } catch (initErr) {
       console.error('Fatal admin initialization caught:', initErr);
