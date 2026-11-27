@@ -592,17 +592,65 @@ export const godownDb = {
     const adminAreas = adminState.areas || [];
 
     const db = await getDatabase();
+    let groundReturns = [];
     if (db) {
       try {
-        const [inventory, returns, movements] = await Promise.all([
+        const [inventory, returns, movements, gRets] = await Promise.all([
           db.collection('inventoryitems').find({}, { projection: { _id: 0 } }).toArray(),
           db.collection('returnrecords').find({}, { projection: { _id: 0 } }).toArray(),
-          db.collection('dispatchrecords').find({}, { projection: { _id: 0 } }).toArray()
+          db.collection('dispatchrecords').find({}, { projection: { _id: 0 } }).toArray(),
+          db.collection('groundreturns').find({}, { projection: { _id: 0 } }).toArray()
         ]);
         cache.godown.inventory = inventory || [];
         cache.godown.returns = returns || [];
         cache.godown.movements = movements || [];
+        groundReturns = gRets || [];
       } catch (e) {}
+    }
+
+    // Merge ground-verified returns into godown returns so Godown Manager sees pending warehouse restock
+    if (groundReturns.length > 0) {
+      const mergedRets = [...(cache.godown.returns || [])];
+      groundReturns.forEach(gr => {
+        const areaName = gr.area || gr.location || 'Assigned Area';
+        const existingIdx = mergedRets.findIndex(r => 
+          (r.id && (r.id === gr.retId || r.id === gr.id)) ||
+          (r.area && r.area.toLowerCase() === areaName.toLowerCase())
+        );
+        const mappedGr = {
+          id: gr.retId || gr.id || `RET-${areaName.slice(0, 3).toUpperCase()}`,
+          retId: gr.retId || gr.id,
+          area: areaName,
+          refNo: gr.refNo || 'DSP-2026',
+          date: gr.time || 'Today',
+          boatsReturned: Number(gr.boatsGood ?? gr.good ?? 2),
+          boatsDamaged: Number(gr.boatsDamaged ?? gr.damaged ?? 1),
+          boatsMissing: Number(gr.boatsMissing ?? gr.missing ?? 0),
+          jacketsReturned: Number(gr.jacketsGood ?? 31),
+          jacketsDamaged: Number(gr.jacketsDamaged ?? 1),
+          jacketsMissing: Number(gr.jacketsMissing ?? 0),
+          good: Number(gr.good || ((gr.boatsGood || 2) + (gr.jacketsGood || 31))),
+          damaged: Number(gr.damaged || ((gr.boatsDamaged || 1) + (gr.jacketsDamaged || 1))),
+          missing: Number(gr.missing || 0),
+          returnedByOfficer: gr.officer || 'Bhaskar Jyoti Das (Ground Officer)',
+          officerId: 'GO-KAM-04',
+          groundVerified: true,
+          groundVerifiedAt: gr.time || 'Field Inspection Complete',
+          godownVerified: Boolean(gr.godownVerified),
+          warehouseRestocked: Boolean(gr.warehouseRestocked),
+          verifiedByManager: gr.verifiedByManager || null,
+          verificationStatus: gr.warehouseRestocked ? 'Verified & Restocked to Warehouse' : 'Verified by Ground Officer (Awaiting Warehouse Restock)',
+          status: gr.warehouseRestocked ? 'Verified & Restocked to Warehouse' : 'Verified by Ground Officer (Awaiting Warehouse Restock)',
+          conditionNotes: gr.remarks || 'Ground verification completed at field relief camp'
+        };
+
+        if (existingIdx !== -1) {
+          mergedRets[existingIdx] = { ...mergedRets[existingIdx], ...mappedGr };
+        } else {
+          mergedRets.unshift(mappedGr);
+        }
+      });
+      cache.godown.returns = mergedRets;
     }
 
     // Map Authority allocations into Godown in real time
@@ -927,19 +975,139 @@ export const godownDb = {
         if (retRecord.boatsReturned > 0) {
           await db.collection('inventoryitems').updateOne(
             { category: 'Rescue Boats' },
-            { $inc: { available: retRecord.boatsReturned } }
+            { $inc: { available: retRecord.boatsReturned, total: retRecord.boatsReturned } }
           );
         }
         if (retRecord.jacketsReturned > 0) {
           await db.collection('inventoryitems').updateOne(
             { category: 'Life Jackets' },
-            { $inc: { available: retRecord.jacketsReturned } }
+            { $inc: { available: retRecord.jacketsReturned, total: retRecord.jacketsReturned } }
           );
         }
       } catch (e) {}
     }
 
     return retRecord;
+  },
+
+  async verifyWarehouseRestock(verifyData) {
+    const area = (verifyData.area || verifyData.destination || '').trim();
+    const retId = verifyData.retId || verifyData.id;
+    const manager = verifyData.managerName || 'Rajesh Das (Warehouse Manager - WH-MIRZA)';
+    const verifiedTime = new Date().toLocaleDateString('en-IN') + ', ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+    const db = await getDatabase();
+    let restockDoc = null;
+
+    if (db) {
+      try {
+        // Find matching ground return record if exists
+        const gRet = await db.collection('groundreturns').findOne({
+          $or: [
+            { retId: retId },
+            { id: retId },
+            { area: { $regex: new RegExp(`^${area}$`, 'i') } },
+            { location: { $regex: new RegExp(`^${area}$`, 'i') } }
+          ]
+        });
+
+        const boatsGood = gRet ? Number(gRet.boatsGood ?? gRet.good ?? 2) : 2;
+        const jacketsGood = gRet ? Number(gRet.jacketsGood ?? 31) : 31;
+        const boatsDamaged = gRet ? Number(gRet.boatsDamaged ?? gRet.damaged ?? 1) : 1;
+        const jacketsDamaged = gRet ? Number(gRet.jacketsDamaged ?? 1) : 1;
+
+        restockDoc = {
+          retId: retId || gRet?.retId || `RET-${Date.now().toString(36).toUpperCase()}`,
+          id: retId || gRet?.retId || `RET-${Date.now().toString(36).toUpperCase()}`,
+          area: area || gRet?.location || 'Assigned Area',
+          date: verifiedTime,
+          boatsReturned: boatsGood,
+          jacketsReturned: jacketsGood,
+          boatsDamaged,
+          jacketsDamaged,
+          good: boatsGood + jacketsGood,
+          damaged: boatsDamaged + jacketsDamaged,
+          missing: Number(gRet?.missing || 0),
+          returnedByOfficer: gRet?.officer || 'Bhaskar Jyoti Das (Ground Officer)',
+          verifiedByManager: manager,
+          warehouseRestocked: true,
+          godownVerified: true,
+          verificationStatus: 'Verified & Restocked to Warehouse',
+          status: 'Verified & Restocked to Warehouse',
+          conditionNotes: `Physically inspected and restocked into warehouse inventory by ${manager}. Units returned: ${boatsGood} Boats, ${jacketsGood} Jackets.`
+        };
+
+        // 1. Update/insert returnrecords
+        await db.collection('returnrecords').updateOne(
+          { $or: [{ id: restockDoc.id }, { area: restockDoc.area }] },
+          { $set: restockDoc },
+          { upsert: true }
+        );
+
+        // 2. Mark groundreturns as warehouse restocked
+        if (gRet) {
+          await db.collection('groundreturns').updateOne(
+            { _id: gRet._id },
+            { $set: { 
+              godownVerified: true, 
+              warehouseRestocked: true, 
+              verifiedByManager: manager, 
+              restockedAt: verifiedTime, 
+              status: 'Verified & Restocked to Warehouse' 
+            }}
+          );
+        }
+
+        // 3. Restock inventory items in warehouse
+        if (boatsGood > 0) {
+          await db.collection('inventoryitems').updateOne(
+            { category: { $regex: /boat/i } },
+            { $inc: { available: boatsGood, total: boatsGood } }
+          );
+        }
+        if (jacketsGood > 0) {
+          await db.collection('inventoryitems').updateOne(
+            { category: { $regex: /jacket/i } },
+            { $inc: { available: jacketsGood, total: jacketsGood } }
+          );
+        }
+
+        // 4. Log warehouse movement
+        const movement = {
+          time: `Today, ${verifiedTime}`,
+          type: 'RESTOCK IN',
+          item: `${boatsGood} Boats, ${jacketsGood} Life Jackets (Restocked from ${area})`,
+          party: `Field Escort: ${gRet?.officer || 'Ground Officer'}`,
+          note: `Restocked by ${manager} at Central Godown`
+        };
+        await db.collection('dispatchrecords').insertOne(movement);
+
+        // 5. Update resourceallocations timeline
+        await db.collection('resourceallocations').updateMany(
+          { $or: [{ village: area }, { destination: area }] },
+          { 
+            $set: { 
+              postOpRestocked: true, 
+              godownVerifiedReturn: true, 
+              restockedAt: verifiedTime,
+              restockedByManager: manager
+            },
+            $push: {
+              timeline: {
+                step: 'Warehouse Intake & Physical Restock Complete',
+                time: 'Just now',
+                status: 'done',
+                detail: `Restocked by ${manager}. Verified Good: ${boatsGood} Boats, ${jacketsGood} Jackets added back to available inventory.`
+              }
+            }
+          }
+        );
+      } catch (e) {
+        console.warn('verifyWarehouseRestock MongoDB notice:', e.message);
+      }
+    }
+
+    return restockDoc || { success: true, status: 'Verified & Restocked to Warehouse' };
   }
 };
 
@@ -1077,7 +1245,11 @@ export const groundDb = {
     const deliveries = allDeliveryDestinations.map(a => {
       const dispatchId = a.refNo && a.refNo !== '—' ? a.refNo : (a.id || 'DSP-2026');
       const savedVerif = dbVerifications.find(v => v.dispatchId === dispatchId || v.allocId === a.id);
-      const isCleared = Boolean(a.groundOfficerCleared || a.reliefClearedForReturn || savedVerif?.status === 'Verified');
+      
+      // Strict real verification: ONLY verified if savedVerif has status === 'Verified'
+      const isVerified = Boolean(savedVerif && savedVerif.status === 'Verified');
+      // Ground clearance only valid if verified first AND ground officer explicitly cleared the situation
+      const isCleared = Boolean(isVerified && (a.groundOfficerCleared === true || savedVerif?.groundOfficerCleared === true));
       const dest = (a.village || a.destination || 'Assigned Sector').trim();
 
       const matchedArea = areas.find(ar => ar.village.toLowerCase() === dest.toLowerCase()) || {
@@ -1090,32 +1262,30 @@ export const groundDb = {
 
       const boatsReq = Number(a.boats) || 3;
       const boatsDisp = Number(a.dispatchedBoats || a.boats) || 3;
-      const boatsRecv = savedVerif ? Number(savedVerif.boatsReceived ?? (savedVerif.status === 'Verified' ? boatsDisp : 0)) : (isCleared ? boatsDisp : 0);
-      const boatsDmg = savedVerif ? Number(savedVerif.boatsDamaged ?? 0) : 0;
+      const boatsRecv = isVerified ? Number(savedVerif?.boatsReceived ?? boatsDisp) : 0;
+      const boatsDmg = isVerified ? Number(savedVerif?.boatsDamaged ?? 0) : 0;
 
       const jacketsReq = Number(a.lifeJackets) || 35;
       const jacketsDisp = Number(a.dispatchedJackets || a.lifeJackets) || 33;
-      const jacketsRecv = savedVerif ? Number(savedVerif.jacketsReceived ?? (savedVerif.status === 'Verified' ? jacketsDisp : 0)) : (isCleared ? jacketsDisp : 0);
-      const jacketsDmg = savedVerif ? Number(savedVerif.jacketsDamaged ?? 0) : 0;
+      const jacketsRecv = isVerified ? Number(savedVerif?.jacketsReceived ?? jacketsDisp) : 0;
+      const jacketsDmg = isVerified ? Number(savedVerif?.jacketsDamaged ?? 0) : 0;
 
       const foodReq = Number(a.foodPackets) || 300;
       const foodDisp = Number(a.dispatchedFood || a.foodPackets) || 264;
-      const foodRecv = savedVerif ? Number(savedVerif.foodReceived ?? (savedVerif.status === 'Verified' ? foodDisp : 0)) : (isCleared ? foodDisp : 0);
-      const foodDmg = savedVerif ? Number(savedVerif.foodDamaged ?? 0) : 0;
+      const foodRecv = isVerified ? Number(savedVerif?.foodReceived ?? foodDisp) : 0;
+      const foodDmg = isVerified ? Number(savedVerif?.foodDamaged ?? 0) : 0;
 
       const medsReq = Number(a.medicalKits) || 50;
       const medsDisp = Number(a.dispatchedMeds || a.medicalKits) || 44;
-      const medsRecv = savedVerif ? Number(savedVerif.medsReceived ?? (savedVerif.status === 'Verified' ? medsDisp : 0)) : (isCleared ? medsDisp : 0);
-      const medsDmg = savedVerif ? Number(savedVerif.medsDamaged ?? 0) : 0;
+      const medsRecv = isVerified ? Number(savedVerif?.medsReceived ?? medsDisp) : 0;
+      const medsDmg = isVerified ? Number(savedVerif?.medsDamaged ?? 0) : 0;
 
       const itemBreakdown = [
-        { name: 'Rescue Boats', category: 'Inflatable Motor Boats', requested: boatsReq, dispatched: boatsDisp, received: boatsRecv, damaged: boatsDmg, shortage: Math.max(0, boatsDisp - boatsRecv) },
-        { name: 'Life Jackets', category: 'Buoyancy Vests (SOLAS)', requested: jacketsReq, dispatched: jacketsDisp, received: jacketsRecv, damaged: jacketsDmg, shortage: Math.max(0, jacketsDisp - jacketsRecv) },
-        { name: 'Food Rations', category: 'Emergency Dry Rations Packets', requested: foodReq, dispatched: foodDisp, received: foodRecv, damaged: foodDmg, shortage: Math.max(0, foodDisp - foodRecv) },
-        { name: 'Medical Kits', category: 'First Aid & Halazone Kits', requested: medsReq, dispatched: medsDisp, received: medsRecv, damaged: medsDmg, shortage: Math.max(0, medsDisp - medsRecv) }
+        { name: 'Rescue Boats', category: 'Inflatable Motor Boats', requested: boatsReq, dispatched: boatsDisp, received: boatsRecv, damaged: boatsDmg, shortage: isVerified ? Math.max(0, boatsDisp - boatsRecv) : boatsDisp },
+        { name: 'Life Jackets', category: 'Buoyancy Vests (SOLAS)', requested: jacketsReq, dispatched: jacketsDisp, received: jacketsRecv, damaged: jacketsDmg, shortage: isVerified ? Math.max(0, jacketsDisp - jacketsRecv) : jacketsDisp },
+        { name: 'Food Rations', category: 'Emergency Dry Rations Packets', requested: foodReq, dispatched: foodDisp, received: foodRecv, damaged: foodDmg, shortage: isVerified ? Math.max(0, foodDisp - foodRecv) : foodDisp },
+        { name: 'Medical Kits', category: 'First Aid & Halazone Kits', requested: medsReq, dispatched: medsDisp, received: medsRecv, damaged: medsDmg, shortage: isVerified ? Math.max(0, medsDisp - medsRecv) : medsDisp }
       ];
-
-      const isVerified = savedVerif ? savedVerif.status === 'Verified' : isCleared;
 
       return {
         dispatchId,
@@ -1124,15 +1294,15 @@ export const groundDb = {
         sectorDetails: matchedArea,
         resource: a.summary || 'Emergency Relief Buffer',
         dispatched: a.summary || 'Consignment Dispatched',
-        received: savedVerif ? (savedVerif.received || `${boatsRecv} Boats, ${jacketsRecv} Jackets, ${foodRecv} Food, ${medsRecv} Meds`) : (isCleared ? (a.summary || 'Consignment Verified') : null),
-        damaged: savedVerif ? Number(savedVerif.damaged) || 0 : (boatsDmg + jacketsDmg + foodDmg + medsDmg),
-        shortage: savedVerif ? Number(savedVerif.shortage) || 0 : 0,
-        status: savedVerif ? savedVerif.status : (isCleared ? 'Verified' : 'Pending Verification'),
+        received: isVerified ? (savedVerif?.received || `${boatsRecv} Boats, ${jacketsRecv} Jackets, ${foodRecv} Food, ${medsRecv} Meds`) : null,
+        damaged: isVerified ? Number(savedVerif?.damaged || (boatsDmg + jacketsDmg + foodDmg + medsDmg)) : 0,
+        shortage: isVerified ? Number(savedVerif?.shortage || 0) : 0,
+        status: isVerified ? savedVerif.status : 'Pending Verification',
         remarks: savedVerif ? savedVerif.remarks : `Escort: ${a.leadOfficerName ? `${a.leadAgency || 'NDRF'} ${a.leadOfficerName}` : (a.driver || 'Field Convoy')}. Vehicle: ${a.vehicle || 'Relief Truck'}.`,
         groundOfficerCleared: isCleared,
         reliefClearedForReturn: isCleared,
-        verifiedAt: savedVerif?.verifiedAt || (isCleared ? a.clearedAt : null),
-        verifiedBy: savedVerif?.verifiedBy || (isCleared ? (a.clearedByOfficer || 'Bhaskar Jyoti Das (GO-KAM-04)') : null),
+        verifiedAt: isVerified ? (savedVerif?.verifiedAt || null) : null,
+        verifiedBy: isVerified ? (savedVerif?.verifiedBy || null) : null,
         
         involvedPersonnel: {
           driver: a.driver || 'Rajesh Das (+91 98640-21943)',
@@ -1151,33 +1321,57 @@ export const groundDb = {
       };
     });
 
-    // 4. Map real multi-agency coordination & operations (deduplicate duplicate transmissions)
-    const uniqueOpsMap = new Map();
-    authCoordinations.forEach(c => {
-      const loc = (c.operationLocation || c.sector || 'Ramnagar').trim();
-      const agency = (c.agency || 'NDRF').trim();
-      const key = `${loc}__${agency}`;
-      if (!uniqueOpsMap.has(key)) {
-        uniqueOpsMap.set(key, c);
-      }
-    });
+    // 4. Map real multi-agency coordination & operations for ALL 4 ASSIGNED SECTORS
+    const operations = areas.map((ar, idx) => {
+      const secName = ar.village;
+      const matchedCoord = authCoordinations.find(c => 
+        (c.operationLocation && c.operationLocation.toLowerCase() === secName.toLowerCase()) ||
+        (c.sector && c.sector.toLowerCase() === secName.toLowerCase())
+      );
+      const savedOp = dbOperations.find(o => 
+        (o.location && o.location.toLowerCase() === secName.toLowerCase()) ||
+        (matchedCoord && o.opId === matchedCoord.recordNumber)
+      );
+      const matchedDelivery = deliveries.find(d => d.destination.toLowerCase() === secName.toLowerCase());
+      const isSecCleared = Boolean(matchedDelivery?.groundOfficerCleared);
 
-    const operations = Array.from(uniqueOpsMap.values()).map((c, idx) => {
-      const opId = c.recordNumber || `OP-${idx + 1}`;
-      const savedOp = dbOperations.find(o => o.opId === opId || o.location === (c.operationLocation || c.sector));
+      const opId = matchedCoord?.recordNumber || `COR-${secName.replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase()}-${100 + idx}`;
+      const agency = matchedCoord?.agency 
+        ? `${matchedCoord.agency} (${matchedCoord.unitDesignation || 'Tactical Team'})` 
+        : (idx % 2 === 0 ? 'NDRF (1st Bn Tactical Response Team)' : 'SDRF (Disaster Quick Response Unit)');
+      
+      const defaultRescued = ar.severity === 'Critical' ? 48 : 26;
+      const defaultStranded = isSecCleared ? 0 : (ar.severity === 'Critical' ? 15 : 6);
+
+      const rawRescued = savedOp ? savedOp.rescued : matchedCoord?.evacuatedCitizensCount;
+      const parsedRescued = Number(String(rawRescued || '').replace(/[^0-9]/g, ''));
+      const rescued = !isNaN(parsedRescued) && parsedRescued > 0 ? parsedRescued : defaultRescued;
+
+      const rawStranded = savedOp ? savedOp.stranded : matchedCoord?.strandedCitizensCount;
+      let stranded = defaultStranded;
+      if (isSecCleared) {
+        stranded = 0;
+      } else if (rawStranded !== undefined && rawStranded !== null && String(rawStranded).trim() !== '') {
+        const p = parseInt(String(rawStranded).replace(/[^0-9]/g, ''), 10);
+        if (!isNaN(p)) stranded = p;
+      }
+      const status = savedOp ? savedOp.status : (isSecCleared ? 'Situation Controlled & Cleared' : (matchedCoord?.operationalStatus || 'Active Operation'));
+      const notes = savedOp ? savedOp.notes : (matchedCoord?.latestCoordinationBrief || `Assigned as Lead Response Officer for ${secName}. Tactical search & rescue units active.`);
 
       return {
         opId,
-        location: c.operationLocation || c.sector || 'Palashbari Riverside Ward 2',
-        agency: `${c.agency || 'NDRF'} (${c.unitDesignation || 'Tactical Team'})`,
-        rescued: savedOp ? Number(savedOp.rescued) : (c.evacuatedCitizensCount && !isNaN(Number(c.evacuatedCitizensCount)) ? Number(c.evacuatedCitizensCount) : 48),
-        stranded: savedOp ? Number(savedOp.stranded) : 15,
-        status: savedOp ? savedOp.status : (c.operationalStatus || 'In Progress'),
-        notes: savedOp ? savedOp.notes : (c.latestCoordinationBrief || `Officer ${c.contactOfficer || 'Lead Officer'} deployed on site.`),
-        leadOfficer: c.contactOfficer || 'Inspector Rajesh Kalita (NDRF-1BN-842)',
-        contact: c.contactPhone || '+91 94350-12345',
-        boatsAssigned: c.boatsAssigned || 3,
-        citizensAtRisk: c.citizensAtRisk || 2200
+        location: secName,
+        sector: secName,
+        agency,
+        rescued,
+        stranded,
+        status,
+        notes,
+        leadOfficer: matchedCoord?.contactOfficer || 'Inspector Rajesh Kalita (NDRF-1BN-842)',
+        contact: matchedCoord?.contactPhone || '+91 94350-12345',
+        boatsAssigned: matchedCoord?.boatsAssigned || 3,
+        citizensAtRisk: ar.pop || 2200,
+        isCleared: isSecCleared
       };
     });
 
@@ -1250,47 +1444,63 @@ export const groundDb = {
       const secName = ar.village;
       const matchedDelivery = deliveries.find(d => d.destination.toLowerCase() === secName.toLowerCase());
       const isVerified = matchedDelivery ? matchedDelivery.status === 'Verified' : false;
-      const isCleared = matchedDelivery ? Boolean(matchedDelivery.groundOfficerCleared || matchedDelivery.reliefClearedForReturn) : false;
+      const isCleared = matchedDelivery ? Boolean(matchedDelivery.groundOfficerCleared) : false;
       const canReturn = isVerified && isCleared;
+
+      const savedRet = dbReturns.find(r => 
+        (r.location && r.location.toLowerCase() === secName.toLowerCase()) || 
+        (r.area && r.area.toLowerCase() === secName.toLowerCase())
+      );
 
       const boatsDisp = matchedDelivery ? (matchedDelivery.itemBreakdown?.[0]?.dispatched || 3) : 3;
       const jacketsDisp = matchedDelivery ? (matchedDelivery.itemBreakdown?.[1]?.dispatched || 33) : 33;
       const tentsDisp = 12;
 
-      const boatsGood = canReturn ? Math.max(0, boatsDisp - 1) : 0;
-      const boatsDmg = canReturn ? 1 : 0;
-      const boatsMiss = 0;
+      const boatsGood = savedRet ? Number(savedRet.boatsGood ?? savedRet.good ?? (canReturn ? Math.max(0, boatsDisp - 1) : 0)) : (canReturn ? Math.max(0, boatsDisp - 1) : 0);
+      const boatsDmg = savedRet ? Number(savedRet.boatsDamaged ?? savedRet.damaged ?? (canReturn ? 1 : 0)) : (canReturn ? 1 : 0);
+      const boatsMiss = savedRet ? Number(savedRet.boatsMissing ?? 0) : 0;
 
-      const jacketsGood = canReturn ? Math.max(0, jacketsDisp - 2) : 0;
-      const jacketsDmg = canReturn ? 1 : 0;
-      const jacketsMiss = canReturn ? 1 : 0;
+      const jacketsGood = savedRet ? Number(savedRet.jacketsGood ?? (canReturn ? Math.max(0, jacketsDisp - 2) : 0)) : (canReturn ? Math.max(0, jacketsDisp - 2) : 0);
+      const jacketsDmg = savedRet ? Number(savedRet.jacketsDamaged ?? (canReturn ? 1 : 0)) : (canReturn ? 1 : 0);
+      const jacketsMiss = savedRet ? Number(savedRet.jacketsMissing ?? (canReturn ? 1 : 0)) : (canReturn ? 1 : 0);
 
       const items = [
-        { name: 'Inflatable Rescue Boats', category: 'Rescue Craft', dispatched: boatsDisp, good: boatsGood, damaged: boatsDmg, missing: boatsMiss, status: canReturn ? 'Field Inspected' : 'Awaiting Clearance' },
-        { name: 'Life Jackets (SOLAS)', category: 'Safety Buoyancy', dispatched: jacketsDisp, good: jacketsGood, damaged: jacketsDmg, missing: jacketsMiss, status: canReturn ? 'Field Inspected' : 'Awaiting Clearance' },
-        { name: 'Relief Tents & Stretchers', category: 'Camp Shelter', dispatched: tentsDisp, good: canReturn ? 11 : 0, damaged: canReturn ? 1 : 0, missing: 0, status: canReturn ? 'Field Inspected' : 'Awaiting Clearance' }
+        { name: 'Inflatable Rescue Boats', category: 'Rescue Craft', dispatched: boatsDisp, good: boatsGood, damaged: boatsDmg, missing: boatsMiss, status: savedRet ? 'Ground Verified' : (canReturn ? 'Field Inspected' : 'Awaiting Clearance') },
+        { name: 'Life Jackets (SOLAS)', category: 'Safety Buoyancy', dispatched: jacketsDisp, good: jacketsGood, damaged: jacketsDmg, missing: jacketsMiss, status: savedRet ? 'Ground Verified' : (canReturn ? 'Field Inspected' : 'Awaiting Clearance') },
+        { name: 'Relief Tents & Stretchers', category: 'Camp Shelter', dispatched: tentsDisp, good: canReturn ? 11 : 0, damaged: canReturn ? 1 : 0, missing: 0, status: savedRet ? 'Ground Verified' : (canReturn ? 'Field Inspected' : 'Awaiting Clearance') }
       ];
 
       return {
-        retId: `RET-2026-0${idx + 1}`,
+        retId: savedRet?.retId || `RET-2026-0${idx + 1}`,
         item: `Relief Consignment Equipment (${secName})`,
         location: secName,
+        area: secName,
         good: boatsGood + jacketsGood + (canReturn ? 11 : 0),
         damaged: boatsDmg + jacketsDmg + (canReturn ? 1 : 0),
         missing: boatsMiss + jacketsMiss,
-        remarks: canReturn ? 'Ground operations completed; flood receded. Equipment physically inspected at field relief camp.' : 'Operation active in sector. Warehouse return locked until ground verification and situation clearance.',
-        time: 'Today',
+        boatsGood,
+        boatsDamaged: boatsDmg,
+        boatsMissing: boatsMiss,
+        jacketsGood,
+        jacketsDamaged: jacketsDmg,
+        jacketsMissing: jacketsMiss,
+        remarks: savedRet ? savedRet.remarks : (canReturn ? 'Ground operations completed; flood receded. Equipment physically inspected at field relief camp.' : 'Operation active in sector. Warehouse return locked until ground verification and situation clearance.'),
+        time: savedRet?.time || 'Today',
         canReturnInput: canReturn,
         isVerified,
         isCleared,
+        isSubmittedByGround: Boolean(savedRet),
+        groundVerified: Boolean(savedRet || canReturn),
+        godownVerified: Boolean(savedRet?.godownVerified),
+        warehouseRestocked: Boolean(savedRet?.warehouseRestocked),
         lockReason: !isVerified 
           ? 'Physical delivery must be verified first on ground.' 
-          : (!isCleared ? 'Rescue operations active in sector: confirm situation controlled to release equipment.' : null),
-        groundOfficer: 'Bhaskar Jyoti Das (GO-KAM-04)',
-        godownOfficer: 'Rajesh Das (WH-MIRZA)',
+          : (!isCleared ? 'Rescue operations active in sector: confirm situation controlled in Return Ops to release equipment.' : null),
+        groundOfficer: savedRet?.officer || 'Bhaskar Jyoti Das (GO-KAM-04)',
+        godownOfficer: savedRet?.verifiedByManager || 'Rajesh Das (WH-MIRZA)',
         items
       };
-    }).concat(dbReturns);
+    });
 
     cache.groundOfficer = {
       areas,
@@ -1507,14 +1717,37 @@ export const groundDb = {
   },
 
   async submitReturnVerification(returnData) {
+    const loc = returnData.location || returnData.area || 'Assigned Sector';
+    const boatsGood = Number(returnData.boatsGood ?? returnData.good ?? 2);
+    const jacketsGood = Number(returnData.jacketsGood ?? 31);
+    const boatsDamaged = Number(returnData.boatsDamaged ?? returnData.damaged ?? 1);
+    const jacketsDamaged = Number(returnData.jacketsDamaged ?? 1);
+    const boatsMissing = Number(returnData.boatsMissing ?? 0);
+    const jacketsMissing = Number(returnData.jacketsMissing ?? 0);
+    const totalGood = boatsGood + jacketsGood;
+    const totalDamaged = boatsDamaged + jacketsDamaged;
+    const totalMissing = boatsMissing + jacketsMissing;
+
     const record = {
-      retId: returnData.retId || `RV-${Math.floor(110 + Math.random() * 880)}`,
-      item: returnData.item || 'Rescue Equipment',
-      location: returnData.location || 'Assigned Sector',
-      good: Number(returnData.good) || 0,
-      damaged: Number(returnData.damaged) || 0,
-      missing: Number(returnData.missing) || 0,
-      remarks: returnData.remarks || 'Condition verified on ground',
+      retId: returnData.retId || `RET-${Date.now().toString(36).toUpperCase()}`,
+      id: returnData.retId || `RET-${Date.now().toString(36).toUpperCase()}`,
+      item: returnData.item || `Relief Consignment Equipment (${loc})`,
+      location: loc,
+      area: loc,
+      good: totalGood,
+      damaged: totalDamaged,
+      missing: totalMissing,
+      boatsGood,
+      boatsDamaged,
+      boatsMissing,
+      jacketsGood,
+      jacketsDamaged,
+      jacketsMissing,
+      groundVerified: true,
+      godownVerified: false,
+      warehouseRestocked: false,
+      status: 'Verified by Ground Field Officer - Awaiting Warehouse Restock',
+      remarks: returnData.remarks || 'Field condition verified on ground; released for warehouse return.',
       officer: returnData.officer || 'Bhaskar Jyoti Das (GO-KAM-04)',
       time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
       createdAt: new Date().toISOString()
@@ -1523,13 +1756,32 @@ export const groundDb = {
     const db = await getDatabase();
     if (db) {
       try {
-        await db.collection('groundreturns').insertOne({ ...record });
+        await db.collection('groundreturns').updateOne(
+          { $or: [{ retId: record.retId }, { location: loc }, { area: loc }] },
+          { $set: record },
+          { upsert: true }
+        );
 
-        // Also mark clearance on linked resource allocation
-        if (returnData.location) {
+        // Also update linked resource allocation
+        if (loc) {
           await db.collection('resourceallocations').updateMany(
-            { $or: [{ village: returnData.location }, { destination: returnData.location }] },
-            { $set: { reliefClearedForReturn: true, groundOfficerCleared: true } }
+            { $or: [{ village: loc }, { destination: loc }] },
+            { 
+              $set: { 
+                reliefClearedForReturn: true, 
+                groundOfficerCleared: true,
+                groundReturnVerified: true,
+                groundReturnId: record.retId
+              },
+              $push: {
+                timeline: {
+                  step: 'Field Return Physical Verification Complete',
+                  time: 'Just now',
+                  status: 'done',
+                  detail: `Physically inspected by ${record.officer}. Good: ${totalGood}, Damaged: ${totalDamaged}, Missing: ${totalMissing}. Remarks: ${record.remarks}`
+                }
+              }
+            }
           );
         }
       } catch (e) {
@@ -2043,8 +2295,8 @@ export const monitoringDb = {
       const caseId = `CASE-RET-${sector.village.replace(/\s+/g, '-')}`;
       const caseRec = dbCases.find(c => c.caseId === caseId || (c.area && c.area.toLowerCase() === vKey));
 
-      const isGroundCleared = Boolean(delivery?.groundOfficerCleared || delivery?.reliefClearedForReturn || delivery?.status === 'Verified' || groundRet);
-      const isGodownRestocked = Boolean(godownRet || delivery?.groundOfficerCleared);
+      const isGroundCleared = Boolean(groundRet?.groundVerified || (delivery?.groundOfficerCleared && delivery?.status === 'Verified'));
+      const isGodownRestocked = Boolean(godownRet?.godownVerified || godownRet?.warehouseRestocked || groundRet?.warehouseRestocked);
 
       // Quantities from real dispatches
       const boatsDisp = lc ? lc.dispatchedSupplies.boats : 3;

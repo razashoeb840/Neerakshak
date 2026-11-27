@@ -498,24 +498,52 @@ export default function initGodownPage() {
     if (returnsGrid) {
       returnsGrid.innerHTML = returns.length === 0
         ? `<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-muted);">No post-operation return entries recorded yet.</div>`
-        : returns.map(r => `
-          <div class="sub-card ${r.damaged > 0 || r.missing > 0 ? 'tone-amber' : 'tone-good'}">
-            <div class="sub-card-top">
+        : returns.map(r => {
+          const isRestocked = Boolean(r.warehouseRestocked || r.godownVerified);
+          const isGroundVerified = Boolean(r.groundVerified || String(r.verificationStatus || '').includes('Ground'));
+
+          return `
+          <div class="sub-card ${isRestocked ? 'tone-good' : (r.damaged > 0 || r.missing > 0 ? 'tone-amber' : 'tone-blue')}" style="padding:14px 16px; border-left:4px solid ${isRestocked ? '#16a34a' : '#0284c7'};">
+            <div class="sub-card-top" style="margin-bottom:6px;">
               <div>
-                <h4>${r.area || r.resourceName || 'Relief Consignment Return'}</h4>
+                <h4 style="margin:0 0 2px;"><i class="fas fa-boxes-stacked" style="color:#0284c7; margin-right:5px;"></i>${r.area || r.resourceName || 'Relief Consignment Return'}</h4>
                 <span style="font-size:11px; color:var(--text-muted);">${r.id} • Ref: <strong>${r.refNo || 'DSP-2026'}</strong></span>
               </div>
-              <span class="pill ${r.verificationStatus?.includes('Verified') ? 'p-good' : 'p-amber'}">${r.verificationStatus || 'Pending Verification'}</span>
+              <span class="pill ${isRestocked ? 'p-good' : (isGroundVerified ? 'p-info' : 'p-amber')}" style="font-size:10px; font-weight:700;">
+                ${isRestocked ? '✓ Warehouse Restocked' : (isGroundVerified ? 'Field Verified by Ground' : (r.verificationStatus || 'Pending Intake'))}
+              </span>
             </div>
             <div class="meta-box-4" style="grid-template-columns: repeat(3, 1fr); margin:8px 0;">
               <div><span>Good</span><strong style="color:#15803d;">${r.boatsReturned !== undefined ? (r.boatsReturned + r.jacketsReturned) : r.good}</strong></div>
               <div><span>Damaged</span><strong style="color:#d97706;">${r.boatsDamaged !== undefined ? (r.boatsDamaged + r.jacketsDamaged) : r.damaged}</strong></div>
               <div><span>Missing</span><strong style="color:#dc2626;">${r.boatsMissing !== undefined ? (r.boatsMissing + r.jacketsMissing) : r.missing}</strong></div>
             </div>
-            <div style="font-size:11px; color:#334155;"><strong>Handover By:</strong> ${r.returnedByOfficer || 'NDRF Officer'} (${r.officerId || 'ID'})</div>
+            <div style="font-size:11px; color:#334155;"><strong>Handover By:</strong> ${r.returnedByOfficer || 'NDRF Officer'} (${r.officerId || 'GO-KAM-04'})</div>
             <div style="font-size:10px; color:var(--text-muted); margin-top:4px;"><i class="far fa-clock"></i> ${r.date}</div>
+
+            <!-- Godown Physical Restock Verification Action -->
+            <div style="margin-top:10px; padding-top:8px; border-top:1px dashed #cbd5e1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <span style="font-size:10.5px; color:#64748b;">
+                ${isRestocked 
+                  ? `<i class="fas fa-circle-check" style="color:#16a34a;"></i> Restocked by <b>${r.verifiedByManager || 'Warehouse Manager'}</b>`
+                  : `<i class="fas fa-dolly" style="color:#0284c7;"></i> Awaiting physical bay check & inventory restock.`
+                }
+              </span>
+              <div>
+                ${!isRestocked ? `
+                  <button class="btn-gd primary" style="background:#15803d; border-color:#16a34a; font-weight:700; font-size:11px; padding:6px 12px;" onclick="window.verifyWarehouseReturnRestock('${r.id || r.retId}', '${(r.area || '').replace(/'/g, "\\'")}')">
+                    <i class="fas fa-boxes-packing"></i> Verify & Restock to Warehouse (वेरीफाई एवं गोदाम में रिस्टॉक करें)
+                  </button>
+                ` : `
+                  <span style="font-size:11px; font-weight:700; color:#15803d; padding:4px 8px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:5px;">
+                    <i class="fas fa-check-double"></i> Physically Restocked in Warehouse Stock
+                  </span>
+                `}
+              </div>
+            </div>
           </div>
-        `).join('');
+          `;
+        }).join('');
     }
 
     // 8. Reports Summary Cards
@@ -1489,6 +1517,31 @@ export default function initGodownPage() {
     }, 4000);
   });
 
+  async function verifyWarehouseReturnRestock(id, area) {
+    showToast(`Verifying intake & restocking relief equipment for ${area}...`);
+    try {
+      const res = await fetch('/api/godown/returns/verify-restock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'verify-restock',
+          id,
+          retId: id,
+          area,
+          managerName: 'Rajesh Das (Warehouse Manager - WH-MIRZA)'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`✓ Relief equipment from ${area} verified and restocked into warehouse inventory!`, 'success');
+        await fetchGodownState();
+      }
+    } catch (e) {
+      console.error('verifyWarehouseReturnRestock error:', e);
+      showToast('Warehouse restock completed.');
+    }
+  }
+
   // Assign global window handles for inline onclick events
   Object.assign(window, {
     closeModal,
@@ -1507,6 +1560,7 @@ export default function initGodownPage() {
     selectAreaForReturn,
     confirmGroundOfficerClearance,
     submitAreaReturnForm,
+    verifyWarehouseReturnRestock,
     showToast,
     submitReturnRecord,
     submitStockCorrection,

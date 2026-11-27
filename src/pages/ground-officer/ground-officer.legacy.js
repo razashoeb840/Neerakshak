@@ -580,37 +580,42 @@ export default function initGroundOfficerPage() {
         `).join('');
     }
 
-    // 5. Rescue Operations Grid (#fullRescueOpsGrid)
+    // 5. Return Ops / Rescue Operations Grid (#fullRescueOpsGrid)
     const fullRescueGrid = document.getElementById('fullRescueOpsGrid');
     if (fullRescueGrid) {
       fullRescueGrid.innerHTML = visOps.length === 0
-        ? `<div style="grid-column:1/-1; text-align:center; padding:18px; color:var(--text-muted);">No active rescue operations in selected sector.</div>`
+        ? `<div style="grid-column:1/-1; text-align:center; padding:18px; color:var(--text-muted);">No rescue operations in selected sector.</div>`
         : visOps.map(o => {
           const origIdx = operations.indexOf(o);
           const totalAtRisk = o.citizensAtRisk || (o.rescued + o.stranded) || 60;
           const pct = Math.min(100, Math.round((o.rescued / (totalAtRisk || 1)) * 100));
+          const isControlled = Boolean(o.isCleared || o.status === 'Situation Controlled & Cleared' || o.status === 'Completed');
 
           return `
-            <div class="sub-card ${o.status === 'Completed' ? 'tone-good' : 'tone-purple'}" style="padding:14px 16px;">
+            <div class="sub-card ${isControlled ? 'tone-good' : 'tone-purple'}" style="padding:16px 18px; border-left: 4px solid ${isControlled ? '#16a34a' : '#0284c7'};">
               <div class="sub-card-top" style="margin-bottom:8px;">
                 <div>
-                  <h4 style="margin:0 0 3px 0; font-size:14px; color:var(--navy-deep);">
-                    <i class="fas fa-life-ring" style="color:var(--foliage-mid); margin-right:5px;"></i>
-                    ${o.opId} • ${o.location}
+                  <h4 style="margin:0 0 3px 0; font-size:15px; color:var(--navy-deep);">
+                    <i class="fas fa-shield-heart" style="color:${isControlled ? '#16a34a' : 'var(--foliage-mid)'}; margin-right:6px;"></i>
+                    ${o.location} Sector • ${o.opId}
                   </h4>
                   <span style="font-size:11px; color:var(--text-muted); font-weight:600;">${o.agency} • Lead: <strong>${o.leadOfficer || 'Tactical Team'}</strong></span>
                 </div>
-                <span class="pill p-info" style="font-size:10.5px;">${o.status}</span>
+                <span class="pill ${isControlled ? 'p-good' : 'p-info'}" style="font-size:10.5px; font-weight:700;">
+                  ${isControlled ? '✓ Situation Controlled' : o.status}
+                </span>
               </div>
               
-              <!-- PROGRESS BAR -->
+              <!-- EVACUATION PROGRESS BAR -->
               <div style="margin:10px 0;">
-                <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;">
-                  <span>Evacuation Progress: <strong>${o.rescued} Rescued</strong></span>
-                  <span style="color:#dc2626; font-weight:700;">${o.stranded} Stranded</span>
+                <div style="display:flex; justify-content:space-between; font-size:11.5px; margin-bottom:4px;">
+                  <span>Evacuation Progress: <strong>${o.rescued} Citizens Rescued</strong></span>
+                  <span style="color:${o.stranded > 0 ? '#dc2626' : '#16a34a'}; font-weight:700;">
+                    ${o.stranded > 0 ? `${o.stranded} Stranded Remaining` : '0 Stranded (All Citizens Safe)'}
+                  </span>
                 </div>
-                <div style="width:100%; height:8px; background:#e2e8f0; border-radius:10px; overflow:hidden;">
-                  <div style="width:${pct}%; height:100%; background:linear-gradient(90deg, #10b981 0%, #0284c7 100%);"></div>
+                <div style="width:100%; height:9px; background:#e2e8f0; border-radius:10px; overflow:hidden;">
+                  <div style="width:${pct}%; height:100%; background:${isControlled ? '#16a34a' : 'linear-gradient(90deg, #10b981 0%, #0284c7 100%)'};"></div>
                 </div>
               </div>
 
@@ -618,12 +623,29 @@ export default function initGroundOfficerPage() {
                 <span>Boats Active: <strong>${o.boatsAssigned || 3} Craft</strong></span>
                 <span>Direct Hotline: <strong>${o.contact || '+91 94350-12345'}</strong></span>
               </div>
-              <p style="margin:0 0 10px 0; font-size:11px; color:var(--text-body);"><strong>Field SITREP:</strong> ${o.notes}</p>
+              <p style="margin:0 0 10px 0; font-size:11.5px; color:var(--text-body); line-height:1.4;">
+                <strong>Field SITREP:</strong> ${o.notes}
+              </p>
               
-              <div class="sub-card-footer" style="padding-top:8px; border-top:1px dashed #cbd5e1;">
-                <button type="button" class="btn-go primary" onclick="openRescueUpdateModal(${origIdx})">
-                  <i class="fas fa-pen"></i> Update Rescue Evacuation Progress
-                </button>
+              <!-- RETURN CLEARANCE ACTIONS -->
+              <div class="sub-card-footer" style="padding-top:10px; border-top:1px dashed #cbd5e1; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                  ${!isControlled ? `
+                    <button type="button" class="btn-go primary" style="background:#15803d; border-color:#16a34a; font-size:11.5px; padding:7px 13px; font-weight:700;" onclick="window.confirmSituationControlledOnGround('${o.opId}', '${(o.location || '').replace(/'/g, "\\'")}')">
+                      <i class="fas fa-shield-check"></i> Confirm Situation Controlled & Release for Return
+                    </button>
+                    <button type="button" class="btn-go" style="font-size:11px; padding:6px 10px;" onclick="openRescueUpdateModal(${origIdx})">
+                      <i class="fas fa-pen"></i> Update Evacuation Progress
+                    </button>
+                  ` : `
+                    <span style="font-size:11px; font-weight:700; color:#15803d; padding:5px 10px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; display:inline-flex; align-items:center; gap:5px;">
+                      <i class="fas fa-circle-check"></i> Situation Controlled & Equipment Released
+                    </span>
+                    <button type="button" class="btn-go primary" style="font-size:11px; padding:6px 12px;" onclick="window.switchGroundTab('return-verify', document.querySelector('[data-tab=return-verify]')); window.openReturnVerifyModal('${(o.location || '').replace(/'/g, "\\'")}');">
+                      <i class="fas fa-rotate-left"></i> Submit Ground Return Handover →
+                    </button>
+                  `}
+                </div>
               </div>
             </div>
           `;
@@ -1073,13 +1095,32 @@ export default function initGroundOfficerPage() {
         'Ground rescue operations completed. Area flood waters receded and situation under control. Resources released for warehouse return intake.'
       );
 
+      const op = (state.operations || []).find(o => o.opId === allocId || o.location === area);
+      if (op) {
+        op.status = 'Situation Controlled & Cleared';
+        op.stranded = 0;
+        op.isCleared = true;
+      }
+
+      try {
+        await updateRescueProgressApi({
+          opId: allocId,
+          location: area,
+          rescued: op ? op.rescued : 48,
+          stranded: 0,
+          status: 'Situation Controlled & Cleared',
+          notes: 'Flood waters receded. Citizens safely evacuated to relief camp. Resources released for warehouse return intake.',
+          officerName: 'Bhaskar Jyoti Das (GO-KAM-04)'
+        });
+      } catch (err) {}
+
       const d = (state.deliveries || []).find(item => item.dispatchId === allocId || item.destination === area);
       if (d) {
         d.groundOfficerCleared = true;
         d.reliefClearedForReturn = true;
       }
       renderAllGroundViews();
-      showToast(`✓ Confirmed: Situation in ${area || 'area'} is under control! Equipment released for Godown return intake.`);
+      showToast(`✓ Confirmed: Situation in ${area || 'area'} is under control! Equipment unlocked in Returns.`);
     } catch (e) {
       console.warn('Clearance error:', e);
       showToast('Clearance recorded.');

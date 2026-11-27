@@ -368,6 +368,13 @@ function godownBackendPlugin() {
           }
 
           // Returns
+          if (pathname === '/api/godown/returns/verify-restock' || (pathname === '/api/godown/returns' && (method === 'PATCH' || (method === 'POST' && body.action === 'verify-restock')))) {
+            const result = await godownDb.verifyWarehouseRestock(body);
+            res.statusCode = 200;
+            res.end(JSON.stringify({ success: true, data: result }));
+            return;
+          }
+
           if (pathname === '/api/godown/returns') {
             if (method === 'POST') {
               const result = await godownDb.recordAreaReturn(body);

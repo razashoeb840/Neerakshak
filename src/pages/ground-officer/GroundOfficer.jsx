@@ -127,9 +127,9 @@ const markup = (
             <i className="fas fa-house-flood-water"></i>
             <span>Report SOS</span>
           </button>
-          <button className="rail-btn go-nav-btn" data-tab="rescue-ops" onClick={(event) => window.switchGroundTab('rescue-ops', event.currentTarget)} title="Active Rescue Operations">
-            <i className="fas fa-life-ring"></i>
-            <span>Rescue Ops</span>
+          <button className="rail-btn go-nav-btn" data-tab="rescue-ops" onClick={(event) => window.switchGroundTab('rescue-ops', event.currentTarget)} title="Return Ops & Situation Control Clearance">
+            <i className="fas fa-shield-heart"></i>
+            <span>Return Ops</span>
             <span className="rail-badge-count" id="navOpsCount">0</span>
           </button>
           <button className="rail-btn go-nav-btn" data-tab="return-verify" onClick={(event) => window.switchGroundTab('return-verify', event.currentTarget)} title="Verify Returned Resources">
@@ -313,25 +313,25 @@ const markup = (
             </div>
           </div>
           {/* ===============================================================
-                 TAB 4: RESCUE OPERATIONS (SECTOR-WISE DETAILED DATA)
+                 TAB 4: RETURN OPS & FIELD SITUATION CONTROL CLEARANCE
                  =============================================================== */}
           <div className="go-tab-pane" id="tab-rescue-ops">
             <div className="aqua-card">
               <div className="card-head">
                 <h2>
-                  <i className="fas fa-life-ring" style={{ color: "var(--foliage-mid)" }}></i>
-                  {" Assigned Rescue Operations – Sector-Wise Evacuation Progress"}
+                  <i className="fas fa-shield-heart" style={{ color: "var(--teal-field)" }}></i>
+                  {" Return Ops – Situation Control, Evacuation Audit & Return Clearance"}
                 </h2>
                 <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                   <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--text-muted)" }}>Sector:</span>
                   <select id="rescueSectorFilter" className="form-control" style={{ padding: "4px 10px", fontSize: "11.5px", width: "auto" }} onChange={() => window.renderAllGroundViews && window.renderAllGroundViews()}>
-                    <option value="ALL">All Rescue Sectors</option>
+                    <option value="ALL">All Return Ops Sectors</option>
                   </select>
                 </div>
               </div>
               <div style={{ background: "#f0fdf4", borderLeft: "3.5px solid #16a34a", padding: "8px 12px", borderRadius: "8px", fontSize: "11.5px", color: "#14532d", marginBottom: "12px" }}>
-                <strong>Command Coordination:</strong>
-                {" NDRF & SDRF teams operate in close telemetry sync with the Ground Officer. Update rescued counts, remaining stranded citizens, and field assistance needs in real time. "}
+                <strong>Situation Control & Clearance Protocol:</strong>
+                {" Confirm evacuation progress, count remaining stranded citizens (safe / 0), and declare situation controlled to clear and unlock equipment for warehouse return. "}
               </div>
               <div className="grid-2 switchable-collection" id="fullRescueOpsGrid"></div>
             </div>
