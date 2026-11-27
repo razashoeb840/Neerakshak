@@ -112,72 +112,39 @@ const markup = (
       <div className="workspace-shell">
         {/* LEFT 9-SECTION SIDEBAR */}
         {" "}
-        {/* 70px VERTICAL ICON RAIL: MATCHED TO 2ADMIN.HTML & 3AUTHORITY.HTML */}
+        {/* 70px VERTICAL ICON RAIL */}
         <aside className="left-rail">
           <button className="rail-btn go-nav-btn active" data-tab="dashboard" onClick={(event) => window.switchGroundTab('dashboard', event.currentTarget)} title="Field Dashboard">
             <i className="fas fa-gauge-high"></i>
-            {" "}
             <span>Dashboard</span>
           </button>
-          {" "}
-          <button className="rail-btn go-nav-btn" data-tab="assigned-areas" onClick={(event) => window.switchGroundTab('assigned-areas', event.currentTarget)} title="Assigned Locations">
-            <i className="fas fa-map-pin"></i>
-            {" "}
-            <span>Assigned</span>
-            {" "}
-            <span className="rail-badge-count" id="navAreasCount">0</span>
-          </button>
-          {" "}
-          <button className="rail-btn go-nav-btn" data-tab="delivery-verify" onClick={(event) => window.switchGroundTab('delivery-verify', event.currentTarget)} title="Physical Delivery Verification">
+          <button className="rail-btn go-nav-btn" data-tab="assigned-deliveries" onClick={(event) => window.switchGroundTab('assigned-deliveries', event.currentTarget)} title="Assigned Sectors & Physical Deliveries">
             <i className="fas fa-truck-ramp-box"></i>
-            {" "}
             <span>Deliveries</span>
-            {" "}
             <span className="rail-badge-count warn" id="navPendingDelivCount">0</span>
           </button>
-          {" "}
-          <button className="rail-btn go-nav-btn" data-tab="field-reports" onClick={(event) => window.switchGroundTab('field-reports', event.currentTarget)} title="File Village Field Report">
+          <button className="rail-btn go-nav-btn" data-tab="field-reports" onClick={(event) => window.switchGroundTab('field-reports', event.currentTarget)} title="File Village Field Report & SOS Verification">
             <i className="fas fa-house-flood-water"></i>
-            {" "}
             <span>Report SOS</span>
           </button>
-          {" "}
           <button className="rail-btn go-nav-btn" data-tab="rescue-ops" onClick={(event) => window.switchGroundTab('rescue-ops', event.currentTarget)} title="Active Rescue Operations">
             <i className="fas fa-life-ring"></i>
-            {" "}
             <span>Rescue Ops</span>
-            {" "}
             <span className="rail-badge-count" id="navOpsCount">0</span>
           </button>
-          {" "}
           <button className="rail-btn go-nav-btn" data-tab="return-verify" onClick={(event) => window.switchGroundTab('return-verify', event.currentTarget)} title="Verify Returned Resources">
             <i className="fas fa-rotate-left"></i>
-            {" "}
             <span>Returns</span>
           </button>
-          {" "}
-          <button className="rail-btn go-nav-btn" data-tab="my-reports" onClick={(event) => window.switchGroundTab('my-reports', event.currentTarget)} title="My Submitted Reports Log">
-            <i className="fas fa-file-signature"></i>
-            {" "}
-            <span>Filed Logs</span>
-            {" "}
-            <span className="rail-badge-count" id="navReportsCount">0</span>
-          </button>
-          {" "}
-          <button className="rail-btn go-nav-btn" data-tab="notifications" onClick={(event) => window.switchGroundTab('notifications', event.currentTarget)} title={"Field Alerts & Directives"}>
+          <button className="rail-btn go-nav-btn" data-tab="notifications" onClick={(event) => window.switchGroundTab('notifications', event.currentTarget)} title="Field Alerts & Multi-Agency Directives">
             <i className="fas fa-bell"></i>
-            {" "}
             <span>Alerts</span>
-            {" "}
             <span className="rail-badge-count warn" id="navNotifCount">0</span>
           </button>
-          {" "}
-          <button className="rail-btn go-nav-btn" data-tab="profile" onClick={(event) => window.switchGroundTab('profile', event.currentTarget)} title={"Officer Profile & Settings"}>
+          <button className="rail-btn go-nav-btn" data-tab="profile" onClick={(event) => window.switchGroundTab('profile', event.currentTarget)} title="Officer Profile & Settings">
             <i className="fas fa-user-gear"></i>
-            {" "}
             <span>Settings</span>
           </button>
-          {" "}
           {/* Bottom Tools & Telemetry Sync Anchor (Matching 2admin.html & 3authority.html) */}
           <div className="rail-bottom-cluster">
             <div className="rail-divider"></div>
@@ -237,86 +204,74 @@ const markup = (
             </div>
           </div>
           {/* ===============================================================
-                 TAB 2: MY ASSIGNED AREAS (READ-ONLY ASSIGNMENT SCOPE)
+                 TAB 2: ASSIGNED DELIVERIES (MERGED ASSIGNED SECTORS & DELIVERIES)
                  =============================================================== */}
-          <div className="go-tab-pane" id="tab-assigned-areas">
-            <div className="aqua-card">
-              <div className="card-head">
-                <h2>
-                  <i className="fas fa-map-pin" style={{ color: "var(--teal-field)" }}></i>
-                  {" My Assigned Flood-Affected Areas & Navigation Coordinates"}
-                </h2>
-                <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--text-muted)" }}>Assigned by District Authority / Admin (Read-Only Scope)</span>
-              </div>
-              <div className="grid-3 switchable-collection" id="assignedAreasGrid"></div>
-            </div>
-          </div>
-          {/* ===============================================================
-                 TAB 3: DELIVERY VERIFICATION (AUTO SHORTAGE CALCULATION)
-                 =============================================================== */}
-          <div className="go-tab-pane" id="tab-delivery-verify">
+          <div className="go-tab-pane" id="tab-assigned-deliveries">
             <div className="aqua-card">
               <div className="card-head">
                 <h2>
                   <i className="fas fa-truck-ramp-box" style={{ color: "var(--river-blue)" }}></i>
-                  {" Physical Delivery Verification & Discrepancy Reporting"}
+                  {" Assigned Flood Sectors & Physical Delivery Cross-Audit"}
                 </h2>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--text-muted)" }}>Filter Sector:</span>
+                  <select id="delivSectorFilter" className="form-control" style={{ padding: "4px 10px", fontSize: "11.5px", width: "auto" }} onChange={() => window.renderAllGroundViews && window.renderAllGroundViews()}>
+                    <option value="ALL">All Affected Sectors</option>
+                  </select>
+                </div>
               </div>
-              <div style={{ background: "#eef6fd", borderLeft: "3.5px solid var(--river-blue)", padding: "8px 12px", borderRadius: "8px", fontSize: "11.5px", color: "var(--navy-deep)", marginBottom: "12px" }}>
-                <strong>Automated Shortage Audit:</strong>
-                {" Enter actual received and damaged quantities. Any difference against Godown Dispatched Qty automatically flags a discrepancy report for the Monitoring Officer. "}
+              <div style={{ background: "#eef6fd", borderLeft: "3.5px solid var(--river-blue)", padding: "9px 13px", borderRadius: "8px", fontSize: "11.5px", color: "var(--navy-deep)", marginBottom: "14px", lineHeight: "1.5" }}>
+                <strong>Multi-Agency Chain of Custody Audit:</strong>
+                {" Compare approved quota vs dispatched quantity vs actual physical receipts on ground. Details include convoy driver, escort officers, vehicle telemetry, gate-pass reference, and required evidence uploads. "}
               </div>
-              <div className="grid-2 switchable-collection" id="fullDeliveryVerifyGrid"></div>
+              <div className="grid-1 switchable-collection" id="assignedDeliveriesGrid"></div>
             </div>
           </div>
           {/* ===============================================================
-                 TAB 4: FIELD SITUATION REPORTS (GPS + IMMUTABLE SUBMISSION)
+                 TAB 3: REPORT SOS (SECTOR-WISE INSTANT VERIFICATION FORM)
                  =============================================================== */}
           <div className="go-tab-pane" id="tab-field-reports">
             <div className="aqua-card">
               <div className="card-head">
                 <h2>
                   <i className="fas fa-house-flood-water" style={{ color: "var(--teal-field)" }}></i>
-                  {" Submit Ground Flood Situation Report"}
+                  {" Submit Ground Flood SITREP & Verification"}
                 </h2>
+                <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--text-muted)" }}>Tap any sector below to auto-load verification form</span>
               </div>
+              {/* Interactive Sector Selector Chips */}
+              <div className="sector-chips-bar" id="sosSectorChipsBar"></div>
               <form onSubmit={(event) => window.submitFieldSituationReport(event)}>
                 <div className="form-grid-3">
                   <div className="form-group">
-                    <label>Assigned Village / Location *</label>
-                    {" "}
-                    <select id="frVillageSel" className="form-control"></select>
+                    <label>Selected Affected Sector *</label>
+                    <select id="frVillageSel" className="form-control" required></select>
                   </div>
                   <div className="form-group">
                     <label>Observed Flood Severity *</label>
-                    {" "}
                     <select id="frSeveritySel" className="form-control">
-                      <option value="Critical">Critical</option>
-                      <option value="High">High</option>
+                      <option value="Critical">Critical (Inundation Danger)</option>
+                      <option value="High">High Risk</option>
                       <option value="Moderate">Moderate</option>
                       <option value="Low">Low</option>
                     </select>
                   </div>
                   <div className="form-group">
-                    <label>Water Level / Depth Observation *</label>
-                    {" "}
-                    <input type="text" id="frWaterLevel" className="form-control" placeholder="e.g. 4.2 ft in residential ward" required />
+                    <label>Water Level / Inundation Observation *</label>
+                    <input type="text" id="frWaterLevel" className="form-control" placeholder="e.g. 4.2 ft in residential ward, river rising" required />
                   </div>
                 </div>
                 <div className="form-grid-3">
                   <div className="form-group">
-                    <label>Affected Households / Population *</label>
-                    {" "}
-                    <input type="text" id="frAffectedPop" className="form-control" placeholder="e.g. 320 households (~1,450 people)" required />
+                    <label>Affected Population *</label>
+                    <input type="text" id="frAffectedPop" className="form-control" placeholder="e.g. 320 households (~1,450 citizens)" required />
                   </div>
                   <div className="form-group">
-                    <label>Stranded People Count *</label>
-                    {" "}
+                    <label>Stranded Citizens Count *</label>
                     <input type="number" id="frStrandedCount" className="form-control" min="0" defaultValue="45" required />
                   </div>
                   <div className="form-group">
                     <label>Road / Access Condition *</label>
-                    {" "}
                     <select id="frRoadCond" className="form-control">
                       <option value="Blocked / Submerged (Boat Only)">Blocked / Submerged (Boat Only)</option>
                       <option value="Partially Accessible (Heavy Vehicles)">Partially Accessible (Heavy Vehicles)</option>
@@ -326,105 +281,106 @@ const markup = (
                 </div>
                 <div className="form-grid-3">
                   <div className="form-group">
-                    <label>Urgent Relief Needs (Food/Water/Med) *</label>
-                    {" "}
-                    <input type="text" id="frUrgentNeeds" className="form-control" placeholder={"e.g. 300 food packets, ORS & drinking water"} required />
+                    <label>Urgent Needs (Food/Water/Boats/Meds) *</label>
+                    <input type="text" id="frUrgentNeeds" className="form-control" placeholder="e.g. 2 Inflatable boats, 300 food packets, ORS" required />
                   </div>
                   <div className="form-group">
                     <label>GPS Coordinates (Auto-Captured) *</label>
-                    {" "}
                     <input type="text" id="frGpsCoords" className="form-control" defaultValue="26.1320° N, 91.5150° E" required />
                   </div>
                   <div className="form-group">
-                    <label>Field Photo Evidence Reference</label>
-                    {" "}
-                    <input type="file" id="frPhotoInput" className="form-control" accept="image/*" />
+                    <label>Evidence Reference ID / Receipt Ref</label>
+                    <input type="text" id="frEvidenceRef" className="form-control" placeholder="e.g. EVD-KAM-2026-881 / Photo ID" />
                   </div>
                 </div>
                 <div className="form-group">
-                  <label>Ground Officer Field Remarks *</label>
-                  {" "}
-                  <textarea id="frRemarks" className="form-control" rows="2" placeholder="Describe ground conditions, embankment status, or medical cases..." required />
+                  <label>Field Photo / Document Attachment</label>
+                  <input type="file" id="frPhotoInput" className="form-control" accept="image/*,.pdf" />
                 </div>
-                <button type="submit" className="btn-go primary" style={{ padding: "10px 18px", fontSize: "12.5px" }}>
+                <div className="form-group">
+                  <label>Ground Officer Field Verification Comments *</label>
+                  <textarea id="frRemarks" className="form-control" rows="3" placeholder="Detailed ground observation, embankment conditions, breach telemetry, or medical emergency cases..." required></textarea>
+                </div>
+                <button type="submit" className="btn-go primary" style={{ padding: "11px 22px", fontSize: "13px" }}>
                   <i className="fas fa-paper-plane"></i>
-                  {" Submit Immutable Field Report (With Timestamp & Officer ID) "}
+                  {" Submit Ground Field Verification & SOS Alert"}
                 </button>
               </form>
+              <div style={{ marginTop: "18px", borderTop: "1px dashed #cbd5e1", paddingTop: "14px" }}>
+                <h4 style={{ margin: "0 0 10px 0", fontSize: "13px", color: "var(--navy-deep)" }}><i className="fas fa-clock-rotate-left"></i> Recent Ground Field Reports & Audit History</h4>
+                <div className="grid-2 switchable-collection" id="recentSosReportsList"></div>
+              </div>
             </div>
           </div>
           {/* ===============================================================
-                 TAB 5: RESCUE OPERATIONS (PROGRESS REPORTING ONLY)
+                 TAB 4: RESCUE OPERATIONS (SECTOR-WISE DETAILED DATA)
                  =============================================================== */}
           <div className="go-tab-pane" id="tab-rescue-ops">
             <div className="aqua-card">
               <div className="card-head">
                 <h2>
                   <i className="fas fa-life-ring" style={{ color: "var(--foliage-mid)" }}></i>
-                  {" Assigned Rescue Operations – Progress & Evacuation Reporting"}
+                  {" Assigned Rescue Operations – Sector-Wise Evacuation Progress"}
                 </h2>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--text-muted)" }}>Sector:</span>
+                  <select id="rescueSectorFilter" className="form-control" style={{ padding: "4px 10px", fontSize: "11.5px", width: "auto" }} onChange={() => window.renderAllGroundViews && window.renderAllGroundViews()}>
+                    <option value="ALL">All Rescue Sectors</option>
+                  </select>
+                </div>
               </div>
               <div style={{ background: "#f0fdf4", borderLeft: "3.5px solid #16a34a", padding: "8px 12px", borderRadius: "8px", fontSize: "11.5px", color: "#14532d", marginBottom: "12px" }}>
-                <strong>Command Boundary:</strong>
-                {" NDRF & SDRF teams operate under their independent official command structures. Ground Officer reports rescued counts, remaining stranded citizens, and field assistance needs. "}
+                <strong>Command Coordination:</strong>
+                {" NDRF & SDRF teams operate in close telemetry sync with the Ground Officer. Update rescued counts, remaining stranded citizens, and field assistance needs in real time. "}
               </div>
               <div className="grid-2 switchable-collection" id="fullRescueOpsGrid"></div>
             </div>
           </div>
           {/* ===============================================================
-                 TAB 6: RETURN VERIFICATION (POST-OPERATION EQUIPMENT AUDIT)
+                 TAB 5: RETURNS (SECTOR-WISE DETAILED ITEM-WISE AUDIT WITH GUARD)
                  =============================================================== */}
           <div className="go-tab-pane" id="tab-return-verify">
             <div className="aqua-card">
               <div className="card-head">
                 <h2>
                   <i className="fas fa-rotate-left" style={{ color: "var(--teal-field)" }}></i>
-                  {" Post-Operation Physical Return Verification"}
+                  {" Post-Operation Return & Physical Restock Audit"}
                 </h2>
-                <button className="btn-go primary" onClick={(event) => window.openReturnVerifyModal()}>
-                  <i className="fas fa-plus"></i>
-                  {" Verify Returned Equipment"}
-                </button>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--text-muted)" }}>Sector:</span>
+                  <select id="returnSectorFilter" className="form-control" style={{ padding: "4px 10px", fontSize: "11.5px", width: "auto" }} onChange={() => window.renderAllGroundViews && window.renderAllGroundViews()}>
+                    <option value="ALL">All Return Sectors</option>
+                  </select>
+                </div>
               </div>
-              <div className="grid-3 switchable-collection" id="returnVerifyGrid"></div>
+              <div style={{ background: "#f0fdf4", borderLeft: "3.5px solid var(--teal-field)", padding: "8px 12px", borderRadius: "8px", fontSize: "11.5px", color: "#065f46", marginBottom: "12px" }}>
+                <strong>Strict Dual-Verification Protocol:</strong>
+                {" The return intake portal for each sector activates only after physical delivery is verified and the ground officer confirms the situation is under control. Itemize returned vs damaged vs missing equipment before warehouse handover. "}
+              </div>
+              <div className="grid-1 switchable-collection" id="returnVerifyGrid"></div>
             </div>
           </div>
           {/* ===============================================================
-                 TAB 7: MY REPORTS (UNIQUE REF ID, STATUS & CORRECTION REQUESTS)
-                 =============================================================== */}
-          <div className="go-tab-pane" id="tab-my-reports">
-            <div className="aqua-card">
-              <div className="card-head">
-                <h2>
-                  <i className="fas fa-file-signature" style={{ color: "var(--navy-deep)" }}></i>
-                  {" My Submitted Reports & Verification Audit Ledger"}
-                </h2>
-                <select id="reportStatusFilter" className="form-control" style={{ padding: "4px 10px", fontSize: "11.5px", width: "auto" }} onChange={(event) => window.renderAllGroundViews()}>
-                  <option value="ALL">All Reports</option>
-                  <option value="Approved / Reviewed">Approved / Reviewed</option>
-                  <option value="Pending Review">Pending Review</option>
-                  <option value="Correction Requested">Correction Requested</option>
-                </select>
-              </div>
-              <div className="grid-2 switchable-collection" id="myReportsGrid"></div>
-            </div>
-          </div>
-          {/* ===============================================================
-                 TAB 8: NOTIFICATIONS
+                 TAB 6: NOTIFICATIONS & FIELD DIRECTIVES STREAM
                  =============================================================== */}
           <div className="go-tab-pane" id="tab-notifications">
             <div className="aqua-card">
               <div className="card-head">
                 <h2>
                   <i className="fas fa-bell" style={{ color: "#dc2626" }}></i>
-                  {" Field Assignments, Delivery Alerts & Authority Instructions"}
+                  {" Field Operations Notification Stream & Multi-Agency Directives"}
                 </h2>
+                <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                  <button type="button" className="btn-card-action active" id="notifFilterAll" onClick={() => window.filterNotifs && window.filterNotifs('ALL')}>All</button>
+                  <button type="button" className="btn-card-action" id="notifFilterCrit" style={{ color: "#b91c1c" }} onClick={() => window.filterNotifs && window.filterNotifs('Critical')}>Critical Alerts</button>
+                  <button type="button" className="btn-card-action" id="notifFilterConvoys" style={{ color: "#0369a1" }} onClick={() => window.filterNotifs && window.filterNotifs('Convoys')}>Convoys & Dispatches</button>
+                </div>
               </div>
-              <div className="grid-2 switchable-collection" id="notificationsGrid"></div>
+              <div className="alert-feed-list" id="notificationsGrid"></div>
             </div>
           </div>
           {/* ===============================================================
-                 TAB 9: PROFILE & SETTINGS
+                 TAB 7: PROFILE & SETTINGS
                  =============================================================== */}
           <div className="go-tab-pane" id="tab-profile">
             <div className="aqua-card">
@@ -438,33 +394,18 @@ const markup = (
                 <div className="sub-card tone-purple">
                   <h4>Field Officer Identity</h4>
                   <div className="meta-box">
-                    <span>
-                      {"Officer Name: "}
-                      <strong>R. K. Kalita (Field Officer)</strong>
-                    </span>
-                    {" "}
-                    <span>
-                      {"Officer ID: "}
-                      <strong>GO-KAM-04</strong>
-                    </span>
-                    {" "}
-                    <span>
-                      {"Assigned District: "}
-                      <strong>Kamrup (Palashbari / Chaygaon)</strong>
-                    </span>
-                    {" "}
-                    <span>
-                      {"Contact: "}
-                      <strong>+91-98640-XXXXX</strong>
-                    </span>
+                    <span>Officer Name: <strong>Bhaskar Jyoti Das</strong></span>
+                    <span>Officer ID: <strong>GO-KAM-04</strong></span>
+                    <span>Assigned District: <strong>Kamrup (Palashbari / Chaygaon)</strong></span>
+                    <span>Direct Hotline: <strong>+91-98640-21943</strong></span>
                   </div>
                 </div>
                 <div className="sub-card tone-good">
-                  <h4>{"Audit & Submission Integrity"}</h4>
+                  <h4>Audit & Submission Integrity</h4>
                   <p style={{ margin: "0", fontSize: "11.5px", color: "var(--text-body)" }}>
-                    {" Every delivery verification and field report is permanently stamped with Officer ID "}
+                    {"Every delivery verification and field SITREP report is permanently stamped with Officer ID "}
                     <strong>GO-KAM-04</strong>
-                    {", GPS coordinates, and timestamp. Submitted reports cannot be altered directly; revisions require a formal correction entry. "}
+                    {", GPS coordinates, and timestamp. All records are cross-audited against Central Godown gate-passes and DEOC monitoring logs."}
                   </p>
                 </div>
               </div>
@@ -482,25 +423,25 @@ const markup = (
               </h2>
             </div>
             <div className="qa-grid-2x2">
-              <button type="button" className="qa-color-card qa-blue" onClick={() => window.switchGroundTab('field-reports', document.querySelector('[data-tab=field-reports]'))}>
+              <button type="button" className="qa-color-card qa-blue" onClick={() => window.quickFileSos && window.quickFileSos()} title="Submit field flood SITREP">
                 <i className="fas fa-house-flood-water"></i>
-                <strong>File SITREP</strong>
-                <span>Submit field flood report</span>
+                <strong>File SOS SITREP</strong>
+                <span>Instant sector report</span>
               </button>
-              <button type="button" className="qa-color-card qa-green" onClick={() => window.switchGroundTab('delivery-verify', document.querySelector('[data-tab=delivery-verify]'))}>
+              <button type="button" className="qa-color-card qa-green" onClick={() => window.quickVerifyFirstPending && window.quickVerifyFirstPending()} title="Audit physical arrival">
                 <i className="fas fa-truck-ramp-box"></i>
                 <strong>Verify Delivery</strong>
-                <span>Audit physical arrival</span>
+                <span>Physical gate check</span>
               </button>
-              <button type="button" className="qa-color-card qa-amber" onClick={() => window.quickClearFirstActive && window.quickClearFirstActive()}>
+              <button type="button" className="qa-color-card qa-amber" onClick={() => window.quickClearFirstActive && window.quickClearFirstActive()} title="Confirm situation controlled">
                 <i className="fas fa-shield-check"></i>
                 <strong>Clear for Return</strong>
-                <span>Release equipment</span>
+                <span>Unlock return intake</span>
               </button>
-              <button type="button" className="qa-color-card qa-indigo" onClick={() => window.switchGroundTab('rescue-ops', document.querySelector('[data-tab=rescue-ops]'))}>
+              <button type="button" className="qa-color-card qa-indigo" onClick={() => window.quickOpenRescueModal && window.quickOpenRescueModal()} title="Report rescue progress">
                 <i className="fas fa-life-ring"></i>
                 <strong>Rescue Progress</strong>
-                <span>Update evacuated count</span>
+                <span>Evacuation telemetry</span>
               </button>
             </div>
           </div>
@@ -512,7 +453,7 @@ const markup = (
                 <i className="fas fa-location-crosshairs" style={{ color: "#dc2626" }}></i>
                 {" Selected Flood Sector"}
               </h2>
-              <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--river-blue)", cursor: "pointer" }} onClick={() => window.switchGroundTab('assigned-areas', document.querySelector('[data-tab=assigned-areas]'))}>Details →</span>
+              <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--river-blue)", cursor: "pointer" }} onClick={() => window.switchGroundTab('assigned-deliveries', document.querySelector('[data-tab=assigned-deliveries]'))}>Details →</span>
             </div>
             <div id="rightSelectedGroundVillageBox"></div>
           </div>
@@ -535,13 +476,13 @@ const markup = (
                 <i className="fas fa-warehouse" style={{ color: "var(--foliage-mid)" }}></i>
                 {" Central Godown Dispatch Sync"}
               </h2>
-              <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--river-blue)", cursor: "pointer" }} onClick={() => window.switchGroundTab('delivery-verify', document.querySelector('[data-tab=delivery-verify]'))}>Audit →</span>
+              <span style={{ fontSize: "11px", fontWeight: "700", color: "var(--river-blue)", cursor: "pointer" }} onClick={() => window.switchGroundTab('assigned-deliveries', document.querySelector('[data-tab=assigned-deliveries]'))}>Audit →</span>
             </div>
             <div className="right-mini-grid" id="rightGroundGodownSyncBox"></div>
           </div>
         </aside>
       </div>
-      {/* RIPARIAN PANORAMIC FOOTER (MATCHED TO 2ADMIN, 3AUTHORITY & 1INDEX) */}
+      {/* RIPARIAN PANORAMIC FOOTER */}
       <div className="riparian-footer-wrap">
         <div className="footer-scenic-banner">
           <img src="/footer.jpg" alt="Riparian Landscape" className="footer-scenic-img" />
@@ -562,11 +503,11 @@ const markup = (
       </div>
       {/* 1. Verify Physical Delivery Modal */}
       <div className="modal-overlay" id="verifyDeliveryModal" onClick={(event) => window.closeModal('verifyDeliveryModal')}>
-        <div className="modal-box" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-box" style={{ maxWidth: "620px" }} onClick={(event) => event.stopPropagation()}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
             <h3 style={{ margin: "0", fontSize: "16px", color: "var(--navy-deep)" }}>
               <i className="fas fa-truck-ramp-box" style={{ color: "var(--teal-field)" }}></i>
-              {" Physical Delivery Verification"}
+              {" Physical Delivery Intake & Item-Wise Cross Audit"}
             </h3>
             <button onClick={(event) => window.closeModal('verifyDeliveryModal')} style={{ border: "none", background: "#e2e8f0", width: "28px", height: "28px", borderRadius: "50%", cursor: "pointer" }}>
               <i className="fas fa-times"></i>
@@ -574,24 +515,40 @@ const markup = (
           </div>
           <form onSubmit={(event) => window.submitDeliveryVerification(event)}>
             <input type="hidden" id="verDelivIdx" />
-            <div id="verDelivHeader" style={{ background: "#f0f9ff", padding: "9px 11px", borderRadius: "8px", fontSize: "12px", marginBottom: "10px" }}></div>
-            <div className="form-grid-3">
-              <div className="form-group">
-                <label>Dispatched Qty</label>
-                {" "}
-                <input type="number" id="verDispQty" className="form-control" readOnly style={{ background: "#f1f5f9" }} />
+            <div id="verDelivHeader" style={{ background: "#f0f9ff", border: "1px solid #bae6fd", padding: "10px 12px", borderRadius: "8px", fontSize: "12px", marginBottom: "12px" }}></div>
+            
+            <div style={{ fontSize: "11px", fontWeight: "700", color: "#334155", textTransform: "uppercase", marginBottom: "6px" }}>Item-Wise Physical Verification (Received vs Damaged):</div>
+            <div className="form-grid-2" style={{ gap: "10px", marginBottom: "10px" }}>
+              <div style={{ background: "#f8fafc", padding: "8px 10px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                <span style={{ fontSize: "11px", fontWeight: "700", color: "#0369a1" }}>1. Inflatable Rescue Boats</span>
+                <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+                  <div style={{ flex: 1 }}><label style={{ fontSize: "10px" }}>Received *</label><input type="number" id="verBoatsRecv" className="form-control" min="0" onInput={() => window.previewShortageCalc()} required /></div>
+                  <div style={{ flex: 1 }}><label style={{ fontSize: "10px" }}>Damaged</label><input type="number" id="verBoatsDmg" className="form-control" min="0" defaultValue="0" onInput={() => window.previewShortageCalc()} /></div>
+                </div>
               </div>
-              <div className="form-group">
-                <label>Actual Received Qty *</label>
-                {" "}
-                <input type="number" id="verRecvQty" className="form-control" min="0" onInput={(event) => window.previewShortageCalc()} required />
+              <div style={{ background: "#f8fafc", padding: "8px 10px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                <span style={{ fontSize: "11px", fontWeight: "700", color: "#0369a1" }}>2. Life Jackets (SOLAS)</span>
+                <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+                  <div style={{ flex: 1 }}><label style={{ fontSize: "10px" }}>Received *</label><input type="number" id="verJacketsRecv" className="form-control" min="0" onInput={() => window.previewShortageCalc()} required /></div>
+                  <div style={{ flex: 1 }}><label style={{ fontSize: "10px" }}>Damaged</label><input type="number" id="verJacketsDmg" className="form-control" min="0" defaultValue="0" onInput={() => window.previewShortageCalc()} /></div>
+                </div>
               </div>
-              <div className="form-group">
-                <label>Damaged Items Qty</label>
-                {" "}
-                <input type="number" id="verDmgQty" className="form-control" min="0" defaultValue="0" onInput={(event) => window.previewShortageCalc()} required />
+              <div style={{ background: "#f8fafc", padding: "8px 10px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                <span style={{ fontSize: "11px", fontWeight: "700", color: "#0369a1" }}>3. Food Rations Packets</span>
+                <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+                  <div style={{ flex: 1 }}><label style={{ fontSize: "10px" }}>Received *</label><input type="number" id="verFoodRecv" className="form-control" min="0" onInput={() => window.previewShortageCalc()} required /></div>
+                  <div style={{ flex: 1 }}><label style={{ fontSize: "10px" }}>Damaged</label><input type="number" id="verFoodDmg" className="form-control" min="0" defaultValue="0" onInput={() => window.previewShortageCalc()} /></div>
+                </div>
+              </div>
+              <div style={{ background: "#f8fafc", padding: "8px 10px", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                <span style={{ fontSize: "11px", fontWeight: "700", color: "#0369a1" }}>4. Medical & First Aid Kits</span>
+                <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+                  <div style={{ flex: 1 }}><label style={{ fontSize: "10px" }}>Received *</label><input type="number" id="verMedsRecv" className="form-control" min="0" onInput={() => window.previewShortageCalc()} required /></div>
+                  <div style={{ flex: 1 }}><label style={{ fontSize: "10px" }}>Damaged</label><input type="number" id="verMedsDmg" className="form-control" min="0" defaultValue="0" onInput={() => window.previewShortageCalc()} /></div>
+                </div>
               </div>
             </div>
+
             <div id="shortagePreviewBox" style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: "8px", padding: "8px 10px", fontSize: "11.5px", color: "#14532d", marginBottom: "10px" }}>
               {" Calculated Shortage: "}
               <strong>0 Units</strong>
@@ -599,19 +556,17 @@ const markup = (
             </div>
             <div className="form-grid-2">
               <div className="form-group">
-                <label>Delivery Photo Evidence</label>
-                {" "}
-                <input type="file" className="form-control" accept="image/*" />
+                <label>Gate-Pass / Physical Waybill Ref *</label>
+                <input type="text" id="verEvidenceRef" className="form-control" placeholder="e.g. WAYBILL-2026-932 / Slip ID" required />
               </div>
               <div className="form-group">
-                <label>Verification Remarks *</label>
-                {" "}
-                <input type="text" id="verRemarks" className="form-control" placeholder="e.g. Counted at relief camp gate" required />
+                <label>Verification Remarks / Condition *</label>
+                <input type="text" id="verRemarks" className="form-control" placeholder="e.g. Inspected at relief distribution depot" required />
               </div>
             </div>
-            <button type="submit" className="btn-go primary" style={{ width: "100%", justifyContent: "center", padding: "10px", fontSize: "12.5px" }}>
+            <button type="submit" className="btn-go primary" style={{ width: "100%", justifyContent: "center", padding: "11px", fontSize: "12.5px" }}>
               <i className="fas fa-check-circle"></i>
-              {" Submit Physical Delivery Verification "}
+              {" Submit Physical Delivery Verification & Sign Digital Receipt"}
             </button>
           </form>
         </div>
@@ -631,17 +586,14 @@ const markup = (
             <div className="form-grid-3">
               <div className="form-group">
                 <label>Rescued People *</label>
-                {" "}
                 <input type="number" id="opRescuedInput" className="form-control" min="0" required />
               </div>
               <div className="form-group">
                 <label>Remaining Stranded *</label>
-                {" "}
                 <input type="number" id="opStrandedInput" className="form-control" min="0" required />
               </div>
               <div className="form-group">
                 <label>Operation Status *</label>
-                {" "}
                 <select id="opStatusSel" className="form-control">
                   <option value="In Progress">In Progress</option>
                   <option value="Additional Boats Needed">Additional Boats Needed</option>
@@ -651,7 +603,6 @@ const markup = (
             </div>
             <div className="form-group">
               <label>Field Assistance / Delay Remarks *</label>
-              {" "}
               <input type="text" id="opNotesInput" className="form-control" placeholder="e.g. Strong river current; 2 extra boats requested" required />
             </div>
             <button type="submit" className="btn-go primary" style={{ width: "100%", justifyContent: "center", padding: "10px" }}>Submit Rescue Progress Report</button>
@@ -660,9 +611,12 @@ const markup = (
       </div>
       {/* 3. Return Verification Modal */}
       <div className="modal-overlay" id="returnVerifyModal" onClick={(event) => window.closeModal('returnVerifyModal')}>
-        <div className="modal-box" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-box" style={{ maxWidth: "580px" }} onClick={(event) => event.stopPropagation()}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
-            <h3 style={{ margin: "0", fontSize: "16px", color: "var(--navy-deep)" }}>Verify Post-Operation Returned Resources</h3>
+            <h3 style={{ margin: "0", fontSize: "16px", color: "var(--navy-deep)" }}>
+              <i className="fas fa-rotate-left" style={{ color: "var(--teal-field)" }}></i>
+              {" Post-Operation Return & Physical Restock Audit"}
+            </h3>
             <button onClick={(event) => window.closeModal('returnVerifyModal')} style={{ border: "none", background: "#e2e8f0", width: "28px", height: "28px", borderRadius: "50%", cursor: "pointer" }}>
               <i className="fas fa-times"></i>
             </button>
@@ -670,42 +624,41 @@ const markup = (
           <form onSubmit={(event) => window.submitReturnVerification(event)}>
             <div className="form-grid-2">
               <div className="form-group">
-                <label>Resource Item *</label>
-                {" "}
-                <input type="text" id="rvItemName" className="form-control" placeholder="e.g. Inflatable Rescue Boats" required />
+                <label>Affected Sector / Location *</label>
+                <select id="rvLocationSel" className="form-control" required></select>
               </div>
               <div className="form-group">
-                <label>Operation / Location *</label>
-                {" "}
-                <input type="text" id="rvLocation" className="form-control" placeholder="e.g. Palashbari Ward 2" required />
+                <label>Resource Consignment *</label>
+                <input type="text" id="rvItemName" className="form-control" defaultValue="Relief Consignment Rescue Craft & Equipment" required />
               </div>
             </div>
+            <div style={{ fontSize: "11px", fontWeight: "700", color: "#334155", margin: "6px 0" }}>Returned Items Condition Audit:</div>
             <div className="form-grid-3">
               <div className="form-group">
-                <label>Good Condition Qty</label>
-                {" "}
+                <label>Good Condition Qty *</label>
                 <input type="number" id="rvGoodQty" className="form-control" min="0" defaultValue="8" required />
               </div>
               <div className="form-group">
-                <label>Damaged Qty</label>
-                {" "}
+                <label>Damaged Qty *</label>
                 <input type="number" id="rvDmgQty" className="form-control" min="0" defaultValue="1" required />
               </div>
               <div className="form-group">
-                <label>Missing Qty</label>
-                {" "}
-                <input type="number" id="rvMissQty" className="form-control" min="0" defaultValue="1" required />
+                <label>Missing Qty *</label>
+                <input type="number" id="rvMissQty" className="form-control" min="0" defaultValue="0" required />
               </div>
             </div>
             <div className="form-group">
-              <label>Damage / Return Remarks *</label>
-              {" "}
-              <input type="text" id="rvRemarks" className="form-control" placeholder="e.g. 1 boat pontoon punctured; sent to Godown for repair" required />
+              <label>Officer Field Inspection Feedback & Damage Notes *</label>
+              <textarea id="rvRemarks" className="form-control" rows="2" placeholder="e.g. 1 boat pontoon punctured during rescue near Ramnagar; cleaned and packed for Godown intake..." required></textarea>
             </div>
-            <button type="submit" className="btn-go primary" style={{ width: "100%", justifyContent: "center", padding: "10px" }}>Submit Return Verification to Godown</button>
+            <button type="submit" className="btn-go primary" style={{ width: "100%", justifyContent: "center", padding: "11px" }}>
+              <i className="fas fa-paper-plane"></i>
+              {" Submit Return Audit to Central Godown"}
+            </button>
           </form>
         </div>
       </div>
+      <div id="toast"></div>
       <div id="toast"></div>
   </>
 );

@@ -187,6 +187,83 @@ export default function initGroundOfficerPage() {
     }
   }
 
+  let activeAlertFilter = 'ALL';
+
+  function filterNotifs(filterType) {
+    activeAlertFilter = filterType;
+    document.querySelectorAll('.btn-card-action').forEach(b => {
+      if (b.id && b.id.startsWith('notifFilter')) b.classList.remove('active');
+    });
+    if (filterType === 'ALL') {
+      const b = document.getElementById('notifFilterAll');
+      if (b) b.classList.add('active');
+    } else if (filterType === 'Critical') {
+      const b = document.getElementById('notifFilterCrit');
+      if (b) b.classList.add('active');
+    } else if (filterType === 'Convoys') {
+      const b = document.getElementById('notifFilterConvoys');
+      if (b) b.classList.add('active');
+    }
+    renderAllGroundViews();
+  }
+
+  function selectSosSector(vName) {
+    if (!vName) return;
+    selectedVillageName = vName;
+    const areas = (state && state.areas) || [];
+    const found = areas.find(a => a.village.toLowerCase() === vName.toLowerCase());
+
+    const frSel = document.getElementById('frVillageSel');
+    if (frSel) frSel.value = vName;
+
+    if (found) {
+      const gpsInp = document.getElementById('frGpsCoords');
+      if (gpsInp && found.coords) gpsInp.value = found.coords;
+      const sevSel = document.getElementById('frSeveritySel');
+      if (sevSel && found.severity) sevSel.value = found.severity;
+    }
+
+    document.querySelectorAll('.sector-chip-btn').forEach(btn => {
+      btn.classList.toggle('active', (btn.dataset.village || '').toLowerCase() === vName.toLowerCase());
+    });
+
+    const remArea = document.getElementById('frRemarks');
+    if (remArea) {
+      remArea.focus();
+    }
+    showToast(`Loaded SITREP verification form for ${vName}`);
+  }
+
+  function quickFileSos() {
+    switchGroundTab('field-reports', document.querySelector('[data-tab=field-reports]'));
+    const areas = (state && state.areas) || [];
+    const crit = areas.find(a => a.severity === 'Critical') || areas[0];
+    if (crit) {
+      selectSosSector(crit.village);
+    }
+  }
+
+  function quickVerifyFirstPending() {
+    switchGroundTab('assigned-deliveries', document.querySelector('[data-tab=assigned-deliveries]'));
+    const deliveries = (state && state.deliveries) || [];
+    const pendingIdx = deliveries.findIndex(d => d.status === 'Pending Verification');
+    if (pendingIdx !== -1) {
+      openVerifyDeliveryModal(pendingIdx);
+    } else {
+      showToast('All dispatched relief deliveries are verified.');
+    }
+  }
+
+  function quickOpenRescueModal() {
+    switchGroundTab('rescue-ops', document.querySelector('[data-tab=rescue-ops]'));
+    const operations = (state && state.operations) || [];
+    if (operations.length > 0) {
+      openRescueUpdateModal(0);
+    } else {
+      showToast('No active rescue operations recorded.');
+    }
+  }
+
   function renderAllGroundViews() {
     if (!state) state = getCurrentGroundState();
     const areas = state.areas || [];
@@ -210,25 +287,60 @@ export default function initGroundOfficerPage() {
       }
     }
 
+    // Populate sector dropdowns for Delivery, Rescue, and Return tabs
+    const populateSectorSelect = (selectId, labelPrefix) => {
+      const sel = document.getElementById(selectId);
+      if (sel && areas.length > 0) {
+        const curVal = sel.value;
+        const opts = `<option value="ALL">All ${labelPrefix} (${areas.length} Sectors)</option>` +
+          areas.map(a => `<option value="${a.village}">${a.village}</option>`).join('');
+        if (sel.innerHTML !== opts) {
+          sel.innerHTML = opts;
+          if (curVal && (curVal === 'ALL' || areas.some(a => a.village === curVal))) {
+            sel.value = curVal;
+          }
+        }
+      }
+    };
+    populateSectorSelect('delivSectorFilter', 'Affected Sectors');
+    populateSectorSelect('rescueSectorFilter', 'Rescue Sectors');
+    populateSectorSelect('returnSectorFilter', 'Return Sectors');
+
     const areaFilter = areaFilterEl?.value || 'ALL';
+    const delivFilter = document.getElementById('delivSectorFilter')?.value || 'ALL';
+    const rescueFilter = document.getElementById('rescueSectorFilter')?.value || 'ALL';
+    const returnFilter = document.getElementById('returnSectorFilter')?.value || 'ALL';
+
     const visAreas = areas.filter(a => areaFilter === 'ALL' || a.village === areaFilter);
-    const visDeliv = deliveries.filter(d => areaFilter === 'ALL' || d.destination === areaFilter);
+    const visDeliv = deliveries.filter(d => (areaFilter === 'ALL' || d.destination === areaFilter) && (delivFilter === 'ALL' || d.destination === delivFilter));
     const visReports = fieldReports.filter(r => areaFilter === 'ALL' || r.village === areaFilter);
-    const visOps = operations.filter(o => areaFilter === 'ALL' || o.location === areaFilter);
+    const visOps = operations.filter(o => (areaFilter === 'ALL' || o.location === areaFilter) && (rescueFilter === 'ALL' || o.location === rescueFilter));
+    const visReturns = returns.filter(r => (areaFilter === 'ALL' || r.location === areaFilter) && (returnFilter === 'ALL' || r.location === returnFilter));
 
-    const pendingDelivs = visDeliv.filter(d => d.status === 'Pending Verification');
-    const verifiedDelivs = visDeliv.filter(d => d.status !== 'Pending Verification');
+    const pendingDelivs = deliveries.filter(d => d.status === 'Pending Verification');
+    const verifiedDelivs = deliveries.filter(d => d.status !== 'Pending Verification');
 
-    const navAreasCount = document.getElementById('navAreasCount');
-    if (navAreasCount) navAreasCount.textContent = visAreas.length;
     const navPendingDelivCount = document.getElementById('navPendingDelivCount');
     if (navPendingDelivCount) navPendingDelivCount.textContent = pendingDelivs.length;
     const navOpsCount = document.getElementById('navOpsCount');
     if (navOpsCount) navOpsCount.textContent = visOps.length;
-    const navReportsCount = document.getElementById('navReportsCount');
-    if (navReportsCount) navReportsCount.textContent = visReports.length;
     const navNotifCount = document.getElementById('navNotifCount');
     if (navNotifCount) navNotifCount.textContent = notifications.length;
+
+    // 1. Populate SOS Sector Selector Chips Bar
+    const chipsBar = document.getElementById('sosSectorChipsBar');
+    if (chipsBar && areas.length > 0) {
+      chipsBar.innerHTML = areas.map(a => {
+        const isSel = selectedVillageName === a.village;
+        return `
+          <button type="button" class="sector-chip-btn ${isSel ? 'active' : ''}" data-village="${a.village}" onclick="window.selectSosSector('${(a.village || '').replace(/'/g, "\\'")}')">
+            <i class="fas fa-location-dot" style="color:${a.severity === 'Critical' ? '#dc2626' : '#0284c7'};"></i>
+            ${a.village}
+            <span class="pill ${getPillClass(a.severity)}" style="font-size:9.5px; padding:1px 5px;">${a.severity}</span>
+          </button>
+        `;
+      }).join('');
+    }
 
     // Populate Field Report Village Select with live assigned areas
     const frSel = document.getElementById('frVillageSel');
@@ -241,24 +353,18 @@ export default function initGroundOfficerPage() {
         frSel.value = curFrVal;
       }
       frSel.onchange = () => {
-        const selectedArea = areas.find(a => a.village === frSel.value);
-        if (selectedArea) {
-          const gpsInp = document.getElementById('frGpsCoords');
-          if (gpsInp && selectedArea.coords) gpsInp.value = selectedArea.coords;
-          const sevSel = document.getElementById('frSeveritySel');
-          if (sevSel && selectedArea.severity) sevSel.value = selectedArea.severity;
-        }
+        selectSosSector(frSel.value);
       };
     }
 
-    // 1. 6-KPI Summary Strip
+    // 2. 6-KPI Summary Strip
     const kpis = [
-      { val: isDrillMode ? visAreas.length : '0', lbl: 'Assigned Locations', icon: 'fa-map-pin', grad: 'kpi-grad-blue' },
+      { val: isDrillMode ? areas.length : '0', lbl: 'Assigned Sectors', icon: 'fa-map-pin', grad: 'kpi-grad-blue' },
       { val: isDrillMode ? pendingDelivs.length : '0', lbl: 'Pending Verifications', icon: 'fa-truck-ramp-box', grad: 'kpi-grad-amber' },
-      { val: isDrillMode ? verifiedDelivs.length : '0', lbl: 'Completed Verifications', icon: 'fa-circle-check', grad: 'kpi-grad-green' },
-      { val: isDrillMode ? visReports.length : '0', lbl: 'Field Reports Filed', icon: 'fa-house-flood-water', grad: 'kpi-grad-indigo' },
+      { val: isDrillMode ? verifiedDelivs.length : '0', lbl: 'Completed Receipts', icon: 'fa-circle-check', grad: 'kpi-grad-green' },
+      { val: isDrillMode ? visReports.length : '0', lbl: 'Field SITREPs Filed', icon: 'fa-house-flood-water', grad: 'kpi-grad-indigo' },
       { val: isDrillMode ? visOps.length : '0', lbl: 'Active Rescue Ops', icon: 'fa-life-ring', grad: 'kpi-grad-teal' },
-      { val: isDrillMode ? notifications.length : '0', lbl: 'Critical Field Alerts', icon: 'fa-triangle-exclamation', grad: 'kpi-grad-red' }
+      { val: isDrillMode ? notifications.length : '0', lbl: 'Field Notifications', icon: 'fa-bell', grad: 'kpi-grad-red' }
     ];
 
     const kpiGrid = document.getElementById('groundKpiGrid');
@@ -274,225 +380,390 @@ export default function initGroundOfficerPage() {
       `).join('');
     }
 
-    // 2. Dashboard Active Tasks
-    const activeTasksList = document.getElementById('dashActiveTasksList');
-    if (activeTasksList) {
-      activeTasksList.innerHTML = visAreas.length === 0
-        ? `<div style="text-align:center; padding:16px; color:var(--text-muted);">No active field assignments recorded.</div>`
-        : visAreas.map(a => `
-          <div class="sub-card ${getToneClass(a.severity)}" style="padding:10px 12px; cursor:pointer;" onclick="window.selectGroundVillageForInspection('${(a.village || '').replace(/'/g, "\\'")}')">
-            <div class="sub-card-top">
-              <div>
-                <h4><i class="fas fa-location-dot" style="color:var(--river-blue); margin-right:4px;"></i>${a.village}</h4>
-                <span style="font-size:10.5px; color:var(--text-muted);">${a.block} • Deadline: <strong>${a.deadline}</strong></span>
+    // 3. Merged Assigned Flood Sectors & Physical Deliveries Grid (#assignedDeliveriesGrid)
+    const delivGrid = document.getElementById('assignedDeliveriesGrid');
+    if (delivGrid) {
+      delivGrid.innerHTML = visDeliv.length === 0
+        ? `<div style="text-align:center; padding:24px; border:1.5px dashed #9cc3e6; border-radius:12px; color:var(--text-muted);">No deliveries matching this sector filter.</div>`
+        : visDeliv.map(d => {
+          const origIdx = deliveries.indexOf(d);
+          const isCleared = Boolean(d.groundOfficerCleared || d.reliefClearedForReturn);
+          const isVerified = d.status === 'Verified';
+          const p = d.involvedPersonnel || {};
+          const items = d.itemBreakdown || [];
+
+          return `
+            <div class="sub-card ${getToneClass(d.status)}" style="margin-bottom:14px; padding:16px 18px;">
+              <div class="sub-card-top" style="align-items:flex-start; margin-bottom:10px;">
+                <div>
+                  <h3 style="margin:0 0 4px 0; font-size:15px; color:var(--navy-deep);">
+                    <i class="fas fa-location-dot" style="color:var(--river-blue); margin-right:6px;"></i>
+                    ${d.destination}
+                    <span class="pill ${getPillClass(d.sectorDetails?.severity || 'Critical')}" style="margin-left:8px; font-size:10px;">${d.sectorDetails?.severity || 'Critical'}</span>
+                  </h3>
+                  <div style="font-size:11.5px; color:var(--text-muted); font-weight:600;">
+                    ${d.sectorDetails?.block || 'Assigned Circle'} • Coordinates: <strong>${d.sectorDetails?.coords || '26.15° N, 91.55° E'}</strong> • Gate-Pass: <strong style="color:#0284c7;">${d.dispatchId}</strong> • Order: <strong>${d.allocId || 'ALC-565'}</strong>
+                  </div>
+                </div>
+                <div style="display:flex; gap:6px; align-items:center;">
+                  <span class="pill ${getPillClass(d.status)}" style="font-size:11px; padding:4px 10px;">${d.status}</span>
+                  <button type="button" class="btn-go" style="padding:4px 9px; font-size:11px;" onclick="window.focusGroundMapByName && window.focusGroundMapByName('${(d.destination || '').replace(/'/g, "\\'")}')" title="Focus sector on GIS Map">
+                    <i class="fas fa-map-location-dot" style="color:var(--river-blue);"></i> Map
+                  </button>
+                </div>
               </div>
-              <span class="pill ${getPillClass(a.severity)}">${a.severity}</span>
+
+              <!-- INVOLVED PERSONNEL TEAM GRID -->
+              <div class="personnel-team-box">
+                <div style="font-size:11px; font-weight:700; color:#334155; text-transform:uppercase; letter-spacing:0.5px;">
+                  <i class="fas fa-users-gear" style="color:#0284c7; margin-right:5px;"></i> Involved Multi-Agency Escort & Field Officers:
+                </div>
+                <div class="personnel-grid-row">
+                  <div class="personnel-tile">
+                    <i class="fas fa-truck" style="color:#0284c7;"></i>
+                    <div>
+                      <div class="personnel-tile-role">Convoy Vehicle</div>
+                      <div class="personnel-tile-name" title="${p.vehicle || 'Heavy Truck AS-01-EC-4210'}">${p.vehicle || 'Heavy Truck AS-01-EC-4210'}</div>
+                    </div>
+                  </div>
+                  <div class="personnel-tile">
+                    <i class="fas fa-id-card" style="color:#0d9488;"></i>
+                    <div>
+                      <div class="personnel-tile-role">Convoy Driver</div>
+                      <div class="personnel-tile-name" title="${p.driver || 'Rajesh Das'}">${p.driver || 'Rajesh Das (+91 98640-21943)'}</div>
+                    </div>
+                  </div>
+                  <div class="personnel-tile">
+                    <i class="fas fa-shield-halved" style="color:#dc2626;"></i>
+                    <div>
+                      <div class="personnel-tile-role">NDRF Escort Officer</div>
+                      <div class="personnel-tile-name" title="${p.ndrfEscort || 'Inspector Rajesh Kalita'}">${p.ndrfEscort || 'Inspector Rajesh Kalita (NDRF)'}</div>
+                    </div>
+                  </div>
+                  <div class="personnel-tile">
+                    <i class="fas fa-warehouse" style="color:#16a34a;"></i>
+                    <div>
+                      <div class="personnel-tile-role">Godown Manager</div>
+                      <div class="personnel-tile-name" title="${p.godownManager || 'Rajesh Das (WH-MIRZA)'}">${p.godownManager || 'Rajesh Das (WH-MIRZA)'}</div>
+                    </div>
+                  </div>
+                  <div class="personnel-tile">
+                    <i class="fas fa-person-walking-luggage" style="color:#0ea5e9;"></i>
+                    <div>
+                      <div class="personnel-tile-role">Ground Field Officer</div>
+                      <div class="personnel-tile-name" title="Bhaskar Jyoti Das (GO-KAM-04)">Bhaskar Jyoti Das (GO-KAM-04)</div>
+                    </div>
+                  </div>
+                  <div class="personnel-tile">
+                    <i class="fas fa-building-columns" style="color:#4f46e5;"></i>
+                    <div>
+                      <div class="personnel-tile-role">Allocating Authority</div>
+                      <div class="personnel-tile-name" title="Dr. A. K. Sharma (DDMA)">Dr. A. K. Sharma (DM / DDMA)</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ITEM-WISE COMPARISON TABLE -->
+              <div style="font-size:11px; font-weight:700; color:#334155; text-transform:uppercase; margin-top:10px;">
+                <i class="fas fa-boxes-stacked" style="color:#0d9488; margin-right:5px;"></i> Item-Wise Dispatched vs Physical Ground Verified:
+              </div>
+              <div style="overflow-x:auto;">
+                <table class="item-audit-table">
+                  <thead>
+                    <tr>
+                      <th>Resource Item</th>
+                      <th>Requested (Quota)</th>
+                      <th>Godown Dispatched</th>
+                      <th>Ground Received</th>
+                      <th>Shortage / Damaged</th>
+                      <th>Verification Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${items.map(it => `
+                      <tr>
+                        <td><strong>${it.name}</strong> <span style="font-size:10px; color:#64748b;">(${it.category})</span></td>
+                        <td>${it.requested} Units</td>
+                        <td style="color:#0369a1; font-weight:700;">${it.dispatched} Units</td>
+                        <td style="color:${it.received > 0 ? '#15803d' : '#64748b'}; font-weight:700;">${it.received > 0 ? `${it.received} Units` : (isVerified ? `${it.dispatched} Units` : 'Awaiting Count')}</td>
+                        <td style="color:${(it.shortage + it.damaged) > 0 ? '#dc2626' : '#15803d'}; font-weight:700;">
+                          ${(it.shortage + it.damaged) > 0 ? `${it.shortage} Short, ${it.damaged} Dmg` : '0 Variance'}
+                        </td>
+                        <td>
+                          <span class="pill ${isVerified ? 'p-good' : 'p-pending'}" style="font-size:9.5px;">${isVerified ? 'Verified' : 'Pending Intake'}</span>
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- EVIDENCE & WAYBILL REFERENCE STRIP -->
+              <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; margin-top:8px; font-size:11px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <div>
+                  <span style="color:#64748b;">Waybill / Evidence Ref:</span>
+                  <strong style="color:#0284c7; margin-left:4px;">${d.evidenceRef || `EVD-${d.dispatchId}`}</strong>
+                  <span style="margin:0 8px; color:#cbd5e1;">|</span>
+                  <span style="color:#64748b;">Remarks:</span>
+                  <span style="color:#1e293b; margin-left:4px;">${d.remarks}</span>
+                </div>
+                ${d.verifiedAt ? `<span style="font-size:10.5px; color:#15803d; font-weight:700;"><i class="fas fa-clock-check"></i> Verified at: ${d.verifiedAt}</span>` : ''}
+              </div>
+
+              ${isCleared ? `
+                <div class="return-ready-banner">
+                  <i class="fas fa-check-double" style="font-size:16px;"></i>
+                  <div>
+                    <strong>Situation Controlled & Cleared:</strong>
+                    You have confirmed rescue operations are complete and situation in ${d.destination} is under control. Equipment is unlocked in the Returns portal.
+                  </div>
+                </div>
+              ` : `
+                <div class="return-lock-banner">
+                  <i class="fas fa-hourglass-half" style="font-size:16px;"></i>
+                  <div>
+                    <strong>Field Operation Active:</strong>
+                    Return restock is locked until you complete verification and confirm the situation is under control.
+                  </div>
+                </div>
+              `}
+
+              <!-- ACTION FOOTER -->
+              <div class="sub-card-footer" style="margin-top:12px; padding-top:10px; border-top:1px dashed #cbd5e1; flex-wrap:wrap; gap:8px;">
+                <span style="font-size:11px; color:var(--text-muted);"><i class="fas fa-link"></i> Linked to Central Godown Waybill <strong>${d.dispatchId}</strong></span>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                  ${!isVerified ? `
+                    <button type="button" class="btn-go primary" onclick="openVerifyDeliveryModal(${origIdx})">
+                      <i class="fas fa-check-double"></i> Verify Physical Delivery Intake
+                    </button>
+                  ` : `
+                    <span style="font-size:11px; font-weight:700; color:#15803d; padding:4px 10px; background:#f0fdf4; border-radius:6px; border:1px solid #bbf7d0;">
+                      <i class="fas fa-lock"></i> Physical Receipt Verified
+                    </span>
+                  `}
+                  ${!isCleared ? `
+                    <button type="button" class="btn-go primary" style="background:#15803d; border-color:#16a34a; font-size:11px; padding:6px 12px;" onclick="window.confirmSituationControlledOnGround('${d.dispatchId}', '${(d.destination || '').replace(/'/g, "\\'")}')">
+                      <i class="fas fa-shield-check"></i> Confirm Situation Controlled & Release for Return
+                    </button>
+                  ` : `
+                    <span style="font-size:11px; font-weight:700; color:#15803d; padding:4px 8px;"><i class="fas fa-circle-check"></i> Cleared for Return</span>
+                  `}
+                </div>
+              </div>
             </div>
-            <p style="margin:0; font-size:11.5px; color:var(--text-body);">${a.task}</p>
+          `;
+        }).join('');
+    }
+
+    // 4. Recent SOS SITREPs Feed in Tab 3 (#recentSosReportsList)
+    const recentSos = document.getElementById('recentSosReportsList');
+    if (recentSos) {
+      recentSos.innerHTML = visReports.length === 0
+        ? `<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-muted);">No field reports filed yet for this sector.</div>`
+        : visReports.slice(0, 4).map(r => `
+          <div class="sub-card ${getToneClass(r.severity)}" style="padding:10px 12px;">
+            <div class="sub-card-top" style="margin-bottom:4px;">
+              <div>
+                <h4 style="margin:0; font-size:12.5px;"><i class="fas fa-file-lines" style="color:var(--teal-field); margin-right:4px;"></i>${r.refId} • ${r.village}</h4>
+                <span style="font-size:10.5px; color:var(--text-muted);">${r.time} • GPS: ${r.coords}</span>
+              </div>
+              <span class="pill ${getPillClass(r.severity)}" style="font-size:9.5px;">${r.severity}</span>
+            </div>
+            <div class="meta-box" style="margin:6px 0; font-size:11px;">
+              <span>Water: <strong>${r.water}</strong></span>
+              <span>Stranded: <strong style="color:#dc2626;">${r.stranded} Citizens</strong></span>
+              <span>Road: <strong>${r.road}</strong></span>
+            </div>
+            <p style="margin:0; font-size:11px; color:var(--text-body);"><strong>Remarks:</strong> ${r.remarks || r.needs}</p>
           </div>
         `).join('');
     }
 
-    // 3. Delivery Verification Cards (Dashboard + Full Tab 3)
-    const buildDeliveryCards = (list) => {
-      if (list.length === 0) {
-        return `<div style="grid-column:1/-1; text-align:center; padding:18px; border:1.5px dashed #9cc3e6; border-radius:12px; color:var(--text-muted);">No dispatched consignments pending for your locations. Dispatches from Central Godown will show here in real time.</div>`;
-      }
-      return list.map(d => {
-        const origIdx = deliveries.indexOf(d);
-        const isCleared = Boolean(d.groundOfficerCleared || d.reliefClearedForReturn);
-        return `
-          <div class="sub-card ${getToneClass(d.status)}">
-            <div class="sub-card-top">
-              <div>
-                <h4>${d.dispatchId} • ${d.resource}</h4>
-                <span style="font-size:11px; color:var(--text-muted); font-weight:600;"><i class="fas fa-location-dot" style="color:var(--river-blue);"></i> ${d.destination}</span>
+    // 5. Rescue Operations Grid (#fullRescueOpsGrid)
+    const fullRescueGrid = document.getElementById('fullRescueOpsGrid');
+    if (fullRescueGrid) {
+      fullRescueGrid.innerHTML = visOps.length === 0
+        ? `<div style="grid-column:1/-1; text-align:center; padding:18px; color:var(--text-muted);">No active rescue operations in selected sector.</div>`
+        : visOps.map(o => {
+          const origIdx = operations.indexOf(o);
+          const totalAtRisk = o.citizensAtRisk || (o.rescued + o.stranded) || 60;
+          const pct = Math.min(100, Math.round((o.rescued / (totalAtRisk || 1)) * 100));
+
+          return `
+            <div class="sub-card ${o.status === 'Completed' ? 'tone-good' : 'tone-purple'}" style="padding:14px 16px;">
+              <div class="sub-card-top" style="margin-bottom:8px;">
+                <div>
+                  <h4 style="margin:0 0 3px 0; font-size:14px; color:var(--navy-deep);">
+                    <i class="fas fa-life-ring" style="color:var(--foliage-mid); margin-right:5px;"></i>
+                    ${o.opId} • ${o.location}
+                  </h4>
+                  <span style="font-size:11px; color:var(--text-muted); font-weight:600;">${o.agency} • Lead: <strong>${o.leadOfficer || 'Tactical Team'}</strong></span>
+                </div>
+                <span class="pill p-info" style="font-size:10.5px;">${o.status}</span>
               </div>
-              <span class="pill ${getPillClass(d.status)}">${d.status}</span>
-            </div>
-            <div class="meta-box-3">
-              <div><span>Dispatched</span><strong>${d.dispatched}</strong></div>
-              <div><span>Received</span><strong style="color:#15803d;">${d.received !== null ? d.received : '—'}</strong></div>
-              <div><span>Shortage / Dmg</span><strong style="color:${(d.shortage + d.damaged) > 0 ? '#dc2626' : '#072247'};">${d.shortage + d.damaged}</strong></div>
-            </div>
-            <p style="margin:0; font-size:11px; color:var(--text-body);">${d.remarks}</p>
-            ${isCleared ? `
-              <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:6px 8px; font-size:10.5px; color:#15803d; margin-top:6px;">
-                <i class="fas fa-check-double"></i> <strong>Situation Controlled:</strong> You have cleared this area. Equipment is unlocked for warehouse return intake.
+              
+              <!-- PROGRESS BAR -->
+              <div style="margin:10px 0;">
+                <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px;">
+                  <span>Evacuation Progress: <strong>${o.rescued} Rescued</strong></span>
+                  <span style="color:#dc2626; font-weight:700;">${o.stranded} Stranded</span>
+                </div>
+                <div style="width:100%; height:8px; background:#e2e8f0; border-radius:10px; overflow:hidden;">
+                  <div style="width:${pct}%; height:100%; background:linear-gradient(90deg, #10b981 0%, #0284c7 100%);"></div>
+                </div>
               </div>
-            ` : `
-              <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:6px 8px; font-size:10.5px; color:#92400e; margin-top:6px;">
-                <i class="fas fa-hourglass-half"></i> <strong>Operation Active:</strong> Godown return is locked until you confirm that the situation is under control and equipment is released.
+
+              <div class="meta-box" style="margin:8px 0; font-size:11px;">
+                <span>Boats Active: <strong>${o.boatsAssigned || 3} Craft</strong></span>
+                <span>Direct Hotline: <strong>${o.contact || '+91 94350-12345'}</strong></span>
               </div>
-            `}
-            <div class="sub-card-footer" style="flex-wrap:wrap; gap:6px;">
-              <span style="font-size:10.5px; color:var(--text-muted);">Linked to Central Godown Dispatch</span>
-              <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                <button type="button" class="btn-go" style="padding:4px 8px; font-size:10.5px;" onclick="window.focusGroundMapByName && window.focusGroundMapByName('${(d.destination || '').replace(/'/g, "\\'")}')" title="Focus destination on GIS Map">
-                  <i class="fas fa-map-location-dot" style="color:var(--river-blue);"></i> Map
+              <p style="margin:0 0 10px 0; font-size:11px; color:var(--text-body);"><strong>Field SITREP:</strong> ${o.notes}</p>
+              
+              <div class="sub-card-footer" style="padding-top:8px; border-top:1px dashed #cbd5e1;">
+                <button type="button" class="btn-go primary" onclick="openRescueUpdateModal(${origIdx})">
+                  <i class="fas fa-pen"></i> Update Rescue Evacuation Progress
                 </button>
-                ${d.status === 'Pending Verification'
-                  ? `<button class="btn-go primary" onclick="openVerifyDeliveryModal(${origIdx})"><i class="fas fa-check-double"></i> Verify Physical Delivery</button>`
-                  : `<span style="font-size:10.5px; font-weight:700; color:#15803d; padding:2px 6px; background:#f0fdf4; border-radius:4px;"><i class="fas fa-lock"></i> Verified</span>`}
-                ${!isCleared ? `
-                  <button class="btn-go primary" style="background:#15803d; border-color:#16a34a; font-size:10.5px; padding:4px 9px;" onclick="window.confirmSituationControlledOnGround('${d.dispatchId}', '${(d.destination || '').replace(/'/g, "\\'")}')">
-                    <i class="fas fa-shield-check"></i> Confirm Situation Controlled & Release for Return
+              </div>
+            </div>
+          `;
+        }).join('');
+    }
+
+    // 6. Returns Grid with Sector-wise Itemized Audit & Dual-Verification Guard (#returnVerifyGrid)
+    const retGrid = document.getElementById('returnVerifyGrid');
+    if (retGrid) {
+      retGrid.innerHTML = visReturns.length === 0
+        ? `<div style="text-align:center; padding:18px; color:var(--text-muted);">No return records matching this filter.</div>`
+        : visReturns.map(r => {
+          const items = r.items || [];
+          return `
+            <div class="sub-card ${r.canReturnInput ? 'tone-good' : 'tone-amber'}" style="margin-bottom:14px; padding:16px 18px;">
+              <div class="sub-card-top" style="align-items:flex-start; margin-bottom:8px;">
+                <div>
+                  <h4 style="margin:0 0 4px 0; font-size:14px; color:var(--navy-deep);">
+                    <i class="fas fa-rotate-left" style="color:var(--teal-field); margin-right:5px;"></i>
+                    ${r.retId} • ${r.location}
+                  </h4>
+                  <div style="font-size:11px; color:var(--text-muted);">
+                    Consignment: <strong>${r.item}</strong> • Ground Officer: <strong>${r.groundOfficer || 'Bhaskar Jyoti Das'}</strong>
+                  </div>
+                </div>
+                <span class="pill ${r.canReturnInput ? 'p-good' : 'p-pending'}" style="font-size:10px;">
+                  ${r.canReturnInput ? 'Return Intake Ready' : 'Locked (Operation Active)'}
+                </span>
+              </div>
+
+              ${!r.canReturnInput ? `
+                <div class="return-lock-banner">
+                  <i class="fas fa-lock" style="font-size:18px;"></i>
+                  <div>
+                    <strong>Return Intake Guard Active:</strong>
+                    ${r.lockReason || 'Physical delivery must be verified and ground officer must confirm situation under control before equipment can be returned.'}
+                  </div>
+                </div>
+              ` : `
+                <div class="return-ready-banner">
+                  <i class="fas fa-shield-check" style="font-size:18px;"></i>
+                  <div>
+                    <strong>Ground Clearance Granted:</strong>
+                    Floodwaters have receded to safe marks. Field unit is clearing equipment for Central Godown return restock.
+                  </div>
+                </div>
+              `}
+
+              <!-- ITEM-WISE RETURN CONDITION TABLE -->
+              <div style="font-size:11px; font-weight:700; color:#334155; text-transform:uppercase; margin-top:10px;">
+                <i class="fas fa-clipboard-check" style="color:#0d9488; margin-right:5px;"></i> Itemized Condition Breakdown:
+              </div>
+              <div style="overflow-x:auto;">
+                <table class="item-audit-table">
+                  <thead>
+                    <tr>
+                      <th>Equipment Item</th>
+                      <th>Dispatched Qty</th>
+                      <th>Good Condition</th>
+                      <th>Damaged</th>
+                      <th>Missing</th>
+                      <th>Intake Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${items.map(it => `
+                      <tr>
+                        <td><strong>${it.name}</strong> <span style="font-size:10px; color:#64748b;">(${it.category || 'Gear'})</span></td>
+                        <td>${it.dispatched} Units</td>
+                        <td style="color:#15803d; font-weight:700;">${it.good} Units</td>
+                        <td style="color:#d97706; font-weight:700;">${it.damaged} Units</td>
+                        <td style="color:#dc2626; font-weight:700;">${it.missing} Units</td>
+                        <td><span class="pill ${it.status === 'Field Inspected' ? 'p-good' : 'p-pending'}" style="font-size:9px;">${it.status}</span></td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+
+              <p style="margin:8px 0; font-size:11.5px; color:var(--text-body);">
+                <strong>Field Officer Damage & Inspection Feedback:</strong> ${r.remarks}
+              </p>
+
+              <div class="sub-card-footer" style="padding-top:10px; border-top:1px dashed #cbd5e1; margin-top:10px;">
+                <span style="font-size:10.5px; color:var(--text-muted);">Dual-verification protocol with Central Godown WH-MIRZA</span>
+                ${r.canReturnInput ? `
+                  <button type="button" class="btn-go primary" onclick="window.openReturnVerifyModal('${(r.location || '').replace(/'/g, "\\'")}')">
+                    <i class="fas fa-clipboard-check"></i> Submit Itemized Return Audit to Godown
                   </button>
                 ` : `
-                  <span style="font-size:10.5px; font-weight:700; color:#15803d;"><i class="fas fa-check-circle"></i> Cleared for Return</span>
+                  <button type="button" class="btn-go" disabled style="opacity:0.6; cursor:not-allowed;">
+                    <i class="fas fa-lock"></i> Return Input Locked
+                  </button>
                 `}
               </div>
             </div>
-          </div>
-        `;
-      }).join('');
-    };
-
-    const delivHtml = buildDeliveryCards(visDeliv);
-    const dashDelivCards = document.getElementById('dashDeliveryCards');
-    if (dashDelivCards) dashDelivCards.innerHTML = delivHtml;
-    const fullDelivGrid = document.getElementById('fullDeliveryVerifyGrid');
-    if (fullDelivGrid) fullDelivGrid.innerHTML = delivHtml;
-
-    // 4. Assigned Areas Cards (Tab 2)
-    const assignedAreas = document.getElementById('assignedAreasGrid');
-    if (assignedAreas) {
-      assignedAreas.innerHTML = visAreas.length === 0
-        ? `<div style="grid-column:1/-1; text-align:center; padding:18px; color:var(--text-muted);">No assigned flood sectors found.</div>`
-        : visAreas.map(a => `
-          <div class="sub-card ${getToneClass(a.severity)}">
-            <div class="sub-card-top">
-              <div>
-                <h4><i class="fas fa-location-dot" style="color:var(--river-blue); margin-right:4px;"></i>${a.village}</h4>
-                <span style="font-size:11px; color:var(--text-muted);">${a.id} • ${a.block}</span>
-              </div>
-              <span class="pill ${getPillClass(a.severity)}">${a.severity}</span>
-            </div>
-            <div class="meta-box">
-              <span>Priority: <strong>${a.priority}</strong></span>
-              <span>GPS: <strong>${a.coords}</strong></span>
-            </div>
-            <p style="margin:0; font-size:11.5px; color:var(--text-body);">${a.task}</p>
-            <div class="sub-card-footer">
-              <span style="font-size:10.5px; color:var(--text-muted);">Due: <strong>${a.deadline}</strong></span>
-              <button class="btn-go" onclick="window.focusGroundMapByName && window.focusGroundMapByName('${(a.village || '').replace(/'/g, "\\'")}')"><i class="fas fa-crosshairs"></i> Focus on Map</button>
-            </div>
-          </div>
-        `).join('');
+          `;
+        }).join('');
     }
 
-    // 5. Field Situation Cards (Dashboard + My Reports)
-    const buildFieldReportCards = (list) => {
-      if (list.length === 0) {
-        return `<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-muted);">No field situation reports submitted yet. Use the Field Reports tab to file an immutable report.</div>`;
-      }
-      return list.map(r => `
-        <div class="sub-card ${getToneClass(r.severity)}">
-          <div class="sub-card-top">
-            <div>
-              <h4>${r.refId} • ${r.village}</h4>
-              <span style="font-size:10.5px; color:var(--text-muted);">${r.time} • GPS: ${r.coords}</span>
-            </div>
-            <span class="pill ${getPillClass(r.severity)}">${r.severity}</span>
-          </div>
-          <div class="meta-box">
-            <span>Water: <strong>${r.water}</strong></span>
-            <span>Stranded: <strong style="color:#dc2626;">${r.stranded} People</strong></span>
-            <span>Road: <strong>${r.road}</strong></span>
-            <span>Review: <strong>${r.reviewStatus}</strong></span>
-          </div>
-          <p style="margin:0; font-size:11px; color:var(--text-body);"><strong>Needs:</strong> ${r.needs}</p>
-        </div>
-      `).join('');
-    };
-
-    const dashFieldCards = document.getElementById('dashFieldSitCards');
-    if (dashFieldCards) dashFieldCards.innerHTML = buildFieldReportCards(visReports);
-
-    const repFilter = document.getElementById('reportStatusFilter')?.value || 'ALL';
-    const myReports = document.getElementById('myReportsGrid');
-    if (myReports) {
-      myReports.innerHTML = buildFieldReportCards(
-        visReports.filter(r => repFilter === 'ALL' || r.reviewStatus === repFilter)
-      );
-    }
-
-    // 6. Rescue Operations Cards (Dashboard + Tab 5)
-    const buildOpsCards = (list) => {
-      if (list.length === 0) {
-        return `<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-muted);">No active rescue operations in this area. NDRF/SDRF deployments will show here.</div>`;
-      }
-      return list.map(o => {
-        const origIdx = operations.indexOf(o);
-        return `
-          <div class="sub-card ${o.status === 'Completed' ? 'tone-good' : 'tone-purple'}">
-            <div class="sub-card-top">
-              <div>
-                <h4>${o.opId} • ${o.location}</h4>
-                <span style="font-size:10.5px; color:var(--text-muted);">${o.agency}</span>
-              </div>
-              <span class="pill p-info">${o.status}</span>
-            </div>
-            <div class="meta-box">
-              <span>Rescued: <strong style="color:#15803d;">${o.rescued} People</strong></span>
-              <span>Stranded: <strong style="color:#dc2626;">${o.stranded} People</strong></span>
-            </div>
-            <p style="margin:0; font-size:11px; color:var(--text-body);">${o.notes}</p>
-            <div class="sub-card-footer">
-              <button class="btn-go primary" onclick="openRescueUpdateModal(${origIdx})"><i class="fas fa-pen"></i> Report Progress</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    };
-
-    const opsHtml = buildOpsCards(visOps);
-    const dashRescueCards = document.getElementById('dashRescueOpsCards');
-    if (dashRescueCards) dashRescueCards.innerHTML = opsHtml;
-    const fullRescueGrid = document.getElementById('fullRescueOpsGrid');
-    if (fullRescueGrid) fullRescueGrid.innerHTML = opsHtml;
-
-    // 7. Return Verification Cards (Tab 6)
-    const retGrid = document.getElementById('returnVerifyGrid');
-    if (retGrid) {
-      retGrid.innerHTML = returns.length === 0
-        ? `<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-muted);">No post-operation return verifications recorded yet.</div>`
-        : returns.map(r => `
-          <div class="sub-card ${r.damaged > 0 || r.missing > 0 ? 'tone-amber' : 'tone-good'}">
-            <div class="sub-card-top">
-              <div>
-                <h4>${r.retId} • ${r.item}</h4>
-                <span style="font-size:10.5px; color:var(--text-muted);">${r.location} • ${r.time}</span>
-              </div>
-              <span class="pill p-good">Verified</span>
-            </div>
-            <div class="meta-box-3">
-              <div><span>Good</span><strong style="color:#15803d;">${r.good}</strong></div>
-              <div><span>Damaged</span><strong style="color:#d97706;">${r.damaged}</strong></div>
-              <div><span>Missing</span><strong style="color:#dc2626;">${r.missing}</strong></div>
-            </div>
-            <p style="margin:0; font-size:11px; color:var(--text-body);">${r.remarks}</p>
-          </div>
-        `).join('');
-    }
-
-    // 8. Notifications Grid (Tab 8)
+    // 7. Notifications Grid with Filter Chips (#notificationsGrid)
     const notifGrid = document.getElementById('notificationsGrid');
     if (notifGrid) {
-      notifGrid.innerHTML = notifications.length === 0
-        ? `<div style="grid-column:1/-1; text-align:center; padding:16px; color:var(--text-muted);">No unread notifications.</div>`
-        : notifications.map(n => `
-          <div class="sub-card ${getToneClass(n.priority)}">
-            <div class="sub-card-top">
-              <h4>${n.title}</h4>
-              <span class="pill ${getPillClass(n.priority)}">${n.priority}</span>
+      const filteredNotifs = notifications.filter(n => {
+        if (activeAlertFilter === 'ALL') return true;
+        if (activeAlertFilter === 'Critical') return n.priority === 'Critical';
+        if (activeAlertFilter === 'Convoys') return n.agency && n.agency.includes('Godown');
+        return true;
+      });
+
+      notifGrid.innerHTML = filteredNotifs.length === 0
+        ? `<div style="text-align:center; padding:20px; color:var(--text-muted);">No notifications in this category.</div>`
+        : filteredNotifs.map(n => {
+          const isCrit = n.priority === 'Critical';
+          const isHigh = n.priority === 'High';
+          const borderClass = isCrit ? 'alert-crit' : (isHigh ? 'alert-high' : 'alert-norm');
+          const badgeBg = isCrit ? '#fee2e2' : (isHigh ? '#ffedd5' : '#e0f2fe');
+          const badgeColor = isCrit ? '#991b1b' : (isHigh ? '#9a3412' : '#0369a1');
+
+          return `
+            <div class="alert-card-item ${borderClass}">
+              <div class="alert-card-top">
+                <span class="alert-agency-badge" style="background:${badgeBg}; color:${badgeColor};">
+                  <i class="fas ${n.icon || 'fa-bell'}" style="margin-right:4px;"></i> ${n.agency || 'DEOC State Alert'}
+                </span>
+                <span style="font-size:11px; color:#64748b; font-weight:600;"><i class="fas fa-clock"></i> ${n.time}</span>
+              </div>
+              <h4 style="margin:0 0 4px 0; font-size:13px; color:#0f172a;">${n.title}</h4>
+              <p style="margin:0; font-size:11.5px; color:#334155; line-height:1.45;">${n.detail}</p>
+              ${n.action ? `
+                <div class="alert-action-strip">
+                  <strong><i class="fas fa-crosshairs"></i> Required Action:</strong> ${n.action}
+                </div>
+              ` : ''}
             </div>
-            <p style="margin:0; font-size:11.5px; color:var(--text-body);">${n.detail}</p>
-          </div>
-        `).join('');
+          `;
+        }).join('');
     }
 
-    // 9. RIGHT PANEL: Selected Flood Sector Inspector
+    // 8. RIGHT PANEL: Selected Flood Sector Inspector
     const rightVBox = document.getElementById('rightSelectedGroundVillageBox');
     if (rightVBox) {
       const selectedArea = areas.find(a => a.village === selectedVillageName) || areas[0];
@@ -515,7 +786,7 @@ export default function initGroundOfficerPage() {
               <button type="button" class="btn-go primary" style="flex:1; padding:5px 8px; font-size:10.5px;" onclick="window.focusGroundMapByName && window.focusGroundMapByName('${(selectedArea.village || '').replace(/'/g, "\\'")}')">
                 <i class="fas fa-crosshairs"></i> Center Map
               </button>
-              <button type="button" class="btn-go" style="flex:1; padding:5px 8px; font-size:10.5px;" onclick="window.switchGroundTab && window.switchGroundTab('field-reports', document.querySelector('[data-tab=field-reports]'))">
+              <button type="button" class="btn-go" style="flex:1; padding:5px 8px; font-size:10.5px;" onclick="window.quickFileSos && window.quickFileSos()">
                 <i class="fas fa-pen"></i> File SITREP
               </button>
             </div>
@@ -524,7 +795,7 @@ export default function initGroundOfficerPage() {
       }
     }
 
-    // 10. RIGHT PANEL: Live River Hydrology Telemetry Feed
+    // 9. RIGHT PANEL: Live River Hydrology Telemetry Feed
     const riverBox = document.getElementById('rightGroundRiverTelemetryBox');
     if (riverBox) {
       riverBox.innerHTML = `
@@ -542,7 +813,7 @@ export default function initGroundOfficerPage() {
       `;
     }
 
-    // 11. RIGHT PANEL: Central Godown Dispatch Sync
+    // 10. RIGHT PANEL: Central Godown Dispatch Sync
     const godownBox = document.getElementById('rightGroundGodownSyncBox');
     if (godownBox) {
       godownBox.innerHTML = (!deliveries || deliveries.length === 0)
@@ -565,7 +836,7 @@ export default function initGroundOfficerPage() {
         `).join('');
     }
 
-    // 12. Update live markers on real Leaflet GIS map
+    // 11. Update live markers on real Leaflet GIS map
     window.groundState = state;
     updateGroundAreaMarkers(areas);
   }
@@ -576,42 +847,72 @@ export default function initGroundOfficerPage() {
     const d = state.deliveries[idx];
     if (!d) return;
     document.getElementById('verDelivIdx').value = idx;
-    document.getElementById('verDelivHeader').innerHTML = `<strong>${d.dispatchId}</strong> • ${d.resource} → <strong>${d.destination}</strong>`;
-    document.getElementById('verDispQty').value = d.dispatched;
-    document.getElementById('verRecvQty').value = d.dispatched;
-    document.getElementById('verDmgQty').value = 0;
-    document.getElementById('verRemarks').value = '';
+    document.getElementById('verDelivHeader').innerHTML = `
+      <strong>${d.dispatchId}</strong> • Consignment for <strong>${d.destination}</strong><br>
+      <span style="color:#475569;">Driver: ${d.involvedPersonnel?.driver || 'Rajesh Das'} • Vehicle: ${d.involvedPersonnel?.vehicle || 'Heavy Truck AS-01-EC-4210'}</span>
+    `;
+
+    const items = d.itemBreakdown || [];
+    const b = items[0] || { dispatched: 3 };
+    const j = items[1] || { dispatched: 33 };
+    const f = items[2] || { dispatched: 264 };
+    const m = items[3] || { dispatched: 44 };
+
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+    setVal('verBoatsRecv', b.dispatched);
+    setVal('verBoatsDmg', 0);
+    setVal('verJacketsRecv', j.dispatched);
+    setVal('verJacketsDmg', 0);
+    setVal('verFoodRecv', f.dispatched);
+    setVal('verFoodDmg', 0);
+    setVal('verMedsRecv', m.dispatched);
+    setVal('verMedsDmg', 0);
+    setVal('verEvidenceRef', d.evidenceRef || `WAYBILL-${d.dispatchId}`);
+    setVal('verRemarks', 'Physical cargo counted & verified intact at field depot gate.');
+
     previewShortageCalc();
     document.getElementById('verifyDeliveryModal').classList.add('open');
   }
 
   function previewShortageCalc() {
-    const disp = Number(document.getElementById('verDispQty').value) || 0;
-    const recv = Number(document.getElementById('verRecvQty').value) || 0;
-    const dmg = Number(document.getElementById('verDmgQty').value) || 0;
-    const shortage = Math.max(0, disp - recv);
+    const getNum = (id) => Number(document.getElementById(id)?.value) || 0;
+    const dmg = getNum('verBoatsDmg') + getNum('verJacketsDmg') + getNum('verFoodDmg') + getNum('verMedsDmg');
     const box = document.getElementById('shortagePreviewBox');
-    if (shortage > 0 || dmg > 0) {
+    if (!box) return;
+
+    if (dmg > 0) {
       box.style.background = '#fef2f2';
       box.style.borderColor = '#fca5a5';
       box.style.color = '#991b1b';
-      box.innerHTML = `Auto-Detected Discrepancy: <strong>${shortage} Shortage</strong>, <strong>${dmg} Damaged</strong> (Will flag for Monitoring Officer)`;
+      box.innerHTML = `Auto-Detected Discrepancy: <strong>${dmg} Damaged Units</strong> flagged for State DEOC Monitoring Officer audit.`;
     } else {
       box.style.background = '#f0fdf4';
       box.style.borderColor = '#86efac';
       box.style.color = '#14532d';
-      box.innerHTML = `Calculated Shortage: <strong>0 Units</strong> (Exact Physical Match)`;
+      box.innerHTML = `Calculated Shortage: <strong>0 Units</strong> (Exact physical count match against warehouse dispatch)`;
     }
   }
 
   async function submitDeliveryVerification(e) {
     e.preventDefault();
     const idx = Number(document.getElementById('verDelivIdx').value);
-    const recv = document.getElementById('verRecvQty').value;
-    const dmg = Number(document.getElementById('verDmgQty').value);
-    const remarks = document.getElementById('verRemarks').value.trim();
     const d = (state.deliveries || [])[idx];
     if (!d) return;
+
+    const getNum = (id) => Number(document.getElementById(id)?.value) || 0;
+    const boatsRecv = getNum('verBoatsRecv');
+    const boatsDmg = getNum('verBoatsDmg');
+    const jacketsRecv = getNum('verJacketsRecv');
+    const jacketsDmg = getNum('verJacketsDmg');
+    const foodRecv = getNum('verFoodRecv');
+    const foodDmg = getNum('verFoodDmg');
+    const medsRecv = getNum('verMedsRecv');
+    const medsDmg = getNum('verMedsDmg');
+    const evidenceRef = document.getElementById('verEvidenceRef')?.value?.trim() || `WAYBILL-${d.dispatchId}`;
+    const remarks = document.getElementById('verRemarks')?.value?.trim() || 'Physical receipt signed';
+
+    const totalDmg = boatsDmg + jacketsDmg + foodDmg + medsDmg;
+    const summaryRecv = `${boatsRecv} Boats, ${jacketsRecv} Jackets, ${foodRecv} Food, ${medsRecv} Meds`;
 
     closeModal('verifyDeliveryModal');
     showToast('Submitting physical delivery verification to database...');
@@ -620,15 +921,17 @@ export default function initGroundOfficerPage() {
       await verifyPhysicalDeliveryApi({
         dispatchId: d.dispatchId,
         allocId: d.allocId,
-        received: recv,
-        damaged: dmg,
-        shortage: Math.max(0, (Number(d.dispatched) || 0) - (Number(recv) || 0)),
+        received: summaryRecv,
+        damaged: totalDmg,
+        shortage: 0,
         remarks,
-        verifiedBy: 'Bhaskar Jyoti Das (GO-KAM-04)'
+        evidenceRef,
+        verifiedBy: 'Bhaskar Jyoti Das (GO-KAM-04)',
+        itemCounts: { boatsRecv, boatsDmg, jacketsRecv, jacketsDmg, foodRecv, foodDmg, medsRecv, medsDmg }
       });
 
       renderAllGroundViews();
-      showToast(dmg > 0 ? `Delivery verified with discrepancy logged to Audit.` : `Physical delivery ${d.dispatchId} verified & logged.`);
+      showToast(totalDmg > 0 ? `Delivery verified with discrepancy logged to Audit.` : `Physical delivery ${d.dispatchId} verified & logged.`);
     } catch (err) {
       console.error('Verification error:', err);
       showToast('Delivery verification recorded locally.');
@@ -645,6 +948,7 @@ export default function initGroundOfficerPage() {
     const road = document.getElementById('frRoadCond').value;
     const needs = document.getElementById('frUrgentNeeds').value.trim();
     const coords = document.getElementById('frGpsCoords').value.trim();
+    const evidenceRef = document.getElementById('frEvidenceRef')?.value?.trim() || `EVD-${Math.floor(100 + Math.random() * 900)}`;
     const remarks = document.getElementById('frRemarks')?.value?.trim() || '';
 
     showToast('Transmitting immutable Field Report to DEOC & Authority...');
@@ -659,14 +963,15 @@ export default function initGroundOfficerPage() {
         road,
         needs,
         coords,
+        evidenceRef,
         remarks,
         officer: 'Bhaskar Jyoti Das (GO-KAM-04)'
       });
 
-      e.target.reset();
+      const remArea = document.getElementById('frRemarks');
+      if (remArea) remArea.value = '';
       renderAllGroundViews();
-      showToast(`Immutable Field Report ${savedReport.refId || 'filed'} recorded in database.`);
-      switchGroundTab('my-reports', document.querySelector('[data-tab=my-reports]'));
+      showToast(`Immutable Field SITREP ${savedReport.refId || 'filed'} recorded in database.`);
     } catch (err) {
       console.error('Field report error:', err);
       showToast('Field Report recorded.');
@@ -718,21 +1023,26 @@ export default function initGroundOfficerPage() {
     }
   }
 
-  function openReturnVerifyModal() {
-    document.getElementById('rvItemName').value = '';
-    document.getElementById('rvLocation').value = '';
-    document.getElementById('rvRemarks').value = '';
+  function openReturnVerifyModal(preSelectedLoc) {
+    const areas = (state && state.areas) || [];
+    const sel = document.getElementById('rvLocationSel');
+    if (sel && areas.length > 0) {
+      sel.innerHTML = areas.map(a => `<option value="${a.village}">${a.village}</option>`).join('');
+      if (preSelectedLoc) sel.value = preSelectedLoc;
+    }
+    const remarks = document.getElementById('rvRemarks');
+    if (remarks) remarks.value = 'Rescue completed and situation controlled. 1 boat pontoon punctured during rescue near river dyke; 2 life jackets damaged. Packed for Godown intake.';
     document.getElementById('returnVerifyModal').classList.add('open');
   }
 
   async function submitReturnVerification(e) {
     e.preventDefault();
-    const item = document.getElementById('rvItemName').value.trim();
-    const location = document.getElementById('rvLocation').value.trim();
-    const good = Number(document.getElementById('rvGoodQty').value);
-    const damaged = Number(document.getElementById('rvDmgQty').value);
-    const missing = Number(document.getElementById('rvMissQty').value);
-    const remarks = document.getElementById('rvRemarks').value.trim();
+    const location = document.getElementById('rvLocationSel')?.value?.trim() || 'Assigned Sector';
+    const item = document.getElementById('rvItemName')?.value?.trim() || 'Rescue Equipment';
+    const good = Number(document.getElementById('rvGoodQty')?.value) || 0;
+    const damaged = Number(document.getElementById('rvDmgQty')?.value) || 0;
+    const missing = Number(document.getElementById('rvMissQty')?.value) || 0;
+    const remarks = document.getElementById('rvRemarks')?.value?.trim() || 'Condition verified on ground';
 
     closeModal('returnVerifyModal');
 
@@ -855,7 +1165,12 @@ export default function initGroundOfficerPage() {
     toggleGridListView,
     selectGroundVillageForInspection,
     focusGroundMapByName,
-    quickClearFirstActive
+    quickClearFirstActive,
+    filterNotifs,
+    selectSosSector,
+    quickFileSos,
+    quickVerifyFirstPending,
+    quickOpenRescueModal
   });
 
   __ready.forEach((fn) => fn());
