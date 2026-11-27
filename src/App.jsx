@@ -1,5 +1,6 @@
 import { Suspense, lazy, Component } from 'react';
 import { isAuthenticated, PROTECTED_ROUTES, ROLE_PAGES } from './auth';
+import PinnedAnnouncementBanner from './components/PinnedAnnouncementBanner';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -108,6 +109,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      <PinnedAnnouncementBanner />
       <Suspense fallback={loadingFallback}>
         <Page />
       </Suspense>

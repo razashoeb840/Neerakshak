@@ -145,7 +145,6 @@ export async function escalateDiscrepancyApi(escalationData) {
     if (res.ok) {
       const json = await res.json();
       if (json && json.success) {
-        // Refresh full state
         await fetchFullMonitoringState();
         return json.data;
       }
@@ -154,9 +153,8 @@ export async function escalateDiscrepancyApi(escalationData) {
     console.warn('Escalate discrepancy API failed:', err);
   }
 
-  // Fallback locally
   if (cachedState && cachedState.discrepancies) {
-    const match = cachedState.discrepancies.find(d => d.id === escalationData.id);
+    const match = cachedState.discrepancies.find(d => (d.id === escalationData.id || d.destination === escalationData.destination || d.area === escalationData.area));
     if (match) {
       match.status = 'Escalated to Authority';
       match.escalated = true;
@@ -164,6 +162,76 @@ export async function escalateDiscrepancyApi(escalationData) {
     }
   }
   return escalationData;
+}
+
+/**
+ * Publish Pinned Broadcast Announcement across all 5 portals and public
+ */
+export async function publishBroadcastAnnouncementApi(announcementData) {
+  try {
+    const res = await fetch('/api/announcements', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(announcementData)
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.success && json.data) {
+        await fetchFullMonitoringState();
+        return json.data;
+      }
+    }
+  } catch (err) {
+    console.warn('Publish announcement API failed:', err);
+  }
+  return null;
+}
+
+/**
+ * Unpin Announcement
+ */
+export async function unpinBroadcastAnnouncementApi(id = 'ALL') {
+  try {
+    const res = await fetch(`/api/announcements?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    if (res.ok) {
+      await fetchFullMonitoringState();
+      return true;
+    }
+  } catch (err) {
+    console.warn('Unpin announcement API failed:', err);
+  }
+  return false;
+}
+
+/**
+ * Real CSV SITREP Generator and Downloader
+ */
+export function exportSitrepCsv(state) {
+  const lifecycles = (state && state.lifecycles) || [];
+  const headers = ['Area / Sector', 'District', 'Severity', 'Population', 'Lifecycle Stage', 'Approved Supplies', 'Dispatched Supplies', 'Received Supplies', 'Dispatch Ref', 'NDRF Escort', 'Audit Status'];
+
+  const rows = lifecycles.map(l => [
+    `"${l.area || l.village || 'Sector'}"`,
+    `"${l.district || l.block || 'Kamrup'}"`,
+    `"${l.severity || 'Critical'}"`,
+    `"${l.pop || l.population || 0}"`,
+    `"${l.currentStage || l.stageLabel || 'Allocated'}"`,
+    `"${l.resourcesAllocated || 'None'}"`,
+    `"${l.resourcesDispatched || 'None'}"`,
+    `"${l.resourcesReceived || 'None'}"`,
+    `"${l.dispatchRef || '—'}"`,
+    `"${l.designatedLead || 'NDRF (1st Bn)'}"`,
+    `"${l.auditStatus || 'OK'}"`
+  ]);
+
+  const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement('a');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', `NEERAKSHAK_DEOC_Audit_SITREP_${new Date().toISOString().slice(0, 10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 /**

@@ -22,9 +22,9 @@ const markup = (
                 </h1>
                 <span className="hero-admin-badge">State Monitoring & Audit</span>
               </div>
-              <div className="hero-brand-subtitle">State DEOC Lifecycle Verification, End-to-End Tracing & Accountability</div>
+              <div className="hero-brand-subtitle">State DEOC Lifecycle Verification, Multi-Portal Directives & Accountability Control</div>
               <div className="hero-brand-tagline">
-                <span className="tag-italic">Audit</span> <span className="tag-dot">•</span> <span className="tag-italic">Reconcile</span> <span className="tag-dot">•</span> <span className="tag-italic tag-cyan">Area-Wise Tracing</span>
+                <span className="tag-italic">Reconciliation</span> <span className="tag-dot">•</span> <span className="tag-italic">Pinned Directives</span> <span className="tag-dot">•</span> <span className="tag-italic tag-cyan">Area Lifecycle Tracing</span>
               </div>
             </div>
           </div>
@@ -38,7 +38,7 @@ const markup = (
             </div>
             <div className="hero-ctrl-pill">
               <span className="hero-live-dot"></span>
-              <span id="telemetryStatusText">DEOC Audit Stream Live</span>
+              <span id="telemetryStatusText">State DEOC Live Audit Feed</span>
             </div>
             <a href="/" className="hero-btn-action hero-btn-public" title="Public Citizen Portal">
               <i className="fas fa-arrow-left"></i> Public Portal
@@ -54,9 +54,9 @@ const markup = (
     <div className="workspace-shell">
       {/* LEFT 6-SECTION STREAMLINED RAIL */}
       <aside className="left-rail">
-        <button className="rail-btn mon-nav-btn active" data-tab="dashboard" onClick={(e) => window.switchMonitorTab('dashboard', e.currentTarget)} title="Audit Dashboard">
-          <i className="fas fa-gauge-high"></i>
-          <span>Dashboard</span>
+        <button className="rail-btn mon-nav-btn active" data-tab="dashboard" onClick={(e) => window.switchMonitorTab('dashboard', e.currentTarget)} title="Audit & Communication Command Center">
+          <i className="fas fa-comments"></i>
+          <span>Comms & Hub</span>
         </button>
         <button className="rail-btn mon-nav-btn" data-tab="tracing" onClick={(e) => window.switchMonitorTab('tracing', e.currentTarget)} title="Area-Wise Lifecycle Tracing">
           <i className="fas fa-route"></i>
@@ -76,7 +76,7 @@ const markup = (
           <i className="fas fa-rotate-left"></i>
           <span>Returns</span>
         </button>
-        <button className="rail-btn mon-nav-btn" data-tab="logs" onClick={(e) => window.switchMonitorTab('logs', e.currentTarget)} title="Audit Logs">
+        <button className="rail-btn mon-nav-btn" data-tab="logs" onClick={(e) => window.switchMonitorTab('logs', e.currentTarget)} title="Cross-Portal Member Logs">
           <i className="fas fa-clock-rotate-left"></i>
           <span>Logs</span>
         </button>
@@ -100,34 +100,162 @@ const markup = (
         <div className="kpi-grid-4 anim-card" id="monitorKpiGrid"></div>
 
         {/* ===============================================================
-            TAB 1: DASHBOARD (GIS MAP HUB + SECTOR SURVEILLANCE)
+            TAB 1: COMMUNICATION & BROADCAST COMMAND CENTER (REPLACES MAP)
             =============================================================== */}
         <div className="mo-tab-pane active" id="tab-dashboard">
-          <div className="aqua-card anim-card" style={{ padding: '14px 14px 12px', marginBottom: '14px' }}>
-            <div className="mo-map-header-bar">
-              <h2>
-                <i className="fas fa-map-location-dot" style={{ color: "var(--river-blue)" }}></i>
-                {" State Flood Monitoring GIS Map – Live Sector Surveillance"}
-              </h2>
-              <div style={{ display: 'flex', gap: '6px' }}>
-                <button type="button" className="btn-mo" style={{ padding: '4px 10px', fontSize: '11px' }} onClick={() => { if (window.filterMapSeverity) window.filterMapSeverity('ALL'); }}>All Sectors</button>
-                <button type="button" className="btn-mo" style={{ padding: '4px 10px', fontSize: '11px', background: '#dc2626', color: '#fff', borderColor: '#b91c1c' }} onClick={() => { if (window.filterMapSeverity) window.filterMapSeverity('Critical'); }}>Critical Only</button>
+          <div className="aqua-card anim-card" style={{ padding: '16px', marginBottom: '14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '15px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <i className="fas fa-tower-broadcast" style={{ color: "var(--river-blue)" }}></i>
+                  State Inter-Portal Communication & Pinned Announcement Center
+                </h2>
+                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                  Direct chat with individual member portals OR publish pinned state emergency directives across all 5 portals + public.
+                </div>
+              </div>
+
+              {/* Mode Toggle Buttons */}
+              <div style={{ display: 'flex', gap: '6px', background: '#f1f5f9', padding: '3px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                <button
+                  type="button"
+                  id="btnCommsModeDirect"
+                  className="btn-mo"
+                  style={{ padding: '5px 12px', fontSize: '11px', background: '#0284c7', color: '#fff', borderColor: '#0284c7' }}
+                  onClick={() => window.toggleCommsMode('direct')}
+                >
+                  <i className="fas fa-comments"></i> Direct Portal Chat
+                </button>
+                <button
+                  type="button"
+                  id="btnCommsModeBroadcast"
+                  className="btn-mo"
+                  style={{ padding: '5px 12px', fontSize: '11px', background: '#ffffff', color: '#0f172a', borderColor: '#cbd5e1' }}
+                  onClick={() => window.toggleCommsMode('broadcast')}
+                >
+                  <i className="fas fa-thumbtack" style={{ color: '#dc2626' }}></i> Pinned Announcement
+                </button>
               </div>
             </div>
 
-            <div style={{ position: 'relative' }}>
-              <div className="mo-map-search-wrap">
-                <i className="fas fa-search" style={{ color: '#64748b', fontSize: '11px' }}></i>
-                <input type="text" id="mapSearchInput" placeholder="Search sector, village, river..." onInput={(e) => { if (window.searchMapSector) window.searchMapSector(e.currentTarget.value); }} />
+            {/* SUB-VIEW 1: DIRECT PORTAL MESSAGING */}
+            <div id="commsDirectView" style={{ display: 'block' }}>
+              {/* Target Portal Channel Selector */}
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', overflowX: 'auto', paddingBottom: '4px' }}>
+                <button className="channel-tab active" style={{ flex: 1, padding: '8px 10px', fontSize: '11.5px', borderRadius: '8px' }} onClick={(e) => window.switchChatChannel('ground', e.currentTarget)}>
+                  <i className="fas fa-person-military-rifle"></i> Ground Officer (Field Units)
+                </button>
+                <button className="channel-tab" style={{ flex: 1, padding: '8px 10px', fontSize: '11.5px', borderRadius: '8px' }} onClick={(e) => window.switchChatChannel('godown', e.currentTarget)}>
+                  <i className="fas fa-warehouse"></i> Central Godown Manager
+                </button>
+                <button className="channel-tab" style={{ flex: 1, padding: '8px 10px', fontSize: '11.5px', borderRadius: '8px' }} onClick={(e) => window.switchChatChannel('authority', e.currentTarget)}>
+                  <i className="fas fa-building-columns"></i> District Authority (DDMA)
+                </button>
+                <button className="channel-tab" style={{ flex: 1, padding: '8px 10px', fontSize: '11.5px', borderRadius: '8px' }} onClick={(e) => window.switchChatChannel('admin', e.currentTarget)}>
+                  <i className="fas fa-satellite-dish"></i> State Admin (GIS Command)
+                </button>
+                <button className="channel-tab" style={{ flex: 1, padding: '8px 10px', fontSize: '11.5px', borderRadius: '8px' }} onClick={(e) => window.switchChatChannel('all', e.currentTarget)}>
+                  <i className="fas fa-bullhorn"></i> Common Broadcast
+                </button>
               </div>
 
-              <div id="monitoringMapSlot"></div>
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <strong style={{ fontSize: '12px', color: '#0f172a' }} id="centerChatChannelTitle">
+                    Active Channel: Ground Officer (Field Units)
+                  </strong>
+                  <span style={{ fontSize: '10px', color: '#16a34a', fontWeight: 700 }}>
+                    <i className="fas fa-circle" style={{ fontSize: '8px' }}></i> Encrypted Official Channel
+                  </span>
+                </div>
 
-              <div className="mo-map-legend">
-                <span><span className="legend-dot" style={{ background: '#dc2626' }}></span>Critical / Submerged</span>
-                <span><span className="legend-dot" style={{ background: '#ea580c' }}></span>High Risk</span>
-                <span><span className="legend-dot" style={{ background: '#eab308' }}></span>Moderate</span>
-                <span><span className="legend-dot" style={{ background: '#16a34a' }}></span>Normal Access</span>
+                {/* Message Feed Container */}
+                <div id="centerChatFeed" style={{ minHeight: '220px', maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', padding: '6px', background: '#ffffff', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '10px' }}></div>
+
+                {/* Quick Directive Chips */}
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                  <button type="button" className="quick-chip-btn" onClick={() => window.insertQuickChat('Verify delivery headcount and supply count on site.')}>Verify Delivery</button>
+                  <button type="button" className="quick-chip-btn" onClick={() => window.insertQuickChat('Clarify warehouse gate shortage before departure.')}>Check Shortage</button>
+                  <button type="button" className="quick-chip-btn" onClick={() => window.insertQuickChat('Requesting NDRF escort confirmation for convoy.')}>Confirm Escort</button>
+                  <button type="button" className="quick-chip-btn" onClick={() => window.insertQuickChat('Confirm post-rescue return restock status in warehouse.')}>Confirm Restock</button>
+                </div>
+
+                {/* Chat Send Form */}
+                <form onSubmit={(e) => window.sendChatMessage(e)} style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    id="centerChatMessageInput"
+                    placeholder="Type official directive / message to selected portal officer..."
+                    style={{ flex: 1, padding: '9px 14px', borderRadius: '8px', border: '1.5px solid #cbd5e1', fontSize: '12px', outline: 'none' }}
+                    required
+                  />
+                  <button type="submit" className="btn-mo" style={{ padding: '0 20px', background: '#0284c7', color: '#fff', borderColor: '#0284c7' }}>
+                    <i className="fas fa-paper-plane"></i> Send
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            {/* SUB-VIEW 2: PINNED EMERGENCY BROADCAST COMPOSER */}
+            <div id="commsBroadcastView" style={{ display: 'none' }}>
+              <div style={{ background: '#fef2f2', border: '1.5px solid #fecaca', borderRadius: '12px', padding: '14px', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <span style={{ background: '#dc2626', color: '#fff', fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '4px' }}>
+                    HIGH PRIORITY DIRECTIVE
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#991b1b', fontWeight: 600 }}>
+                    Announcements published here will be permanently PINNED to the top of Admin, Authority, Godown, Ground Officer, and Public Citizen portals until you unpin them.
+                  </span>
+                </div>
+
+                <form onSubmit={(e) => window.publishPinnedAnnouncement(e)} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ fontSize: '11px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: '4px' }}>Directive Title *</label>
+                      <input
+                        type="text"
+                        id="announcementTitleInput"
+                        placeholder="e.g. Critical Hydrology Breach Alert – Saura & Kosi River Basin"
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '11px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: '4px' }}>Severity Level</label>
+                      <select id="announcementSeverityInput" style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}>
+                        <option value="EMERGENCY">🚨 Emergency Red (Danger Breach)</option>
+                        <option value="CRITICAL">⚠️ Critical Warning</option>
+                        <option value="GENERAL">ℹ️ General State Directive</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#0f172a', display: 'block', marginBottom: '4px' }}>Directive Order & Instructions *</label>
+                    <textarea
+                      id="announcementMessageInput"
+                      rows="3"
+                      placeholder="e.g. All field response teams must evacuate low-lying sectors immediately. Central Godown to hold 100 extra life jackets on high-alert standby."
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px', fontFamily: 'inherit' }}
+                      required
+                    ></textarea>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                    <button type="submit" className="btn-mo" style={{ background: '#dc2626', color: '#fff', borderColor: '#b91c1c', padding: '8px 18px', fontWeight: 700 }}>
+                      <i className="fas fa-thumbtack"></i> Pin Announcement Across All Portals
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Active Pinned Announcements List */}
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>Currently Pinned Active Announcements</strong>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>Remains active until unpinned</span>
+                </div>
+                <div id="activeAnnouncementsList"></div>
               </div>
             </div>
           </div>
@@ -241,24 +369,27 @@ const markup = (
         </div>
 
         {/* ===============================================================
-            TAB 6: AUDIT ACTIVITY LOGS
+            TAB 6: MULTI-AGENCY CROSS-PORTAL ACTIVITY LOGS
             =============================================================== */}
         <div className="mo-tab-pane" id="tab-logs">
           <div className="aqua-card">
             <div className="card-head">
               <h2>
                 <i className="fas fa-clock-rotate-left" style={{ color: "var(--navy-deep)" }}></i>
-                {" Immutable Cross-Portal Lifecycle Activity Stream"}
+                {" Cross-Portal Member Activity Logs & Area Impact Trace"}
               </h2>
+              <div style={{ fontSize: '11px', color: '#64748b' }}>
+                Chronological actions of Admin, Authority, Godown, and Ground Officer with affected Area & Impact
+              </div>
             </div>
             <div className="grid-2 switchable-collection" id="fullActivityLogsGrid"></div>
           </div>
         </div>
       </main>
 
-      {/* RIGHT PANEL: ACTIONS, INSPECTOR, TELEMETRY & AUDIT CHAT DOCK */}
+      {/* RIGHT PANEL: ACTIONS, INSPECTOR & TELEMETRY */}
       <aside className="right-panel">
-        {/* Quick Actions */}
+        {/* Quick Actions with Real, Functioning Buttons */}
         <div className="aqua-card anim-card">
           <div className="card-head">
             <h2>
@@ -267,25 +398,25 @@ const markup = (
             </h2>
           </div>
           <div className="qa-grid-2x2">
-            <button type="button" className="qa-color-card qa-blue" onClick={() => window.switchMonitorTab('tracing', document.querySelector('[data-tab=tracing]'))}>
-              <i className="fas fa-route"></i>
-              <strong>Trace Area</strong>
-              <span>5-Stage Lifecycle</span>
+            <button type="button" className="qa-color-card qa-amber" onClick={() => window.openPinnedBroadcastComposer()}>
+              <i className="fas fa-thumbtack"></i>
+              <strong>Pin Broadcast</strong>
+              <span>State Directive</span>
             </button>
-            <button type="button" className="qa-color-card qa-amber" onClick={() => window.switchMonitorTab('discrepancies', document.querySelector('[data-tab=discrepancies]'))}>
+            <button type="button" className="qa-color-card qa-green" onClick={() => window.refreshMonitoringData()}>
+              <i className="fas fa-arrows-rotate"></i>
+              <strong>Re-Audit Sync</strong>
+              <span>Recalculate DB</span>
+            </button>
+            <button type="button" className="qa-color-card qa-blue" onClick={() => window.switchMonitorTab('discrepancies', document.querySelector('[data-tab=discrepancies]'))}>
               <i className="fas fa-triangle-exclamation"></i>
               <strong>Escalate</strong>
               <span>Flag Shortage</span>
             </button>
-            <button type="button" className="qa-color-card qa-green" onClick={() => { if (window.refreshMonitoringData) window.refreshMonitoringData(); }}>
-              <i className="fas fa-arrows-rotate"></i>
-              <strong>Sync DB</strong>
-              <span>Live Re-Audit</span>
-            </button>
-            <button type="button" className="qa-color-card qa-indigo" onClick={() => { if (window.exportAuditReport) window.exportAuditReport(); }}>
-              <i className="fas fa-file-pdf"></i>
-              <strong>Audit SITREP</strong>
-              <span>Export PDF/CSV</span>
+            <button type="button" className="qa-color-card qa-indigo" onClick={() => window.exportAuditSitrepReport()}>
+              <i className="fas fa-file-csv"></i>
+              <strong>Export SITREP</strong>
+              <span>Download CSV</span>
             </button>
           </div>
         </div>
@@ -300,7 +431,7 @@ const markup = (
           </div>
           <div id="inspectorContent" style={{ fontSize: '12px' }}>
             <div style={{ color: '#64748b', textAlign: 'center', padding: '16px' }}>
-              Tap any sector on the map or tracing card to inspect its full lifecycle telemetry.
+              Tap any sector to inspect its full lifecycle telemetry.
             </div>
           </div>
         </div>
@@ -314,44 +445,6 @@ const markup = (
             </h2>
           </div>
           <div id="riverTelemetryList"></div>
-        </div>
-
-        {/* INTER-PORTAL AUDIT CHAT DOCK */}
-        <div className="chat-dock-panel anim-card">
-          <div className="chat-dock-header">
-            <h3>
-              <i className="fas fa-comments"></i>
-              {" Inter-Portal Audit Chat"}
-            </h3>
-            <span className="chat-online-pill">Live Sync</span>
-          </div>
-
-          <div className="chat-role-channels">
-            <button className="channel-tab active" onClick={(e) => window.switchChatChannel('ground', e.currentTarget)}>Ground</button>
-            <button className="channel-tab" onClick={(e) => window.switchChatChannel('godown', e.currentTarget)}>Godown</button>
-            <button className="channel-tab" onClick={(e) => window.switchChatChannel('authority', e.currentTarget)}>Authority</button>
-            <button className="channel-tab" onClick={(e) => window.switchChatChannel('admin', e.currentTarget)}>Admin</button>
-          </div>
-
-          <div className="chat-channel-context">
-            <span id="chatChannelTitle">Channel: Ground Officer</span>
-            <span style={{ fontSize: "9.5px", opacity: "0.85" }}>Audit Logged</span>
-          </div>
-
-          <div className="chat-messages-feed" id="chatMessagesFeed"></div>
-
-          <div className="chat-quick-prompts">
-            <button type="button" className="quick-chip-btn" onClick={() => window.insertQuickChat('Please verify the physical consignment receipt on ground.')}>Verify Delivery</button>
-            <button type="button" className="quick-chip-btn" onClick={() => window.insertQuickChat('Clarify resource shortage recorded at sector gate.')}>Ask Shortage</button>
-            <button type="button" className="quick-chip-btn" onClick={() => window.insertQuickChat('Confirm post-rescue return restock status.')}>Confirm Return</button>
-          </div>
-
-          <form className="chat-input-bar" onSubmit={(e) => window.sendChatMessage(e)}>
-            <input type="text" id="chatMessageInput" placeholder="Message portal officer..." required />
-            <button type="submit" className="chat-send-btn" title="Send Message">
-              <i className="fas fa-paper-plane" style={{ fontSize: "12px" }}></i>
-            </button>
-          </form>
         </div>
       </aside>
     </div>
@@ -368,7 +461,7 @@ const markup = (
             <strong>NEERAKSHAK State DEOC Monitoring & Audit Portal</strong> • Full Resource Lifecycle Tracing & Accountability
           </span>
           <span>
-            Chain: Inundation Pin → Authority Allocation → Godown Dispatch → Ground Verification → Post-Rescue Restock
+            Chain: Inundation Pin (Admin) → Allocation (Authority) → Dispatch (Godown) → Verification (Ground) → Post-Rescue Restock
           </span>
         </div>
       </div>
@@ -380,7 +473,7 @@ const markup = (
 export default function Monitoring() {
   useEffect(() => {
     const cleanup = setupRouteGuard('monitoring');
-    document.title = "NEERAKSHAK – State Monitoring & Audit Portal | Area-Wise Lifecycle Tracing";
+    document.title = "NEERAKSHAK – State Monitoring & Audit Portal | Communication & Lifecycle Tracing";
     initMonitoringPage();
     return cleanup;
   }, []);

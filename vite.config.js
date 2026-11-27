@@ -516,7 +516,7 @@ function monitoringBackendPlugin() {
     name: 'monitoring-backend-fallback',
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
-        if (req.url && req.url.startsWith('/api/monitoring')) {
+        if (req.url && (req.url.startsWith('/api/monitoring') || req.url.startsWith('/api/announcements'))) {
           try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 120);
@@ -533,7 +533,7 @@ function monitoringBackendPlugin() {
 
           res.setHeader('Content-Type', 'application/json');
           res.setHeader('Access-Control-Allow-Origin', '*');
-          res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+          res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
 
           if (method === 'OPTIONS') {
             res.statusCode = 200;
@@ -541,13 +541,35 @@ function monitoringBackendPlugin() {
             return;
           }
 
-          const { monitoringDb } = await import('./server/lib/db.js');
+          const { monitoringDb, announcementsDb } = await import('./server/lib/db.js');
 
           let body = {};
           if (method === 'POST') {
             const chunks = [];
             for await (const chunk of req) chunks.push(chunk);
             try { body = JSON.parse(Buffer.concat(chunks).toString() || '{}'); } catch (e) {}
+          }
+
+          if (pathname === '/api/announcements') {
+            if (method === 'GET') {
+              const list = await announcementsDb.getActive();
+              res.statusCode = 200;
+              res.end(JSON.stringify({ success: true, data: list }));
+              return;
+            }
+            if (method === 'POST') {
+              const result = await announcementsDb.publish(body);
+              res.statusCode = 200;
+              res.end(JSON.stringify({ success: true, data: result }));
+              return;
+            }
+            if (method === 'DELETE') {
+              const id = parsedUrl.searchParams.get('id');
+              const result = await announcementsDb.unpin(id);
+              res.statusCode = 200;
+              res.end(JSON.stringify({ success: true, data: result }));
+              return;
+            }
           }
 
           if (pathname === '/api/monitoring/chat') {

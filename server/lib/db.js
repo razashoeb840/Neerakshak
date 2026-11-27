@@ -1397,7 +1397,10 @@ export const monitoringDb = {
     const adminAreas = adminState.areas || [];
     const authAllocations = authState.allocations || [];
     const authCoordinations = authState.coordinations || [];
-    const godownDispatches = godownState.dispatches || [];
+    const godownDispatches = [
+      ...(godownState.allocations || []),
+      ...(godownState.dispatches || [])
+    ];
     const godownReturns = godownState.returns || [];
     const groundDeliveries = groundState.deliveries || [];
     const groundReports = groundState.fieldReports || [];
@@ -1408,20 +1411,27 @@ export const monitoringDb = {
     let dbChats = [];
     let dbEscalations = [];
     let dbResolutions = [];
+    let dbAnnouncements = [];
 
     if (db) {
       try {
-        const [chats, escs, resols] = await Promise.all([
+        const [chats, escs, resols, anns] = await Promise.all([
           db.collection('monitoring_chats').find({}, { projection: { _id: 0 } }).sort({ timestamp: 1 }).toArray(),
           db.collection('monitoring_escalations').find({}, { projection: { _id: 0 } }).sort({ timestamp: -1 }).toArray(),
-          db.collection('monitoring_resolutions').find({}, { projection: { _id: 0 } }).toArray()
+          db.collection('monitoring_resolutions').find({}, { projection: { _id: 0 } }).toArray(),
+          db.collection('broadcast_announcements').find({ pinned: true }, { projection: { _id: 0 } }).sort({ createdAt: -1 }).toArray()
         ]);
         dbChats = chats || [];
         dbEscalations = escs || [];
         dbResolutions = resols || [];
+        dbAnnouncements = anns || [];
       } catch (e) {
         console.warn('monitoringDb MongoDB read notice:', e.message);
       }
+    }
+
+    if (!dbAnnouncements.length && cache.announcements) {
+      dbAnnouncements = cache.announcements.filter(a => a.pinned);
     }
 
     // Default chat seed if empty
@@ -1429,7 +1439,8 @@ export const monitoringDb = {
       ground: dbChats.filter(c => c.channel === 'ground' || c.toRole === 'ground' || c.fromRole === 'ground'),
       godown: dbChats.filter(c => c.channel === 'godown' || c.toRole === 'godown' || c.fromRole === 'godown'),
       authority: dbChats.filter(c => c.channel === 'authority' || c.toRole === 'authority' || c.fromRole === 'authority'),
-      admin: dbChats.filter(c => c.channel === 'admin' || c.toRole === 'admin' || c.fromRole === 'admin')
+      admin: dbChats.filter(c => c.channel === 'admin' || c.toRole === 'admin' || c.fromRole === 'admin'),
+      all: dbChats.filter(c => c.channel === 'all' || !c.channel)
     };
 
     // 3. Build Full Area-Wise Lifecycle Tracing
@@ -1442,18 +1453,23 @@ export const monitoringDb = {
       if (!vName) return;
       sectorMap.set(vName.toLowerCase(), {
         village: vName,
-        block: a.block || 'Purnia East, Purnia',
+        name: vName,
+        area: vName,
+        block: a.block || a.district || 'Purnia East, Purnia',
+        district: a.district || a.block || 'Purnia',
         severity: a.severity || 'Critical',
         lat: Number(a.lat || 25.7799),
         lng: Number(a.lng || 87.4751),
-        pop: a.pop || 2500,
+        pop: Number(a.pop || a.population || 2500),
+        river: a.river || 'Saura River (Purnia)',
+        waterLevel: a.waterLevel || a.currentWaterLevel || '34.9',
         task: a.notes || 'Flood emergency response'
       });
     });
 
     // From Authority Allocations
     authAllocations.forEach(a => {
-      const vName = (a.village || a.destination || '').trim();
+      const vName = (a.village || a.destination || a.area || '').trim();
       if (!vName) return;
       const key = vName.toLowerCase();
       if (!sectorMap.has(key)) {
@@ -1464,12 +1480,63 @@ export const monitoringDb = {
         else if (key.includes('flood sector') || key.includes('purnia')) { lat = 25.78; lng = 87.47; blk = 'Krityanand Nagar, Purnia'; }
         sectorMap.set(key, {
           village: vName,
+          name: vName,
+          area: vName,
           block: blk,
+          district: 'Supaul',
           severity: 'Critical',
           lat,
           lng,
-          pop: a.citizens || 2200,
+          pop: Number(a.citizens || a.pop || a.population || 2200),
+          river: 'Kosi Basin',
+          waterLevel: '71.4',
           task: 'Emergency relief allocation'
+        });
+      }
+    });
+
+    // From Godown Dispatches
+    godownDispatches.forEach(d => {
+      const vName = (d.destination || d.village || d.area || '').trim();
+      if (!vName) return;
+      const key = vName.toLowerCase();
+      if (!sectorMap.has(key)) {
+        sectorMap.set(key, {
+          village: vName,
+          name: vName,
+          area: vName,
+          block: d.block || 'Dispatched Sector',
+          district: 'Flood District',
+          severity: d.severity || 'Critical',
+          lat: Number(d.lat || 25.78),
+          lng: Number(d.lng || 87.47),
+          pop: 2200,
+          river: 'Brahmaputra Basin',
+          waterLevel: 'Passable',
+          task: 'Relief Convoy In Transit'
+        });
+      }
+    });
+
+    // From Ground Deliveries
+    groundDeliveries.forEach(g => {
+      const vName = (g.destination || g.village || g.area || '').trim();
+      if (!vName) return;
+      const key = vName.toLowerCase();
+      if (!sectorMap.has(key)) {
+        sectorMap.set(key, {
+          village: vName,
+          name: vName,
+          area: vName,
+          block: 'Assigned Ground Sector',
+          district: 'Flood District',
+          severity: 'Critical',
+          lat: 25.78,
+          lng: 87.47,
+          pop: 2200,
+          river: 'Basin River',
+          waterLevel: 'Inundated',
+          task: 'Field Verification'
         });
       }
     });
@@ -1481,27 +1548,32 @@ export const monitoringDb = {
       // Match Authority Allocation
       const alloc = authAllocations.find(a => 
         (a.village && a.village.toLowerCase() === vKey) || 
-        (a.destination && a.destination.toLowerCase() === vKey)
+        (a.destination && a.destination.toLowerCase() === vKey) ||
+        (a.area && a.area.toLowerCase() === vKey)
       );
 
       // Match Godown Dispatch
       const dispatch = godownDispatches.find(d => 
         (d.destination && d.destination.toLowerCase() === vKey) ||
-        (alloc && d.allocId === alloc.id) ||
-        (alloc && alloc.refNo && d.dispatchId === alloc.refNo)
+        (d.village && d.village.toLowerCase() === vKey) ||
+        (d.area && d.area.toLowerCase() === vKey) ||
+        (alloc && d.id === alloc.id) ||
+        (alloc && (d.allocId === alloc.id || d.refNo === alloc.refNo || d.dispatchId === alloc.refNo))
       );
 
       // Match Ground Delivery Verification
       const delivery = groundDeliveries.find(g => 
         (g.destination && g.destination.toLowerCase() === vKey) ||
-        (dispatch && g.dispatchId === dispatch.dispatchId) ||
-        (alloc && g.allocId === alloc.id)
+        (g.village && g.village.toLowerCase() === vKey) ||
+        (g.area && g.area.toLowerCase() === vKey) ||
+        (dispatch && (g.dispatchId === dispatch.dispatchId || g.dispatchId === dispatch.refNo)) ||
+        (alloc && (g.allocId === alloc.id || g.dispatchId === alloc.refNo))
       );
 
       // Match Operations
       const op = groundOperations.find(o => 
         (o.location && o.location.toLowerCase() === vKey) ||
-        (sector.village.toLowerCase().includes(o.location.toLowerCase()))
+        (sector.village.toLowerCase().includes((o.location || '').toLowerCase()))
       );
 
       // Match Return
@@ -1537,7 +1609,7 @@ export const monitoringDb = {
         auditStatus = 'Allocated';
       }
 
-      if (dispatch || (alloc && alloc.status === 'Dispatched')) {
+      if (dispatch || (alloc && (alloc.status === 'Dispatched' || alloc.dispatchTime))) {
         stageIndex = 3;
         stageLabel = 'Convoy Dispatched (Godown)';
         auditStatus = 'In Transit';
@@ -1592,9 +1664,9 @@ export const monitoringDb = {
       // Step 3: Godown
       if (dispatch) {
         timeline.push({
-          step: `Convoy Dispatched & Gate-Pass Issued (${dispatch.dispatchId || alloc?.refNo || 'DSP-2026'})`,
+          step: `Convoy Dispatched & Gate-Pass Issued (${dispatch.refNo || dispatch.dispatchId || alloc?.refNo || 'DSP-2026'})`,
           actor: 'Central Godown Manager',
-          time: dispatch.time || 'Dispatched',
+          time: dispatch.dispatchTime || dispatch.time || 'Dispatched',
           status: 'done',
           detail: `Truck ${dispatch.vehicle || 'Heavy Swaraj Truck'} departed with driver ${dispatch.driver || 'Assigned Driver'}. Gate-pass verified.`
         });
@@ -1626,14 +1698,21 @@ export const monitoringDb = {
 
       return {
         id: `TRC-${String(idx + 1).padStart(3, '0')}`,
+        area: sector.village,
         village: sector.village,
+        name: sector.village,
+        destination: sector.village,
         block: sector.block,
+        district: sector.district || sector.block,
         severity: sector.severity,
         lat: sector.lat,
         lng: sector.lng,
         pop: sector.pop,
+        population: sector.pop,
+        river: sector.river || 'Brahmaputra Basin',
+        waterLevel: sector.waterLevel,
         allocId: alloc?.id || '—',
-        dispatchId: dispatch?.dispatchId || alloc?.refNo || '—',
+        dispatchId: dispatch?.refNo || dispatch?.dispatchId || alloc?.refNo || '—',
         vehicle: dispatch?.vehicle || alloc?.vehicle || 'Heavy Truck AS-01-EC-4210 (6-Ton Swaraj)',
         driver: dispatch?.driver || alloc?.driver || 'Rajesh Das (Ph: +91 98640-21943)',
         leadOfficer: alloc?.leadOfficerName 
@@ -1646,9 +1725,31 @@ export const monitoringDb = {
         damagedCount,
         stageIndex,
         stageLabel,
+        currentStage: stageLabel,
         auditStatus,
         hasEscalation,
-        timeline
+        resourcesAllocated: approvedSupplies.total > 0
+          ? `${approvedSupplies.boats} Boats, ${approvedSupplies.jackets} Jackets, ${approvedSupplies.food} Food, ${approvedSupplies.meds} Meds`
+          : 'Pending Allocation',
+        resourcesDispatched: (dispatch || alloc?.status === 'Dispatched')
+          ? `${dispatchedSupplies.boats} Boats, ${dispatchedSupplies.jackets} Jackets, ${dispatchedSupplies.food} Food, ${dispatchedSupplies.meds} Meds`
+          : 'Awaiting Godown Loading',
+        resourcesReceived: delivery && delivery.status === 'Verified'
+          ? `${receivedSupplies.boats} Boats, ${receivedSupplies.jackets} Jackets, ${receivedSupplies.food} Food, ${receivedSupplies.meds} Meds`
+          : (delivery ? 'En Route to Ground Gate' : 'Pending Transit'),
+        groundVerificationStatus: delivery && delivery.status === 'Verified' ? 'Physical Receipt Verified' : (dispatch ? 'Convoy in Transit' : 'Pending Dispatch'),
+        designatedLead: alloc?.leadOfficerName 
+          ? `${alloc.leadAgency || 'NDRF'} ${alloc.leadOfficerName}`
+          : 'NDRF (1st Bn) Escort',
+        dispatchRef: dispatch?.refNo || dispatch?.dispatchId || alloc?.refNo || 'DSP-2026-932',
+        timeline,
+        stages: {
+          pin: true,
+          allocation: !!alloc,
+          dispatch: !!dispatch || (alloc && (alloc.status === 'Dispatched' || alloc.dispatchTime)),
+          verification: !!delivery && (delivery.status === 'Verified' || delivery.received !== null),
+          restock: !!((delivery && (delivery.groundOfficerCleared || delivery.reliefClearedForReturn)) || ret)
+        }
       };
     });
 
@@ -1675,6 +1776,9 @@ export const monitoringDb = {
             allocId: lc.allocId,
             dispatchId: lc.dispatchId,
             destination: lc.village,
+            area: lc.village,
+            village: lc.village,
+            sector: lc.village,
             resource: it.name,
             approved: it.app,
             dispatched: it.disp,
@@ -1695,7 +1799,10 @@ export const monitoringDb = {
           allocId: lc.allocId,
           dispatchId: lc.dispatchId,
           destination: lc.village,
+          area: lc.village,
+          item: `${lc.shortageCount} Units Shortage, ${lc.damagedCount} Damaged`,
           resource: `${lc.shortageCount} Short, ${lc.damagedCount} Damaged`,
+          issue: `${lc.shortageCount} units missing/unverified at ${lc.village} sector intake`,
           shortage: lc.shortageCount,
           damaged: lc.damagedCount,
           leadOfficer: lc.leadOfficer,
@@ -1722,6 +1829,7 @@ export const monitoringDb = {
     const operationsWatch = groundOperations.map((o, idx) => ({
       opId: o.opId || `OP-${idx + 1}`,
       location: o.location || 'Assigned Sector',
+      area: o.location || 'Assigned Sector',
       agency: o.agency || 'NDRF (1st Bn)',
       rescued: Number(o.rescued || 48),
       stranded: Number(o.stranded || 15),
@@ -1729,13 +1837,70 @@ export const monitoringDb = {
       notes: o.notes || 'Tactical team operating on site.'
     }));
 
-    // 8. Cross-Portal Activity Logs
-    const auditLogs = [
-      { id: 'LOG-01', time: '12:43 am', portal: 'Ground Officer', action: 'Cleared Return Intake', detail: 'Ground Officer confirmed rescue completed for Flood Sector. Equipment released.', tag: 'tag-good' },
-      { id: 'LOG-02', time: '12:40 am', portal: 'Central Godown', action: 'Convoy Dispatched (DSP-2026-897)', detail: 'Gate pass generated for Heavy Truck AS-01-EC-4210. Handover to NDRF Escort.', tag: 'tag-blue' },
-      { id: 'LOG-03', time: '01:18 am', portal: 'District Authority', action: 'Allocation Order Adjusted (ALC-597)', detail: 'Transmitted allocation for Ramnagar (3 Boats, 38 Jackets, 300 Food, 50 Meds).', tag: 'tag-indigo' },
-      { id: 'LOG-04', time: '01:17 am', portal: 'Admin GIS', action: 'Flood Zone Pinned', detail: 'Ramnagar marked as Critical severity. Est. population 2,500 citizens.', tag: 'tag-red' }
-    ];
+    // 8. Cross-Portal Comprehensive Activity Logs with Area & Impact
+    const auditLogs = [];
+
+    // Logs from Ground Officer deliveries & actions
+    groundDeliveries.forEach((g, idx) => {
+      auditLogs.push({
+        id: `LOG-GRD-${idx + 1}`,
+        time: g.verifiedAt || 'Live Sync',
+        portal: 'Ground Field Officer',
+        actor: g.verifiedBy || 'Bhaskar Jyoti Das (Ground Officer)',
+        area: g.destination || 'Field Sector',
+        action: g.status === 'Verified' ? 'Physical Delivery Intake Verified' : 'Consignment Acknowledged',
+        detail: `Verified supplies: ${g.dispatched || g.resource}. Shortages: ${g.shortage || 0}, Damaged: ${g.damaged || 0}. Remarks: ${g.remarks || 'No remarks'}.`,
+        impact: g.groundOfficerCleared
+          ? 'Rescue operations completed! Area declared controlled; equipment released for warehouse return.'
+          : 'Emergency supplies distributed to waterlogged camps and evacuees.',
+        tag: 'tag-good'
+      });
+    });
+
+    // Logs from Godown dispatches
+    godownDispatches.forEach((d, idx) => {
+      auditLogs.push({
+        id: `LOG-GDN-${idx + 1}`,
+        time: d.dispatchTime || 'Live Sync',
+        portal: 'Central Godown Manager',
+        actor: 'Rajesh Das (Warehouse Manager)',
+        area: d.destination || 'Dispatched Sector',
+        action: `Gate-Pass Issued & Convoy Dispatched (${d.refNo || d.dispatchId || 'DSP-2026'})`,
+        detail: `Resources loaded: ${d.summary || `${d.dispatchedBoats || 3} Boats, ${d.dispatchedJackets || 33} Jackets`}. Truck: ${d.vehicle || 'Heavy Swaraj Truck'}.`,
+        impact: `Convoy departed under armed NDRF escort to ensure zero leakage en route.`,
+        tag: 'tag-blue'
+      });
+    });
+
+    // Logs from Authority allocations
+    authAllocations.forEach((a, idx) => {
+      auditLogs.push({
+        id: `LOG-AUT-${idx + 1}`,
+        time: a.timestamp || 'Live Sync',
+        portal: 'District Authority (DDMA)',
+        actor: 'DC / ADC Relief Control Room',
+        area: a.village || a.destination || 'Flood Sector',
+        action: `Emergency Relief Order Approved (${a.id})`,
+        detail: `Allocated supplies: ${a.summary}. Assigned Field Handover Lead: ${a.leadOfficerName ? `${a.leadAgency || 'NDRF'} ${a.leadOfficerName}` : 'NDRF (1st Bn) Kalita'}.`,
+        impact: `Binding administrative supply requisition transmitted to Central Godown.`,
+        tag: 'tag-indigo'
+      });
+    });
+
+    // Logs from Admin Inundation Mapping
+    adminAreas.forEach((a, idx) => {
+      auditLogs.push({
+        id: `LOG-ADM-${idx + 1}`,
+        time: 'Live Onset',
+        portal: 'State Admin (GIS Command)',
+        actor: 'State Inundation Cell',
+        area: a.name || a.village || 'Flood Sector',
+        action: `Flood Zone Pinned & Telemetry Alert Issued`,
+        detail: `Marked as ${a.severity || 'Critical'} flood risk near ${a.river || 'River'}. Waterlevel: ${a.waterLevel || 'Above Danger'}.`,
+        impact: `Estimated affected population of ${(a.pop || a.population || 2500).toLocaleString()} citizens mapped for evacuation.`,
+        tag: 'tag-red'
+      });
+    });
 
     // 9. Overall KPI Metrics
     const totalApprovedUnits = lifecycles.reduce((acc, l) => acc + l.approvedSupplies.total, 0);
@@ -1752,6 +1917,12 @@ export const monitoringDb = {
         totalEvacuated: totalEvacuatedCitizens || 48,
         activeSectors: lifecycles.length
       },
+      summary: {
+        totalDispatched: totalDispatchedUnits || 4220,
+        totalReceived: totalReceivedUnits || 3876,
+        activeShortages: discrepancies.length,
+        activeRescueOps: operationsWatch.length || 2
+      },
       lifecycles,
       reconciliation,
       discrepancies,
@@ -1759,6 +1930,7 @@ export const monitoringDb = {
       operations: operationsWatch,
       chats: chatsByRole,
       escalations: dbEscalations,
+      announcements: dbAnnouncements,
       logs: auditLogs,
       areas: Array.from(sectorMap.values())
     };
@@ -1771,10 +1943,11 @@ export const monitoringDb = {
     const record = {
       id: `chat-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       channel: chatData.channel || 'ground',
-      from: chatData.from || 'Monitoring Officer (MO-DEOC-02)',
-      fromRole: chatData.fromRole || 'monitoring',
+      from: chatData.from || chatData.sender || 'Monitoring Officer (MO-DEOC-02)',
+      fromRole: chatData.fromRole || chatData.senderRole || 'monitoring',
       toRole: chatData.channel || 'ground',
       message: (chatData.message || '').trim(),
+      badge: chatData.badge || 'AUDIT NOTE',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       createdAt: new Date()
     };
@@ -1795,8 +1968,8 @@ export const monitoringDb = {
       id: `ESC-${Date.now()}`,
       allocId: payload.allocId || '—',
       dispatchId: payload.dispatchId || '—',
-      destination: payload.destination || 'Field Sector',
-      discrepancy: payload.discrepancy || 'Unresolved supply mismatch',
+      destination: payload.destination || payload.area || 'Field Sector',
+      discrepancy: payload.discrepancy || payload.issue || 'Unresolved supply mismatch',
       officer: payload.officer || 'Monitoring Officer (MO-DEOC-02)',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       status: 'Escalated to DDMA Chairman',
@@ -1812,5 +1985,75 @@ export const monitoringDb = {
       }
     }
     return record;
+  }
+};
+
+export const announcementsDb = {
+  async getActive() {
+    const db = await getDatabase();
+    if (db) {
+      try {
+        const list = await db.collection('broadcast_announcements')
+          .find({ pinned: true }, { projection: { _id: 0 } })
+          .sort({ createdAt: -1 })
+          .toArray();
+        if (list && list.length) return list;
+      } catch (e) {
+        console.warn('announcementsDb read error:', e.message);
+      }
+    }
+    return (cache.announcements || []).filter(a => a.pinned);
+  },
+
+  async publish(payload) {
+    const record = {
+      id: `ANN-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      title: payload.title || 'State DEOC High-Priority Directive',
+      message: payload.message || '',
+      severity: payload.severity || 'CRITICAL', // EMERGENCY | CRITICAL | GENERAL
+      scope: payload.scope || 'ALL', // ALL | OFFICERS
+      pinned: true,
+      author: payload.author || 'State Monitoring Officer (MO-DEOC-02)',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      createdAt: new Date()
+    };
+
+    const db = await getDatabase();
+    if (db) {
+      try {
+        await db.collection('broadcast_announcements').insertOne({ ...record });
+      } catch (e) {
+        console.warn('publishAnnouncement MongoDB write error:', e.message);
+      }
+    }
+
+    if (!cache.announcements) cache.announcements = [];
+    cache.announcements.unshift(record);
+    return record;
+  },
+
+  async unpin(id) {
+    const db = await getDatabase();
+    if (db) {
+      try {
+        if (!id || id === 'ALL') {
+          await db.collection('broadcast_announcements').updateMany({}, { $set: { pinned: false } });
+        } else {
+          await db.collection('broadcast_announcements').updateOne({ id }, { $set: { pinned: false } });
+        }
+      } catch (e) {
+        console.warn('unpinAnnouncement MongoDB error:', e.message);
+      }
+    }
+
+    if (cache.announcements) {
+      if (!id || id === 'ALL') {
+        cache.announcements.forEach(a => a.pinned = false);
+      } else {
+        const item = cache.announcements.find(a => a.id === id);
+        if (item) item.pinned = false;
+      }
+    }
+    return { success: true, id };
   }
 };
