@@ -169,74 +169,87 @@ sequenceDiagram
 
 ## 📦 Version Control History & Major Releases
 
-NEERAKSHAK evolved through **7 major architectural milestones**, transforming from an early prototype into a production-hardened disaster management platform:
+NEERAKSHAK development commenced on **12 November 2026**, progressing through **7 major versions** from initial architecture blueprint to an enterprise-grade disaster command system:
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                NEERAKSHAK EVOLUTION TIMELINE                                     │
+│                                NEERAKSHAK VERSION TIMELINE                                       │
 ├───────────────┬────────────────┬────────────────┬────────────────┬───────────────┬───────────────┤
-│ v1.0.0 (Nov20)│ v1.5.0 (Nov22) │ v2.0.0 (Nov24) │ v2.2.0 (Nov26) │ v2.4.0 (Nov27)│ v2.5.0 (Nov28)│
-│ Architecture  │ DEOC Engine    │ Telemetry & CoC│ Dual-Verify    │ Chat & Purge  │ Pure Real-Data│
+│v1.0.0 (12Nov) │v1.1.0 (18Nov)  │v1.3.0 (22Nov)  │v1.7.0 (24Nov)  │v2.0.0 (26Nov) │v2.3.0 (27Nov) │
+│Inception      │React Migration │Next.js & GIS   │DEOC Monitoring │CoC Telemetry  │Dual-Verify    │
 └───────────────┴────────────────┴────────────────┴────────────────┴───────────────┴───────────────┘
+                                 v2.5.0 (28Nov) - Pure Real-Data Engine
 ```
 
-### 🔹 Milestone 1: v1.0.0 — Ground Officer GIS & Next.js App Router Architecture
-* **Commit:** `0f52638` & `aa0ef4f` *(20 Nov 2026)*
-* **Key Deliverables:**
-  - Replaced legacy mock orientation widgets with full **Leaflet Interactive GIS Engine**.
-  - Engineered **Next.js App Router backend** microservices (`/api/ground/*`, `/api/admin/*`).
-  - Added 3-column responsive command grid with instant sector quick-actions.
-  - Resolved dynamic map viewport rendering and dynamic container sizing.
+### 🔹 Version 1.0.0 (12 November 2026) — Project Inception, Core Blueprints & Multi-Portal Design
+* **Release Date:** *12 November 2026*
+* **Key Architecture & Deliverables:**
+  - Conceptualized unified disaster response framework to solve inter-agency coordination breakdown and inventory hoarding during flash floods.
+  - Formulated the 5-tier operational hierarchy: Public Citizen Hub, GIS Admin, DDMA Authority, Central Godown, and Tactical Ground Rescue.
+  - Engineered initial responsive interface mockups, emergency color schemes (Critical Red, Passable Green, Warning Amber), and disaster telemetry layouts.
+  - Outlined the cryptographic Chain-of-Custody data model connecting warehouse gate-passes with physical ground receipts.
 
 ---
 
-### 🔹 Milestone 2: v1.5.0 — DEOC Forensic Monitoring Engine & 10 Core Functions
-* **Commit:** `271fd71` & `32c261a` *(22 Nov 2026)*
-* **Key Deliverables:**
-  - Introduced the **DEOC Forensic Audit Center** with 9 dedicated audit tabs.
-  - Implemented the **5-Stage Lifecycle State Machine** (`Approved` $\rightarrow$ `Dispatched` $\rightarrow$ `Received` $\rightarrow$ `Audited` $\rightarrow$ `Returned`).
-  - Built real-time river hydrology telemetry integration and discrepancy reconciliation engines.
-  - Added automated variance calculation between dispatches and physical receipts.
+### 🔹 Version 1.1.0 (18 November 2026) — React 18, Vite 6 Migration & Multi-Role Authentication
+* **Release Date:** *18 November 2026*
+* **Key Architecture & Deliverables:**
+  - Migrated legacy static HTML/JS architecture to high-performance **React 18** and **Vite 6** module bundler.
+  - Implemented secure multi-role session authentication supporting 5 distinct administrative roles with dedicated credential verification.
+  - Built panoramic frosted-glass emergency login console with role-switching cards, emergency helpline integration, and session persistence.
+  - Added strict browser bfcache protection, route navigation guards, and automated session timeouts.
 
 ---
 
-### 🔹 Milestone 3: v2.0.0 — Chain-of-Custody, Fleet Telemetry & Escort Roster
-* **Commit:** `f23ec7a` & `c704cdf` *(24 Nov 2026)*
-* **Key Deliverables:**
-  - Standardized the **Multi-Agency Chain of Custody (CoC)** data contracts across all portals.
-  - Bound Convoy Driver credentials, vehicle registration, and NDRF Battalion Escort Officers to each gate-pass.
-  - Integrated live convoy tracking with telephone dialers and driver route progress.
-  - Added field photo/document evidence uploads with auto-generated verification waybills.
+### 🔹 Version 1.3.0 (22 November 2026) — Next.js App Router Backend & Interactive Leaflet GIS Engine
+* **Commit Reference:** `449c312`, `f7fc924`, `aa0ef4f` *(22 November 2026)*
+* **Key Architecture & Deliverables:**
+  - Initialized **Next.js App Router backend microservices** with live REST API route handlers across all 5 operational domains.
+  - Integrated full **Leaflet Interactive GIS Engine** with OpenStreetMap Pan-India geospatial layers and reverse geocoding.
+  - Connected Central Water Commission (CWC) & Copernicus GloFAS hydrology river gauge telemetry with dynamic trend indicators (Rising/Falling/Steady).
+  - Engineered dynamic centroid auto-centering focusing maps directly on active flood disaster polygons.
 
 ---
 
-### 🔹 Milestone 4: v2.2.0 — Dual-Verification Return Protocol & Restock Guards
-* **Commit:** `659a78a` & `86a8ffd` *(26 Nov 2026)*
-* **Key Deliverables:**
-  - Implemented **Return Intake Guard**: Restock bay strictly locked until Ground Officer issues *"Situation Controlled & Cleared"*.
-  - Engineered itemized condition breakdown (`Good Condition`, `Damaged`, `Missing In Action`).
-  - Fixed inventory zero-reset glitch: verified equipment in good condition increments central godown stock.
-  - Eliminated unverified return cards from godown restock queues.
+### 🔹 Version 1.7.0 (24 November 2026) — DEOC Forensic Monitoring Hub & 5-Stage Lifecycle Tracing
+* **Commit Reference:** `271fd71`, `32c261a` *(24 November 2026)*
+* **Key Architecture & Deliverables:**
+  - Launched the **DEOC Forensic Audit Center** (`/monitoring`) equipped with 9 specialized monitoring tabs and live command telemetry.
+  - Implemented the **5-Stage Full Lifecycle State Machine**:
+    $$\text{Requisition Approved} \xrightarrow{\quad} \text{Dispatched} \xrightarrow{\quad} \text{Ground Receipt} \xrightarrow{\quad} \text{Reconciliation} \xrightarrow{\quad} \text{Restocked}$$
+  - Engineered automated discrepancy calculations detecting shortages between warehouse manifests and physical boots-on-ground counts.
+  - Added immutable audit trail logging every administrative command with ISO timestamps and officer IDs.
 
 ---
 
-### 🔹 Milestone 5: v2.4.0 — Multi-Agency Real-Time Chat & Extra SITREP Requisitions
-* **Commit:** `441f1b7` & `54defe2` *(27 Nov 2026)*
-* **Key Deliverables:**
-  - Integrated **Cross-Portal Real-Time Messenger Hub** with `ALL (Broadcast)` vs `FOR YOU (Direct Directive)` badges.
-  - Enabled Ground Officers to request supplementary equipment item-wise directly within field SITREPs.
-  - Engineered automatic requisition merging at District Authority level.
-  - Built **Cross-Portal Active Data Purging**: closing a verified case purges the sector from all active portals while archiving to DEOC history.
+### 🔹 Version 2.0.0 (26 November 2026) — Chain-of-Custody (CoC), Convoy Telemetry & NDRF Escorts
+* **Commit Reference:** `f23ec7a`, `c704cdf`, `2a4b56a` *(26 November 2026)*
+* **Key Architecture & Deliverables:**
+  - Standardized multi-agency **Chain of Custody (CoC)** metadata: Driver name, phone contact, vehicle registration, and NDRF Battalion Escort Officers.
+  - Generated tamper-evident transit waybills (`DSP-YYYY-XXX`) tracking cargo from warehouse bay loading to field gate-pass intake.
+  - Built real-time convoy telemetry cards with direct telephone calling triggers and live transit ETA milestones.
+  - Added ground photo and document evidence upload capabilities creating digital receipts (`EVD-DSP-XXXX`).
 
 ---
 
-### 🔹 Milestone 6: v2.5.0 — 100% Real-Data MongoDB Production Standard (Zero-Mock)
-* **Commit:** `9267239`, `1e72843` *(28 Nov 2026)*
-* **Key Deliverables:**
-  - Permanently excised `seed.js`, `seedData.js`, and `NEERAKSHAK_SEED_DATA` mock fallbacks from client and server.
-  - Cleaned all legacy mock collections from MongoDB Atlas.
-  - Populated Central Godown with 8 standardized disaster emergency equipment inventory records.
-  - Enforced single-source-of-truth database integrity: all portals display 100% live user data.
+### 🔹 Version 2.3.0 (27 November 2026) — Dual-Verification Return Protocol, Real-Time Comms & Auto-Purging
+* **Commit Reference:** `659a78a`, `86a8ffd`, `441f1b7`, `54defe2` *(27 November 2026)*
+* **Key Architecture & Deliverables:**
+  - Implemented strict **Dual-Verification Return Protocol**: Warehouse restock intake bay remains locked until Ground Officer confirms *"Situation Under Control"*.
+  - Engineered itemized field return breakdown (`Good Condition`, `Damaged`, `Missing`) with zero inventory-reset glitch.
+  - Built full-duplex **Real-Time Cross-Portal Messenger** with `ALL (Broadcast)` vs `FOR YOU (Direct Directive)` badge filtering.
+  - Enabled Ground Officers to submit supplementary item requirements directly inside SITREPs, auto-merged at DDMA Authority level.
+  - Engineered **Cross-Portal Active Data Purging**: closing a verified case purges the sector from all active operational maps while permanently archiving to DEOC history.
+
+---
+
+### 🔹 Version 2.5.0 (28 November 2026) — 100% Real-Data MongoDB Production Standard (Zero-Mock Engine)
+* **Commit Reference:** `9267239`, `1e72843` *(28 November 2026)*
+* **Key Architecture & Deliverables:**
+  - Permanently purged all legacy mock files (`seed.js`, `seedData.js`, `NEERAKSHAK_SEED_DATA`) across both server and client layers.
+  - Cleared all demo database collections in MongoDB Atlas, establishing a 100% clean, persistent single source of truth.
+  - Initialized Central Godown with 8 standardized disaster emergency relief stocks (Rescue Boats, Life Jackets, Rations, Trauma Kits, Pumps).
+  - Enforced zero-mock production standard: all portals render 100% live, user-generated emergency operations data.
 
 ---
 
