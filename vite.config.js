@@ -604,6 +604,20 @@ function monitoringBackendPlugin() {
             return;
           }
 
+          if (pathname === '/api/monitoring/cases/close' && method === 'POST') {
+            const result = await monitoringDb.closeReturnCase(body);
+            res.statusCode = 200;
+            res.end(JSON.stringify({ success: true, data: result }));
+            return;
+          }
+
+          if (pathname === '/api/monitoring/ops/anomaly' && method === 'POST') {
+            const result = await monitoringDb.updateOpsAnomaly(body);
+            res.statusCode = 200;
+            res.end(JSON.stringify({ success: true, data: result }));
+            return;
+          }
+
           if (pathname === '/api/monitoring' || pathname === '/api/monitoring/state') {
             const data = await monitoringDb.getState();
             res.statusCode = 200;

@@ -90,11 +90,6 @@ const markup = (
           <i className="fas fa-clock-rotate-left"></i>
           <span>Logs</span>
         </button>
-        {/* ADDITION 3: Reports & Audit History */}
-        <button className="rail-btn mon-nav-btn" data-tab="reports" onClick={(e) => window.switchMonitorTab('reports', e.currentTarget)} title="Reports & Historical Audit Center">
-          <i className="fas fa-file-lines"></i>
-          <span>Reports</span>
-        </button>
 
         <div className="rail-bottom-cluster">
           <div className="rail-divider"></div>
@@ -118,7 +113,7 @@ const markup = (
             TAB 1: DASHBOARD & INTER-PORTAL COMMUNICATION COMMAND CENTER
             =============================================================== */}
         <div className="mo-tab-pane active" id="tab-dashboard">
-          <div className="aqua-card anim-card" style={{ padding: '16px', marginBottom: '14px' }}>
+          <div className="aqua-card anim-card mo-chat-hub-card" style={{ padding: '16px', marginBottom: '14px', maxWidth: '780px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: '15px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -379,26 +374,34 @@ const markup = (
 
         {/* ===============================================================
             TAB 6: RETURN & RESOURCE AUDIT (FUNCTION 6)
-            Returned resources records, good/damaged/missing vs inventory restock
+            Individual Ground Officer & Godown Verifications + Case Closure
             =============================================================== */}
         <div className="mo-tab-pane" id="tab-returns">
           <div className="aqua-card">
             <div className="card-head">
               <h2>
                 <i className="fas fa-rotate-left" style={{ color: "var(--teal-water)" }}></i>
-                {" Post-Operation Return & Physical Restock Audit"}
+                {" Post-Operation Return & Physical Restock Dual-Audit"}
               </h2>
+              <div style={{ fontSize: '11.5px', color: '#64748b' }}>
+                Individual verifications by Ground Officer (field release) & Godown (warehouse intake). Sign-off to close audit case.
+              </div>
             </div>
-            <div className="table-wrap">
+
+            {/* DUAL-VERIFICATION RETURN CASE CARDS */}
+            <div className="switchable-collection" id="returnAuditCardsGrid"></div>
+
+            {/* Summary Reconcile Table */}
+            <div className="table-wrap" style={{ marginTop: '14px' }}>
               <table className="audit-table">
                 <thead>
                   <tr>
-                    <th>Resource Item</th>
-                    <th>Dispatched Units</th>
-                    <th>Returned (Good)</th>
-                    <th>Damaged</th>
-                    <th>Missing</th>
-                    <th>Restock Status</th>
+                    <th>Sector / Case ID</th>
+                    <th>Dispatched Equipment</th>
+                    <th>Ground Officer Sign-off</th>
+                    <th>Godown Restock (Good)</th>
+                    <th>Damaged / Missing</th>
+                    <th>Dual-Audit Status</th>
                   </tr>
                 </thead>
                 <tbody id="returnAuditBody"></tbody>
@@ -441,25 +444,6 @@ const markup = (
               </div>
             </div>
             <div className="grid-2 switchable-collection" id="fullActivityLogsGrid"></div>
-          </div>
-        </div>
-
-        {/* ===============================================================
-            TAB 9: REPORTS & AUDIT HISTORY (FUNCTION 9 - NEW TAB)
-            Comprehensive downloadable audit reports across all 5 dimensions
-            =============================================================== */}
-        <div className="mo-tab-pane" id="tab-reports">
-          <div className="aqua-card">
-            <div className="card-head">
-              <h2>
-                <i className="fas fa-file-lines" style={{ color: "var(--indigo-audit)" }}></i>
-                {" Official Audit Reports & Historical Archive"}
-              </h2>
-              <div style={{ fontSize: '11.5px', color: '#64748b' }}>
-                Export sector-wise, discrepancy, and cross-portal reconciliation reports (CSV/Print).
-              </div>
-            </div>
-            <div className="grid-2" id="reportsContainerGrid"></div>
           </div>
         </div>
       </main>

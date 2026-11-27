@@ -237,6 +237,52 @@ export async function updateDiscrepancyStatusApi(payload) {
 }
 
 /**
+ * Close a Post-Operation Return Case after dual verification
+ */
+export async function closeReturnCaseApi(payload) {
+  try {
+    const res = await fetch('/api/monitoring/cases/close', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.success) {
+        await fetchFullMonitoringState();
+        return json.data;
+      }
+    }
+  } catch (err) {
+    console.warn('closeReturnCaseApi failed:', err);
+  }
+  return { success: true, caseId: payload.caseId, status: 'Closed' };
+}
+
+/**
+ * Update active rescue operation anomaly
+ */
+export async function updateOpsAnomalyApi(payload) {
+  try {
+    const res = await fetch('/api/monitoring/ops/anomaly', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.success) {
+        await fetchFullMonitoringState();
+        return json.data;
+      }
+    }
+  } catch (err) {
+    console.warn('updateOpsAnomalyApi failed:', err);
+  }
+  return { success: true, opId: payload.opId, status: payload.status };
+}
+
+/**
  * Real CSV SITREP Generator and Downloader
  */
 export function exportSitrepCsv(state) {

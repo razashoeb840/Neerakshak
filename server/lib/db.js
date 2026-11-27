@@ -1413,21 +1413,27 @@ export const monitoringDb = {
     let dbResolutions = [];
     let dbAnnouncements = [];
     let dbDiscrepancies = [];
+    let dbCases = [];
+    let dbAnomalies = [];
 
     if (db) {
       try {
-        const [chats, escs, resols, anns, discs] = await Promise.all([
+        const [chats, escs, resols, anns, discs, cases, anomalies] = await Promise.all([
           db.collection('monitoring_chats').find({}, { projection: { _id: 0 } }).sort({ timestamp: 1 }).toArray(),
           db.collection('monitoring_escalations').find({}, { projection: { _id: 0 } }).sort({ timestamp: -1 }).toArray(),
           db.collection('monitoring_resolutions').find({}, { projection: { _id: 0 } }).toArray(),
           db.collection('broadcast_announcements').find({ pinned: true }, { projection: { _id: 0 } }).sort({ createdAt: -1 }).toArray(),
-          db.collection('monitoring_discrepancies').find({}, { projection: { _id: 0 } }).toArray()
+          db.collection('monitoring_discrepancies').find({}, { projection: { _id: 0 } }).toArray(),
+          db.collection('monitoring_return_cases').find({}, { projection: { _id: 0 } }).toArray(),
+          db.collection('monitoring_ops_anomalies').find({}, { projection: { _id: 0 } }).toArray()
         ]);
         dbChats = chats || [];
         dbEscalations = escs || [];
         dbResolutions = resols || [];
         dbAnnouncements = anns || [];
         dbDiscrepancies = discs || [];
+        dbCases = cases || [];
+        dbAnomalies = anomalies || [];
       } catch (e) {
         console.warn('monitoringDb MongoDB read notice:', e.message);
       }
@@ -1850,30 +1856,98 @@ export const monitoringDb = {
       };
     });
 
-    // 6. Returns Audit
-    const returnsAudit = godownReturns.map((r, idx) => ({
-      id: r.id || `RET-AUD-${idx + 1}`,
-      area: r.area || r.from || 'Field Sector',
-      resource: r.dispatchedSummary || r.resourceName || 'Relief Consignment Equipment',
-      good: Number(r.boatsReturned || r.good || 0),
-      damaged: Number(r.boatsDamaged || r.damaged || 0),
-      missing: Number(r.boatsMissing || r.missing || 0),
-      intakeDate: r.date || 'Today',
-      auditedBy: 'Monitoring Officer',
-      restockStatus: 'Restocked to Available Stock'
-    }));
+    // 6. Returns Audit - Dual Verification (Ground Officer Field Return + Godown Warehouse Restock)
+    const returnsAudit = Array.from(sectorMap.values()).map((sector, idx) => {
+      const vKey = sector.village.toLowerCase();
+      const lc = lifecycles.find(l => l.village.toLowerCase() === vKey);
+      const godownRet = godownReturns.find(r => (r.area && r.area.toLowerCase() === vKey) || (r.from && r.from.toLowerCase() === vKey));
+      const delivery = groundDeliveries.find(g => (g.destination && g.destination.toLowerCase() === vKey));
+      const groundRet = (groundState.returns || []).find(r => (r.location && r.location.toLowerCase() === vKey));
+      
+      const caseId = `CASE-RET-${sector.village.replace(/\s+/g, '-')}`;
+      const caseRec = dbCases.find(c => c.caseId === caseId || (c.area && c.area.toLowerCase() === vKey));
 
-    // 7. Operations Watch
-    const operationsWatch = groundOperations.map((o, idx) => ({
-      opId: o.opId || `OP-${idx + 1}`,
-      location: o.location || 'Assigned Sector',
-      area: o.location || 'Assigned Sector',
-      agency: o.agency || 'NDRF (1st Bn)',
-      rescued: Number(o.rescued || 48),
-      stranded: Number(o.stranded || 15),
-      status: o.status || 'Active Operation',
-      notes: o.notes || 'Tactical team operating on site.'
-    }));
+      const isGroundCleared = Boolean(delivery?.groundOfficerCleared || delivery?.reliefClearedForReturn || delivery?.status === 'Verified' || groundRet);
+      const isGodownRestocked = Boolean(godownRet || delivery?.groundOfficerCleared);
+
+      // Quantities from real dispatches
+      const boatsDisp = lc ? lc.dispatchedSupplies.boats : 3;
+      const jacketsDisp = lc ? lc.dispatchedSupplies.jackets : 33;
+      const totalDisp = lc ? (lc.dispatchedSupplies.total || (boatsDisp + jacketsDisp)) : 36;
+
+      const groundGood = groundRet ? Number(groundRet.good || 0) : (isGroundCleared ? boatsDisp : 0);
+      const groundDamaged = groundRet ? Number(groundRet.damaged || 0) : Number(delivery?.damaged || 0);
+      const groundMissing = groundRet ? Number(groundRet.missing || 0) : Number(delivery?.shortage || 0);
+
+      const godownGood = godownRet ? Number(godownRet.boatsReturned || godownRet.good || 0) : (isGodownRestocked ? boatsDisp : 0);
+      const godownDamaged = godownRet ? Number(godownRet.boatsDamaged || godownRet.damaged || 0) : 0;
+      const godownMissing = godownRet ? Number(godownRet.boatsMissing || godownRet.missing || 0) : 0;
+
+      const isClosed = Boolean(caseRec && caseRec.status === 'Closed');
+      const bothVerified = isGroundCleared && isGodownRestocked;
+
+      return {
+        id: `RET-AUD-${idx + 1}`,
+        caseId,
+        area: sector.village,
+        village: sector.village,
+        resource: lc ? `${boatsDisp} Boats, ${jacketsDisp} Jackets` : 'Rescue Boats & Life Jackets',
+        dispatched: totalDisp,
+        dispatchedSummary: `${boatsDisp} Boats, ${jacketsDisp} Jackets`,
+        
+        // Ground Officer Verification Block
+        ground: {
+          officer: groundRet?.officer || delivery?.verifiedBy || 'Bhaskar Jyoti Das (Ground Officer - GO-KAM-04)',
+          status: isGroundCleared ? 'Verified on Ground' : 'Pending Field Sign-off',
+          isVerified: isGroundCleared,
+          good: groundGood,
+          damaged: groundDamaged,
+          missing: groundMissing,
+          remarks: groundRet?.remarks || delivery?.remarks || (isGroundCleared ? 'All deployed rescue craft and jackets accounted for and handed to convoy escort.' : 'Awaiting post-operation ground handover.'),
+          time: groundRet?.time || delivery?.verifiedAt || 'Field Intake'
+        },
+
+        // Central Godown Warehouse Verification Block
+        godown: {
+          manager: godownRet?.returnedByOfficer || 'Rajesh Das (Warehouse Manager - WH-MIRZA)',
+          status: isGodownRestocked ? 'Warehouse Restocked' : 'Pending Intake Bay Inspection',
+          isVerified: isGodownRestocked,
+          good: godownGood,
+          damaged: godownDamaged,
+          missing: godownMissing,
+          notes: godownRet?.conditionNotes || (isGodownRestocked ? 'Physical inspection completed at intake bay. Assets restocked into central emergency buffer.' : 'Awaiting physical warehouse delivery from field escort.'),
+          time: godownRet?.date || 'Warehouse Bay'
+        },
+
+        variance: Math.abs(groundGood - godownGood),
+        status: isClosed ? 'Closed' : (bothVerified ? 'Dual Verified' : 'Under Review'),
+        caseClosed: isClosed,
+        closedBy: caseRec?.closedBy || null,
+        closedAt: caseRec?.closedAt || null,
+        sealNo: caseRec?.sealNo || null
+      };
+    });
+
+    // 7. Operations Watch - Non-command Monitoring & DDMA Anomaly Tracking
+    const operationsWatch = groundOperations.map((o, idx) => {
+      const savedAnomaly = dbAnomalies.find(a => a.opId === o.opId || a.location === o.location);
+      const isAnomaly = Boolean(savedAnomaly && savedAnomaly.status !== 'Resolved');
+
+      return {
+        opId: o.opId || `OP-${idx + 1}`,
+        location: o.location || 'Assigned Sector',
+        area: o.location || 'Assigned Sector',
+        agency: o.agency || 'NDRF (1st Bn)',
+        rescued: Number(o.rescued || 48),
+        stranded: Number(o.stranded || 15),
+        status: isAnomaly ? 'Anomaly Escalated to DDMA' : (o.status || 'Active Operation'),
+        notes: isAnomaly ? (savedAnomaly.notes || 'Critical bottleneck / delayed evacuation flagged to DDMA.') : (o.notes || 'Tactical team operating on site.'),
+        anomalyFlagged: isAnomaly,
+        anomalyNotes: savedAnomaly?.notes || '',
+        escalatedAt: savedAnomaly?.flaggedAt || null,
+        escalatedBy: savedAnomaly?.officer || null
+      };
+    });
 
     // 8. Cross-Portal Comprehensive Activity Logs with Area & Impact
     const auditLogs = [];
@@ -2086,6 +2160,70 @@ export const monitoringDb = {
         await db.collection('monitoring_escalations').insertOne({ ...record });
       } catch (e) {
         console.warn('escalateDiscrepancy MongoDB write notice:', e.message);
+      }
+    }
+    return record;
+  },
+
+  async closeReturnCase(payload) {
+    const caseId = payload.caseId || `CASE-RET-${Date.now()}`;
+    const area = payload.area || 'Field Sector';
+    const sealNo = `DEOC-AUD-${Math.floor(1000 + Math.random() * 9000)}`;
+    const nowTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    const nowDate = new Date().toLocaleDateString('en-IN');
+
+    const record = {
+      caseId,
+      area,
+      status: 'Closed',
+      closedBy: payload.closedBy || 'State Monitoring Officer (MO-DEOC-02)',
+      closedAt: `${nowTime}, ${nowDate}`,
+      sealNo,
+      notes: payload.notes || 'Full dual verification approved: Ground field return & Godown warehouse restock reconciled. Case closed.',
+      updatedAt: new Date()
+    };
+
+    const db = await getDatabase();
+    if (db) {
+      try {
+        await db.collection('monitoring_return_cases').updateOne(
+          { caseId },
+          { $set: record },
+          { upsert: true }
+        );
+      } catch (e) {
+        console.warn('closeReturnCase MongoDB error:', e.message);
+      }
+    }
+    return record;
+  },
+
+  async updateOpsAnomaly(payload) {
+    const opId = payload.opId || 'OP-1';
+    const location = payload.location || 'Assigned Sector';
+    const status = payload.status || 'Anomaly Escalated to DDMA';
+    const nowTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+    const record = {
+      opId,
+      location,
+      status,
+      flaggedAt: nowTime,
+      notes: payload.notes || 'Critical bottleneck / delayed evacuation flagged to District Magistrate Control Room.',
+      officer: 'State Monitoring Officer (MO-DEOC-02)',
+      updatedAt: new Date()
+    };
+
+    const db = await getDatabase();
+    if (db) {
+      try {
+        await db.collection('monitoring_ops_anomalies').updateOne(
+          { opId },
+          { $set: record },
+          { upsert: true }
+        );
+      } catch (e) {
+        console.warn('updateOpsAnomaly MongoDB error:', e.message);
       }
     }
     return record;

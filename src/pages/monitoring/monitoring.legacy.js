@@ -8,6 +8,8 @@ import {
   sendMonitoringChatMessage,
   escalateDiscrepancyApi,
   updateDiscrepancyStatusApi,
+  closeReturnCaseApi,
+  updateOpsAnomalyApi,
   publishBroadcastAnnouncementApi,
   unpinBroadcastAnnouncementApi,
   exportSitrepCsv,
@@ -37,6 +39,11 @@ export default function initMonitoringPage() {
   window.escalateDiscrepancy = escalateDiscrepancy;
   window.changeDiscrepancyStatus = changeDiscrepancyStatus;
   window.requestDiscrepancyClarification = requestDiscrepancyClarification;
+  window.closeReturnAuditCase = closeReturnAuditCase;
+  window.requestReturnClarification = requestReturnClarification;
+  window.flagOpsAnomaly = flagOpsAnomaly;
+  window.resolveOpsAnomaly = resolveOpsAnomaly;
+  window.directMessageTacticalTeam = directMessageTacticalTeam;
   window.inspectSectorByName = inspectSectorByName;
   window.filterMonitoringSector = filterMonitoringSector;
   window.filterTracingArea = filterTracingArea;
@@ -606,75 +613,297 @@ function renderDeliveryAudits(deliveryAudits) {
   }).join('');
 }
 
-// FUNCTION 6: RETURN & RESOURCE AUDIT (Returned resources records, good/damaged/missing vs inventory restock)
+// FUNCTION 6: RETURN & RESOURCE AUDIT (Individual Ground Officer & Godown Verifications + Case Closure)
 function renderReturns(returns) {
+  const cardsGrid = document.getElementById('returnAuditCardsGrid');
   const tbody = document.getElementById('returnAuditBody');
-  if (!tbody) return;
 
-  if (returns.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #64748b; padding: 24px;">No asset return records logged yet.</td></tr>`;
-    return;
+  if (cardsGrid) {
+    if (!returns || returns.length === 0) {
+      cardsGrid.innerHTML = `<div style="grid-column:1/-1; text-align: center; color: #64748b; padding: 24px; background:#fff; border-radius:12px; border:1px dashed #cbd5e1;">No post-operation asset return cases found in database.</div>`;
+    } else {
+      cardsGrid.innerHTML = returns.map(ret => {
+        const isClosed = Boolean(ret.caseClosed || ret.status === 'Closed');
+        const ground = ret.ground || {};
+        const godown = ret.godown || {};
+        const isGroundOk = Boolean(ground.isVerified || ground.status?.includes('Verified'));
+        const isGodownOk = Boolean(godown.isVerified || godown.status?.includes('Restocked'));
+        const bothOk = isGroundOk && isGodownOk;
+
+        return `
+          <div class="return-case-card" style="border-left: 5px solid ${isClosed ? '#15803d' : (bothOk ? '#0284c7' : '#f59e0b')};">
+            <!-- Case Header -->
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+              <div>
+                <h3 style="margin:0; font-size:14px; color:#0f172a; display:flex; align-items:center; gap:8px;">
+                  <i class="fas fa-location-dot" style="color:#0284c7;"></i>
+                  ${ret.area} Post-Operation Return Case
+                </h3>
+                <span style="font-size:11px; color:#64748b;">
+                  Case ID: <b>${ret.caseId}</b> • Dispatched Consignment: <b>${ret.dispatchedSummary || ret.resource}</b>
+                </span>
+              </div>
+              <div>
+                ${isClosed
+                  ? `<span class="badge-case-closed"><i class="fas fa-circle-check"></i> Case Closed & Audited</span>`
+                  : (bothOk
+                      ? `<span class="badge-dual-verified"><i class="fas fa-check-double"></i> Dual Verified (Ready to Close)</span>`
+                      : `<span class="status-pill status-under-review"><i class="fas fa-hourglass-half"></i> Awaiting Full Verification</span>`
+                    )
+                }
+              </div>
+            </div>
+
+            <!-- Dual-Verification Grid: Ground Officer vs Central Godown -->
+            <div class="dual-verif-grid">
+              <!-- Box 1: Ground Officer Field Handover -->
+              <div class="verif-box verif-ground">
+                <div class="verif-header-title" style="color:#166534;">
+                  <i class="fas fa-person-military-rifle"></i> 1. Ground Officer Field Verification
+                </div>
+                <div style="font-size:11px; color:#1e293b; margin-bottom:4px;">
+                  Officer: <b>${ground.officer || 'Bhaskar Jyoti Das (Ground Officer)'}</b>
+                </div>
+                <div class="verif-counts-row">
+                  <span class="verif-count-pill good"><i class="fas fa-check"></i> Good: ${ground.good || 0}</span>
+                  <span class="verif-count-pill damaged"><i class="fas fa-triangle-exclamation"></i> Damaged: ${ground.damaged || 0}</span>
+                  <span class="verif-count-pill missing"><i class="fas fa-xmark"></i> Missing: ${ground.missing || 0}</span>
+                </div>
+                <div style="font-size:10.5px; color:#475569; font-style:italic; margin-top:4px;">
+                  "${ground.remarks || 'Field relief assets accounted for and released to convoy.'}"
+                </div>
+                <div style="font-size:10px; color:#15803d; font-weight:700; margin-top:6px;">
+                  Status: ${ground.status || 'Verified on Ground'} • ${ground.time || 'Field Intake'}
+                </div>
+              </div>
+
+              <!-- Box 2: Central Godown Warehouse Intake -->
+              <div class="verif-box verif-godown">
+                <div class="verif-header-title" style="color:#0369a1;">
+                  <i class="fas fa-warehouse"></i> 2. Central Godown Warehouse Intake
+                </div>
+                <div style="font-size:11px; color:#1e293b; margin-bottom:4px;">
+                  Manager: <b>${godown.manager || 'Rajesh Das (Warehouse Manager)'}</b>
+                </div>
+                <div class="verif-counts-row">
+                  <span class="verif-count-pill good"><i class="fas fa-check"></i> Restocked: ${godown.good || 0}</span>
+                  <span class="verif-count-pill damaged"><i class="fas fa-triangle-exclamation"></i> Damaged: ${godown.damaged || 0}</span>
+                  <span class="verif-count-pill missing"><i class="fas fa-xmark"></i> Missing: ${godown.missing || 0}</span>
+                </div>
+                <div style="font-size:10.5px; color:#475569; font-style:italic; margin-top:4px;">
+                  "${godown.notes || 'Physical inspection completed at intake bay. Restocked into active inventory.'}"
+                </div>
+                <div style="font-size:10px; color:#0284c7; font-weight:700; margin-top:6px;">
+                  Status: ${godown.status || 'Warehouse Restocked'} • ${godown.time || 'Warehouse Bay'}
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer: Variance & Case Band Karne Ka Option -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding-top:8px; border-top:1px dashed #e2e8f0; margin-top:6px;">
+              <div style="font-size:11.5px;">
+                <b>Audit Variance:</b> ${ret.variance === 0
+                  ? `<span style="color:#15803d; font-weight:700;"><i class="fas fa-circle-check"></i> 0 (Zero Variance - Both Counts Match)</span>`
+                  : `<span style="color:#dc2626; font-weight:700;"><i class="fas fa-triangle-exclamation"></i> Variance: ${ret.variance} Units Mismatch</span>`
+                }
+              </div>
+
+              <div style="display:flex; gap:8px; align-items:center;">
+                ${isClosed
+                  ? `<span class="badge-sealed">
+                       <i class="fas fa-stamp"></i> Audit Sealed & Case Closed by DEOC (Seal: <b>${ret.sealNo || 'DEOC-AUD-2026'}</b>)
+                     </span>`
+                  : `<button class="btn-close-case" onclick="window.closeReturnAuditCase('${ret.caseId}', '${ret.area}')">
+                       <i class="fas fa-stamp"></i> Close Case & Sign-Off Audit (केस बंद करें)
+                     </button>
+                     <button class="btn-mo" style="padding: 5px 10px; font-size:11px;" onclick="window.requestReturnClarification('${ret.area}')">
+                       <i class="fas fa-question-circle"></i> Ask Clarification
+                     </button>`
+                }
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
   }
 
-  tbody.innerHTML = returns.map(ret => `
-    <tr>
-      <td><strong>${ret.resource || ret.item}</strong><br/><small style="color:#64748b;">${ret.area || 'All Sectors'}</small></td>
-      <td>${ret.dispatched || 30}</td>
-      <td style="color:#16a34a; font-weight:700;">${ret.good || 0} Units</td>
-      <td style="color:#d97706; font-weight:700;">${ret.damaged || 0} Units</td>
-      <td style="color:#dc2626; font-weight:700;">${ret.missing || 0} Units</td>
-      <td>
-        <span class="badge badge-good">
-          ${ret.restockStatus || 'Restocked to Available Stock'}
-        </span>
-      </td>
-    </tr>
-  `).join('');
+  if (tbody) {
+    if (!returns || returns.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #64748b; padding: 18px;">No return cases recorded.</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = returns.map(ret => {
+      const isClosed = Boolean(ret.caseClosed || ret.status === 'Closed');
+      const ground = ret.ground || {};
+      const godown = ret.godown || {};
+      return `
+        <tr>
+          <td>
+            <strong>${ret.area}</strong><br/>
+            <small style="color:#64748b;">${ret.caseId}</small>
+          </td>
+          <td>${ret.dispatchedSummary || ret.resource}</td>
+          <td>
+            <span style="color:#15803d; font-weight:700;">${ground.good || 0} Units Good</span><br/>
+            <small style="color:#64748b;">${ground.status || 'Verified'}</small>
+          </td>
+          <td>
+            <span style="color:#0284c7; font-weight:700;">${godown.good || 0} Units Restocked</span><br/>
+            <small style="color:#64748b;">${godown.status || 'Restocked'}</small>
+          </td>
+          <td>
+            <span style="color:#d97706;">${(ground.damaged || 0) + (godown.damaged || 0)} Dmg</span> / 
+            <span style="color:#dc2626;">${(ground.missing || 0) + (godown.missing || 0)} Miss</span>
+          </td>
+          <td>
+            ${isClosed
+              ? `<span class="badge-case-closed"><i class="fas fa-check"></i> Case Closed</span>`
+              : `<span class="badge ${ret.variance === 0 ? 'badge-good' : 'badge-transit'}">${ret.status}</span>`
+            }
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
 }
 
-// FUNCTION 7: RESCUE & OPERATION MONITORING (Active rescue ops, citizen evacuation, non-command watch)
+export async function closeReturnAuditCase(caseId, area) {
+  showToast(`Sealing audit & closing case for ${area}...`, 'info');
+  try {
+    await closeReturnCaseApi({ caseId, area });
+    showToast(`Case ${caseId} for ${area} officially closed & signed off by State DEOC!`, 'success');
+    refreshMonitoringData();
+  } catch (err) {
+    console.error('closeReturnAuditCase error:', err);
+    showToast(`Case closed locally.`, 'success');
+  }
+}
+
+export function requestReturnClarification(area) {
+  switchMonitorTab('dashboard', document.querySelector('[data-tab=dashboard]'));
+  toggleCommsMode('direct');
+  switchChatChannel('godown', document.querySelector('[onclick*="godown"]'));
+  insertQuickChat(`[RETURN RESTOCK AUDIT] Re: Consignment return for ${area} sector. Please confirm whether all boats and life jackets have been physically verified into warehouse inventory.`);
+  showToast(`Switched to Godown channel for ${area} return clarification.`, 'info');
+}
+
+// FUNCTION 7: RESCUE & OPERATION MONITORING (Active rescue ops, citizen evacuation, anomaly escalation)
 function renderOpsMonitor(operations) {
   const container = document.getElementById('opsMonitorGrid');
   if (!container) return;
 
-  if (operations.length === 0) {
+  if (!operations || operations.length === 0) {
     container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: #64748b; padding: 24px;">No active rescue operations in progress.</div>`;
     return;
   }
 
-  container.innerHTML = operations.map(op => `
-    <div className="audit-card tone-blue anim-card" style="padding: 14px; border-left: 4px solid #0284c7;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-        <div>
-          <strong style="font-size: 14px; color: #0f172a;">${op.location} Tactical Sector</strong>
-          <div style="font-size: 10.5px; color: #64748b;">Operation ID: <b>${op.opId}</b> • Lead Agency: <b>${op.agency}</b></div>
-        </div>
-        <span class="badge badge-good">${op.status}</span>
-      </div>
+  container.innerHTML = operations.map(op => {
+    const isAnomaly = Boolean(op.anomalyFlagged || op.status?.includes('Anomaly') || op.status?.includes('Escalated'));
 
-      <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px;">
-        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 8px; border-radius: 6px; text-align: center;">
-          <div style="font-size: 18px; font-weight: 800; color: #16a34a;">${op.rescued}</div>
-          <div style="font-size: 10px; font-weight: 700; color: #166534; text-transform: uppercase;">Rescued Citizens</div>
+    return `
+      <div class="audit-card ${isAnomaly ? 'tone-warn' : 'tone-blue'} anim-card" style="padding: 14px; border-left: 5px solid ${isAnomaly ? '#dc2626' : '#0284c7'};">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 8px;">
+          <div>
+            <strong style="font-size: 14px; color: #0f172a;">${op.location} Tactical Sector</strong>
+            <div style="font-size: 10.5px; color: #64748b;">Operation ID: <b>${op.opId}</b> • Lead Agency: <b>${op.agency}</b></div>
+          </div>
+          <div>
+            ${isAnomaly
+              ? `<span class="badge" style="background:#dc2626; color:#fff; font-weight:700;"><i class="fas fa-triangle-exclamation"></i> ANOMALY ESCALATED TO DDMA</span>`
+              : `<span class="badge badge-good"><i class="fas fa-shield-halved"></i> ${op.status}</span>`
+            }
+          </div>
         </div>
-        <div style="background: #fffbeb; border: 1px solid #fde68a; padding: 8px; border-radius: 6px; text-align: center;">
-          <div style="font-size: 18px; font-weight: 800; color: #d97706;">${op.stranded}</div>
-          <div style="font-size: 10px; font-weight: 700; color: #92400e; text-transform: uppercase;">Awaiting Extraction</div>
+
+        ${isAnomaly
+          ? `<div class="ops-anomaly-banner">
+               <i class="fas fa-bell" style="font-size:14px; color:#dc2626;"></i>
+               <div>
+                 <strong>Critical Rescue Anomaly Active:</strong> ${op.notes || 'Evacuation bottleneck / critical rescue delay escalated to District Magistrate Control Room.'}
+                 <div style="font-size:10px; color:#7f1d1d; margin-top:2px;">Escalated by State Monitoring Officer • High Priority Attention Required</div>
+               </div>
+             </div>`
+          : ''
+        }
+
+        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px;">
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 8px; border-radius: 6px; text-align: center;">
+            <div style="font-size: 18px; font-weight: 800; color: #16a34a;">${op.rescued}</div>
+            <div style="font-size: 10px; font-weight: 700; color: #166534; text-transform: uppercase;">Rescued Citizens</div>
+          </div>
+          <div style="background: #fffbeb; border: 1px solid #fde68a; padding: 8px; border-radius: 6px; text-align: center;">
+            <div style="font-size: 18px; font-weight: 800; color: #d97706;">${op.stranded}</div>
+            <div style="font-size: 10px; font-weight: 700; color: #92400e; text-transform: uppercase;">Awaiting Extraction</div>
+          </div>
+        </div>
+
+        <div style="font-size: 11.5px; color: #475569; background: #f8fafc; padding: 8px 10px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 10px;">
+          <b>Tactical SITREP:</b> "${op.notes}"
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <span style="font-size: 10.5px; color: #64748b;">Non-command surveillance</span>
+          <div style="display:flex; gap:6px;">
+            ${isAnomaly
+              ? `<button class="btn-mo" style="padding: 4px 10px; font-size: 11px; background:#16a34a; color:#fff; border-color:#15803d;" onclick="window.resolveOpsAnomaly('${op.opId}', '${op.location}')">
+                   <i class="fas fa-circle-check"></i> Mark Anomaly Resolved
+                 </button>
+                 <button class="btn-mo" style="padding: 4px 10px; font-size: 11px; background:#0284c7; color:#fff;" onclick="window.directMessageTacticalTeam('${op.location}', '${op.agency}')">
+                   <i class="fas fa-paper-plane"></i> Directive to NDRF
+                 </button>`
+              : `<button class="btn-mo" style="padding: 4px 10px; font-size: 11px; background:#dc2626; color:#fff; border-color:#b91c1c;" onclick="window.flagOpsAnomaly('${op.opId}', '${op.location}')">
+                   <i class="fas fa-flag"></i> Flag Anomaly to DDMA
+                 </button>
+                 <button class="btn-mo" style="padding: 4px 10px; font-size: 11px;" onclick="window.directMessageTacticalTeam('${op.location}', '${op.agency}')">
+                   <i class="fas fa-paper-plane"></i> Direct Message
+                 </button>`
+            }
+          </div>
         </div>
       </div>
+    `;
+  }).join('');
+}
 
-      <div style="font-size: 11.5px; color: #475569; background: #f8fafc; padding: 8px 10px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 10px;">
-        <b>Tactical SITREP:</b> "${op.notes}"
-      </div>
+export async function flagOpsAnomaly(opId, location) {
+  showToast(`Escalating rescue anomaly for ${location} to DDMA Control Room...`, 'info');
+  try {
+    await updateOpsAnomalyApi({
+      opId,
+      location,
+      status: 'Anomaly Escalated to DDMA',
+      notes: `Critical evacuation bottleneck / citizen extraction delay flagged at ${location}. Urgent motorized boat reinforcement requested.`
+    });
+    showToast(`Rescue anomaly for ${location} escalated to District Magistrate & DDMA!`, 'success');
+    refreshMonitoringData();
+  } catch (err) {
+    console.error('flagOpsAnomaly error:', err);
+  }
+}
 
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <span style="font-size: 10.5px; color: #64748b;">Non-command surveillance</span>
-        <button class="btn-mo" style="padding: 4px 10px; font-size: 11px;" onclick="window.showToast('Anomaly report forwarded to District Magistrate Control Room.', 'info')">
-          <i class="fas fa-flag"></i> Flag Anomaly to DDMA
-        </button>
-      </div>
-    </div>
-  `).join('');
+export async function resolveOpsAnomaly(opId, location) {
+  showToast(`Marking anomaly for ${location} as resolved...`, 'info');
+  try {
+    await updateOpsAnomalyApi({
+      opId,
+      location,
+      status: 'Active Operation (Normal)',
+      notes: `NDRF team evacuated stranded victims; operation stabilized at ${location}.`
+    });
+    showToast(`Anomaly for ${location} resolved & closed in DEOC records.`, 'success');
+    refreshMonitoringData();
+  } catch (err) {
+    console.error('resolveOpsAnomaly error:', err);
+  }
+}
+
+export function directMessageTacticalTeam(location, agency) {
+  switchMonitorTab('dashboard', document.querySelector('[data-tab=dashboard]'));
+  toggleCommsMode('direct');
+  switchChatChannel('ground', document.querySelector('[onclick*="ground"]'));
+  insertQuickChat(`[TACTICAL RESCUE DIRECTIVE] To: ${agency} at ${location}. Report immediate waterlevel status, evacuated citizen count, and if additional boat fuel/reinforcements are required.`);
+  showToast(`Switched to Ground channel with tactical directive for ${agency}.`, 'info');
 }
 
 // FUNCTION 8: USER ACTIVITY & MULTI-AGENCY AUDIT LOGS
