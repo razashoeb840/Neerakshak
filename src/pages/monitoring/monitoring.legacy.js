@@ -9,7 +9,6 @@ import {
   escalateDiscrepancyApi,
   updateDiscrepancyStatusApi,
   closeReturnCaseApi,
-  updateOpsAnomalyApi,
   publishBroadcastAnnouncementApi,
   unpinBroadcastAnnouncementApi,
   exportSitrepCsv,
@@ -47,9 +46,6 @@ export default function initMonitoringPage() {
   window.requestReturnClarification = requestReturnClarification;
   window.filterReturnSector = filterReturnSector;
   window.filterLogsByAgency = filterLogsByAgency;
-  window.flagOpsAnomaly = flagOpsAnomaly;
-  window.resolveOpsAnomaly = resolveOpsAnomaly;
-  window.directMessageTacticalTeam = directMessageTacticalTeam;
   window.inspectSectorByName = inspectSectorByName;
   window.filterMonitoringSector = filterMonitoringSector;
   window.filterTracingArea = filterTracingArea;
