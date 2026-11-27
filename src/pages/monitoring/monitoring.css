@@ -1411,3 +1411,101 @@
             margin-bottom: 6px;
             font-size: 11px;
         }
+
+        /* Multi-metric 7-KPI Grid (Executive Overview) */
+        .kpi-grid-7 {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        @media (max-width: 1400px) {
+            .kpi-grid-7 { grid-template-columns: repeat(4, 1fr); }
+        }
+        @media (max-width: 900px) {
+            .kpi-grid-7 { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* Discrepancy Status Flow Pills */
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 2.5px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .status-open {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+        }
+        .status-under-review {
+            background: #fef3c7;
+            color: #b45309;
+            border: 1px solid #fde68a;
+        }
+        .status-clarification {
+            background: #e0e7ff;
+            color: #4338ca;
+            border: 1px solid #c7d2fe;
+        }
+        .status-escalated {
+            background: #fdf2f8;
+            color: #be185d;
+            border: 1px solid #fbcfe8;
+        }
+        .status-resolved {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
+        }
+        .status-closed {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        /* Report Cards */
+        .report-tile-card {
+            background: #ffffff;
+            border: 1.5px solid #bae6fd;
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 10px;
+            box-shadow: 0 4px 14px rgba(6, 37, 74, 0.06);
+            transition: all 0.2s ease;
+        }
+        .report-tile-card:hover {
+            border-color: #0284c7;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(2, 132, 199, 0.12);
+        }
+
+        /* Notifications Panel */
+        .notification-item {
+            background: #ffffff;
+            border-left: 3.5px solid #0284c7;
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin-bottom: 6px;
+            font-size: 11px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+            border-top: 1px solid #f1f5f9;
+            border-right: 1px solid #f1f5f9;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .notification-item.alert-red {
+            border-left-color: #dc2626;
+            background: #fef2f2;
+        }
+        .notification-item.alert-warn {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }

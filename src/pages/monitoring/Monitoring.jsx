@@ -24,7 +24,7 @@ const markup = (
               </div>
               <div className="hero-brand-subtitle">State DEOC Lifecycle Verification, Multi-Portal Directives & Accountability Control</div>
               <div className="hero-brand-tagline">
-                <span className="tag-italic">Reconciliation</span> <span className="tag-dot">•</span> <span className="tag-italic">Pinned Directives</span> <span className="tag-dot">•</span> <span className="tag-italic tag-cyan">Area Lifecycle Tracing</span>
+                <span className="tag-italic">Reconciliation</span> <span className="tag-dot">•</span> <span className="tag-italic">Directives</span> <span className="tag-dot">•</span> <span className="tag-italic tag-cyan">Complete 10-Function Audit</span>
               </div>
             </div>
           </div>
@@ -52,33 +52,48 @@ const markup = (
     </header>
 
     <div className="workspace-shell">
-      {/* LEFT 6-SECTION STREAMLINED RAIL */}
+      {/* LEFT 9-SECTION ICON RAIL (6 CORE + 3 REQUESTED ADDITIONS) */}
       <aside className="left-rail">
-        <button className="rail-btn mon-nav-btn active" data-tab="dashboard" onClick={(e) => window.switchMonitorTab('dashboard', e.currentTarget)} title="Audit & Communication Command Center">
-          <i className="fas fa-comments"></i>
-          <span>Comms & Hub</span>
+        <button className="rail-btn mon-nav-btn active" data-tab="dashboard" onClick={(e) => window.switchMonitorTab('dashboard', e.currentTarget)} title="Dashboard & Communication Command Center">
+          <i className="fas fa-gauge-high"></i>
+          <span>Dashboard</span>
         </button>
-        <button className="rail-btn mon-nav-btn" data-tab="tracing" onClick={(e) => window.switchMonitorTab('tracing', e.currentTarget)} title="Area-Wise Lifecycle Tracing">
+        <button className="rail-btn mon-nav-btn" data-tab="tracing" onClick={(e) => window.switchMonitorTab('tracing', e.currentTarget)} title="Resource Lifecycle Tracing (5 Stages)">
           <i className="fas fa-route"></i>
           <span>Tracing</span>
           <span className="rail-badge-count count-cyan" id="navTracingCount">0</span>
         </button>
-        <button className="rail-btn mon-nav-btn" data-tab="reconciliation" onClick={(e) => window.switchMonitorTab('reconciliation', e.currentTarget)} title="Resource Reconciliation">
+        <button className="rail-btn mon-nav-btn" data-tab="reconciliation" onClick={(e) => window.switchMonitorTab('reconciliation', e.currentTarget)} title="Reconciliation & Cross-Verification">
           <i className="fas fa-scale-balanced"></i>
           <span>Reconcile</span>
         </button>
-        <button className="rail-btn mon-nav-btn" data-tab="discrepancies" onClick={(e) => window.switchMonitorTab('discrepancies', e.currentTarget)} title="Shortages & Discrepancies">
+        <button className="rail-btn mon-nav-btn" data-tab="discrepancies" onClick={(e) => window.switchMonitorTab('discrepancies', e.currentTarget)} title="Discrepancy Lifecycle & Status Flow">
           <i className="fas fa-triangle-exclamation"></i>
           <span>Shortages</span>
           <span className="rail-badge-count count-red" id="navDiscCount">0</span>
         </button>
-        <button className="rail-btn mon-nav-btn" data-tab="returns" onClick={(e) => window.switchMonitorTab('returns', e.currentTarget)} title="Asset Returns Audit">
+        {/* ADDITION 1: Delivery Verification Audit */}
+        <button className="rail-btn mon-nav-btn" data-tab="delivery-audit" onClick={(e) => window.switchMonitorTab('delivery-audit', e.currentTarget)} title="Delivery Verification Audit">
+          <i className="fas fa-clipboard-check"></i>
+          <span>Deliveries</span>
+        </button>
+        <button className="rail-btn mon-nav-btn" data-tab="returns" onClick={(e) => window.switchMonitorTab('returns', e.currentTarget)} title="Return & Resource Restock Audit">
           <i className="fas fa-rotate-left"></i>
           <span>Returns</span>
         </button>
-        <button className="rail-btn mon-nav-btn" data-tab="logs" onClick={(e) => window.switchMonitorTab('logs', e.currentTarget)} title="Cross-Portal Member Logs">
+        {/* ADDITION 2: Rescue Ops Watch */}
+        <button className="rail-btn mon-nav-btn" data-tab="ops-monitor" onClick={(e) => window.switchMonitorTab('ops-monitor', e.currentTarget)} title="Rescue & Operation Monitoring (Non-Command)">
+          <i className="fas fa-shield-halved"></i>
+          <span>Ops Watch</span>
+        </button>
+        <button className="rail-btn mon-nav-btn" data-tab="logs" onClick={(e) => window.switchMonitorTab('logs', e.currentTarget)} title="User Activity & Multi-Agency Audit Logs">
           <i className="fas fa-clock-rotate-left"></i>
           <span>Logs</span>
+        </button>
+        {/* ADDITION 3: Reports & Audit History */}
+        <button className="rail-btn mon-nav-btn" data-tab="reports" onClick={(e) => window.switchMonitorTab('reports', e.currentTarget)} title="Reports & Historical Audit Center">
+          <i className="fas fa-file-lines"></i>
+          <span>Reports</span>
         </button>
 
         <div className="rail-bottom-cluster">
@@ -96,11 +111,11 @@ const markup = (
 
       {/* MAIN CONTENT STAGE */}
       <main className="main-content-col">
-        {/* 4-KPI SUMMARY STRIP */}
-        <div className="kpi-grid-4 anim-card" id="monitorKpiGrid"></div>
+        {/* 7-KPI COMPREHENSIVE OVERVIEW STRIP (FUNCTION 1) */}
+        <div className="kpi-grid-7 anim-card" id="monitorKpiGrid"></div>
 
         {/* ===============================================================
-            TAB 1: COMMUNICATION & BROADCAST COMMAND CENTER (REPLACES MAP)
+            TAB 1: DASHBOARD & INTER-PORTAL COMMUNICATION COMMAND CENTER
             =============================================================== */}
         <div className="mo-tab-pane active" id="tab-dashboard">
           <div className="aqua-card anim-card" style={{ padding: '16px', marginBottom: '14px' }}>
@@ -108,10 +123,10 @@ const markup = (
               <div>
                 <h2 style={{ margin: 0, fontSize: '15px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <i className="fas fa-tower-broadcast" style={{ color: "var(--river-blue)" }}></i>
-                  State Inter-Portal Communication & Pinned Announcement Center
+                  State Inter-Portal Communication & Pinned Announcement Hub
                 </h2>
                 <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-                  Direct chat with individual member portals OR publish pinned state emergency directives across all 5 portals + public.
+                  Send targeted messages to any portal or pin an urgent state directive across all 5 portals + citizen public.
                 </div>
               </div>
 
@@ -140,19 +155,18 @@ const markup = (
 
             {/* SUB-VIEW 1: DIRECT PORTAL MESSAGING */}
             <div id="commsDirectView" style={{ display: 'block' }}>
-              {/* Target Portal Channel Selector */}
               <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', overflowX: 'auto', paddingBottom: '4px' }}>
                 <button className="channel-tab active" style={{ flex: 1, padding: '8px 10px', fontSize: '11.5px', borderRadius: '8px' }} onClick={(e) => window.switchChatChannel('ground', e.currentTarget)}>
-                  <i className="fas fa-person-military-rifle"></i> Ground Officer (Field Units)
+                  <i className="fas fa-person-military-rifle"></i> Ground Officer
                 </button>
                 <button className="channel-tab" style={{ flex: 1, padding: '8px 10px', fontSize: '11.5px', borderRadius: '8px' }} onClick={(e) => window.switchChatChannel('godown', e.currentTarget)}>
-                  <i className="fas fa-warehouse"></i> Central Godown Manager
+                  <i className="fas fa-warehouse"></i> Central Godown
                 </button>
                 <button className="channel-tab" style={{ flex: 1, padding: '8px 10px', fontSize: '11.5px', borderRadius: '8px' }} onClick={(e) => window.switchChatChannel('authority', e.currentTarget)}>
-                  <i className="fas fa-building-columns"></i> District Authority (DDMA)
+                  <i className="fas fa-building-columns"></i> District Authority
                 </button>
                 <button className="channel-tab" style={{ flex: 1, padding: '8px 10px', fontSize: '11.5px', borderRadius: '8px' }} onClick={(e) => window.switchChatChannel('admin', e.currentTarget)}>
-                  <i className="fas fa-satellite-dish"></i> State Admin (GIS Command)
+                  <i className="fas fa-satellite-dish"></i> State Admin GIS
                 </button>
                 <button className="channel-tab" style={{ flex: 1, padding: '8px 10px', fontSize: '11.5px', borderRadius: '8px' }} onClick={(e) => window.switchChatChannel('all', e.currentTarget)}>
                   <i className="fas fa-bullhorn"></i> Common Broadcast
@@ -165,14 +179,12 @@ const markup = (
                     Active Channel: Ground Officer (Field Units)
                   </strong>
                   <span style={{ fontSize: '10px', color: '#16a34a', fontWeight: 700 }}>
-                    <i className="fas fa-circle" style={{ fontSize: '8px' }}></i> Encrypted Official Channel
+                    <i className="fas fa-circle" style={{ fontSize: '8px' }}></i> Real-Time Cross-Portal Channel
                   </span>
                 </div>
 
-                {/* Message Feed Container */}
-                <div id="centerChatFeed" style={{ minHeight: '220px', maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', padding: '6px', background: '#ffffff', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '10px' }}></div>
+                <div id="centerChatFeed" style={{ minHeight: '200px', maxHeight: '240px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', padding: '6px', background: '#ffffff', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '10px' }}></div>
 
-                {/* Quick Directive Chips */}
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
                   <button type="button" className="quick-chip-btn" onClick={() => window.insertQuickChat('Verify delivery headcount and supply count on site.')}>Verify Delivery</button>
                   <button type="button" className="quick-chip-btn" onClick={() => window.insertQuickChat('Clarify warehouse gate shortage before departure.')}>Check Shortage</button>
@@ -180,7 +192,6 @@ const markup = (
                   <button type="button" className="quick-chip-btn" onClick={() => window.insertQuickChat('Confirm post-rescue return restock status in warehouse.')}>Confirm Restock</button>
                 </div>
 
-                {/* Chat Send Form */}
                 <form onSubmit={(e) => window.sendChatMessage(e)} style={{ display: 'flex', gap: '8px' }}>
                   <input
                     type="text"
@@ -204,7 +215,7 @@ const markup = (
                     HIGH PRIORITY DIRECTIVE
                   </span>
                   <span style={{ fontSize: '11px', color: '#991b1b', fontWeight: 600 }}>
-                    Announcements published here will be permanently PINNED to the top of Admin, Authority, Godown, Ground Officer, and Public Citizen portals until you unpin them.
+                    Announcements published here are permanently PINNED to the top of Admin, Authority, Godown, Ground Officer, and Public Citizen portals until unpinned.
                   </span>
                 </div>
 
@@ -249,7 +260,6 @@ const markup = (
                 </form>
               </div>
 
-              {/* Active Pinned Announcements List */}
               <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <strong style={{ fontSize: '12.5px', color: '#0f172a' }}>Currently Pinned Active Announcements</strong>
@@ -274,17 +284,18 @@ const markup = (
         </div>
 
         {/* ===============================================================
-            TAB 2: AREA-WISE FULL LIFECYCLE TRACING
+            TAB 2: RESOURCE LIFECYCLE TRACING (FUNCTION 2)
+            Approved → Dispatched → Received → Audited → Returned
             =============================================================== */}
         <div className="mo-tab-pane" id="tab-tracing">
           <div className="aqua-card">
             <div className="card-head">
               <h2>
-                <i className="fas fa-timeline" style={{ color: "var(--river-cyan)" }}></i>
-                {" End-to-End Area Lifecycle Audit Tracing"}
+                <i className="fas fa-route" style={{ color: "var(--river-cyan)" }}></i>
+                {" Complete Resource Lifecycle Journey Tracing"}
               </h2>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <span style={{ fontSize: '11.5px', color: '#64748b' }}>Filter Area:</span>
+                <span style={{ fontSize: '11.5px', color: '#64748b' }}>Filter Sector:</span>
                 <select id="tracingAreaSelect" className="hero-district-select" style={{ background: '#0284c7', color: '#fff', padding: '4px 10px', borderRadius: '6px' }} onChange={(e) => { if (window.filterTracingArea) window.filterTracingArea(e.currentTarget.value); }}>
                   <option value="ALL">All Flood Sectors</option>
                 </select>
@@ -295,15 +306,19 @@ const markup = (
         </div>
 
         {/* ===============================================================
-            TAB 3: RECONCILIATION TABLE
+            TAB 3: RECONCILIATION & CROSS-VERIFICATION (FUNCTION 3)
+            Approved vs Dispatched vs Received vs Returned vs Variance
             =============================================================== */}
         <div className="mo-tab-pane" id="tab-reconciliation">
           <div className="aqua-card">
             <div className="card-head">
               <h2>
                 <i className="fas fa-scale-balanced" style={{ color: "var(--indigo-audit)" }}></i>
-                {" Resource Lifecycle Reconciliation (Approved vs Dispatched vs Received)"}
+                {" Resource Lifecycle Reconciliation & Variance Ledger"}
               </h2>
+              <button className="btn-mo" onClick={() => window.exportAuditSitrepReport()}>
+                <i className="fas fa-download"></i> Export Ledger (CSV)
+              </button>
             </div>
             <div className="table-wrap">
               <table className="audit-table">
@@ -325,29 +340,53 @@ const markup = (
         </div>
 
         {/* ===============================================================
-            TAB 4: DISCREPANCIES & SHORTAGES
+            TAB 4: DISCREPANCY MANAGEMENT (FUNCTION 4)
+            Status Flow: Open → Under Review → Clarification Requested → Escalated → Resolved → Closed
             =============================================================== */}
         <div className="mo-tab-pane" id="tab-discrepancies">
           <div className="aqua-card">
             <div className="card-head">
               <h2>
                 <i className="fas fa-triangle-exclamation" style={{ color: "#dc2626" }}></i>
-                {" Active Shortages, Mismatches & Authority Escalations"}
+                {" Discrepancy Investigation & Resolution Hub"}
               </h2>
+              <div style={{ fontSize: '11.5px', color: '#64748b' }}>
+                Status Flow: Open → Under Review → Clarification Requested → Escalated → Resolved → Closed
+              </div>
             </div>
             <div className="grid-2 switchable-collection" id="fullDiscrepancyGrid"></div>
           </div>
         </div>
 
         {/* ===============================================================
-            TAB 5: ASSET RETURNS & RESTOCK
+            TAB 5: DELIVERY VERIFICATION AUDIT (FUNCTION 5 - NEW TAB)
+            Ground Officer delivery records audit, cross-check dispatch vs received
+            =============================================================== */}
+        <div className="mo-tab-pane" id="tab-delivery-audit">
+          <div className="aqua-card">
+            <div className="card-head">
+              <h2>
+                <i className="fas fa-clipboard-check" style={{ color: "var(--foliage-mid)" }}></i>
+                {" Ground Officer Delivery Verification Audit"}
+              </h2>
+              <div style={{ fontSize: '11.5px', color: '#64748b' }}>
+                Read-only audit: cross-check field receipts against godown dispatch gate-passes.
+              </div>
+            </div>
+            <div className="grid-2 switchable-collection" id="deliveryAuditGrid"></div>
+          </div>
+        </div>
+
+        {/* ===============================================================
+            TAB 6: RETURN & RESOURCE AUDIT (FUNCTION 6)
+            Returned resources records, good/damaged/missing vs inventory restock
             =============================================================== */}
         <div className="mo-tab-pane" id="tab-returns">
           <div className="aqua-card">
             <div className="card-head">
               <h2>
                 <i className="fas fa-rotate-left" style={{ color: "var(--teal-water)" }}></i>
-                {" Post-Operation Relief Consignment Returns Audit"}
+                {" Post-Operation Return & Physical Restock Audit"}
               </h2>
             </div>
             <div className="table-wrap">
@@ -355,7 +394,7 @@ const markup = (
                 <thead>
                   <tr>
                     <th>Resource Item</th>
-                    <th>Dispatched Unit</th>
+                    <th>Dispatched Units</th>
                     <th>Returned (Good)</th>
                     <th>Damaged</th>
                     <th>Missing</th>
@@ -369,7 +408,26 @@ const markup = (
         </div>
 
         {/* ===============================================================
-            TAB 6: MULTI-AGENCY CROSS-PORTAL ACTIVITY LOGS
+            TAB 7: RESCUE & OPERATION MONITORING (FUNCTION 7 - NEW TAB)
+            Active operations, rescued citizens, stranded count, non-command watch
+            =============================================================== */}
+        <div className="mo-tab-pane" id="tab-ops-monitor">
+          <div className="aqua-card">
+            <div className="card-head">
+              <h2>
+                <i className="fas fa-shield-halved" style={{ color: "var(--river-blue)" }}></i>
+                {" Active Flood-Relief & Rescue Operations Watch"}
+              </h2>
+              <div style={{ fontSize: '11.5px', color: '#64748b' }}>
+                Non-command monitoring: track progress, citizen evacuation counts, and report anomalies.
+              </div>
+            </div>
+            <div className="grid-2 switchable-collection" id="opsMonitorGrid"></div>
+          </div>
+        </div>
+
+        {/* ===============================================================
+            TAB 8: USER ACTIVITY & MULTI-AGENCY AUDIT LOGS (FUNCTION 8)
             =============================================================== */}
         <div className="mo-tab-pane" id="tab-logs">
           <div className="aqua-card">
@@ -385,11 +443,30 @@ const markup = (
             <div className="grid-2 switchable-collection" id="fullActivityLogsGrid"></div>
           </div>
         </div>
+
+        {/* ===============================================================
+            TAB 9: REPORTS & AUDIT HISTORY (FUNCTION 9 - NEW TAB)
+            Comprehensive downloadable audit reports across all 5 dimensions
+            =============================================================== */}
+        <div className="mo-tab-pane" id="tab-reports">
+          <div className="aqua-card">
+            <div className="card-head">
+              <h2>
+                <i className="fas fa-file-lines" style={{ color: "var(--indigo-audit)" }}></i>
+                {" Official Audit Reports & Historical Archive"}
+              </h2>
+              <div style={{ fontSize: '11.5px', color: '#64748b' }}>
+                Export sector-wise, discrepancy, and cross-portal reconciliation reports (CSV/Print).
+              </div>
+            </div>
+            <div className="grid-2" id="reportsContainerGrid"></div>
+          </div>
+        </div>
       </main>
 
-      {/* RIGHT PANEL: ACTIONS, INSPECTOR & TELEMETRY */}
+      {/* RIGHT PANEL: ACTIONS, INSPECTOR, NOTIFICATIONS (FUNCTION 10) & TELEMETRY */}
       <aside className="right-panel">
-        {/* Quick Actions with Real, Functioning Buttons */}
+        {/* Quick Actions */}
         <div className="aqua-card anim-card">
           <div className="card-head">
             <h2>
@@ -410,8 +487,8 @@ const markup = (
             </button>
             <button type="button" className="qa-color-card qa-blue" onClick={() => window.switchMonitorTab('discrepancies', document.querySelector('[data-tab=discrepancies]'))}>
               <i className="fas fa-triangle-exclamation"></i>
-              <strong>Escalate</strong>
-              <span>Flag Shortage</span>
+              <strong>Discrepancies</strong>
+              <span>Status Flow</span>
             </button>
             <button type="button" className="qa-color-card qa-indigo" onClick={() => window.exportAuditSitrepReport()}>
               <i className="fas fa-file-csv"></i>
@@ -419,6 +496,20 @@ const markup = (
               <span>Download CSV</span>
             </button>
           </div>
+        </div>
+
+        {/* FUNCTION 10: NOTIFICATIONS & ESCALATIONS STREAM */}
+        <div className="aqua-card anim-card" id="notificationsPanel">
+          <div className="card-head">
+            <h2>
+              <i className="fas fa-bell" style={{ color: "#dc2626" }}></i>
+              {" Audit Notifications & Escalations"}
+            </h2>
+            <span style={{ fontSize: '10px', background: '#fee2e2', color: '#b91c1c', fontWeight: 700, padding: '2px 6px', borderRadius: '4px' }} id="notifBadgeCount">
+              Live
+            </span>
+          </div>
+          <div id="notificationsFeed" style={{ maxHeight: '200px', overflowY: 'auto' }}></div>
         </div>
 
         {/* Selected Sector Inspector */}
@@ -458,7 +549,7 @@ const markup = (
       <div className="riparian-footer-bar">
         <div className="footer-flex">
           <span>
-            <strong>NEERAKSHAK State DEOC Monitoring & Audit Portal</strong> • Full Resource Lifecycle Tracing & Accountability
+            <strong>NEERAKSHAK State DEOC Monitoring & Audit Portal</strong> • Complete 10-Function Lifecycle Verification & Accountability Control
           </span>
           <span>
             Chain: Inundation Pin (Admin) → Allocation (Authority) → Dispatch (Godown) → Verification (Ground) → Post-Rescue Restock
@@ -473,7 +564,7 @@ const markup = (
 export default function Monitoring() {
   useEffect(() => {
     const cleanup = setupRouteGuard('monitoring');
-    document.title = "NEERAKSHAK – State Monitoring & Audit Portal | Communication & Lifecycle Tracing";
+    document.title = "NEERAKSHAK – State Monitoring & Audit Portal | Complete 10-Function Audit Hub";
     initMonitoringPage();
     return cleanup;
   }, []);

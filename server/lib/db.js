@@ -1412,19 +1412,22 @@ export const monitoringDb = {
     let dbEscalations = [];
     let dbResolutions = [];
     let dbAnnouncements = [];
+    let dbDiscrepancies = [];
 
     if (db) {
       try {
-        const [chats, escs, resols, anns] = await Promise.all([
+        const [chats, escs, resols, anns, discs] = await Promise.all([
           db.collection('monitoring_chats').find({}, { projection: { _id: 0 } }).sort({ timestamp: 1 }).toArray(),
           db.collection('monitoring_escalations').find({}, { projection: { _id: 0 } }).sort({ timestamp: -1 }).toArray(),
           db.collection('monitoring_resolutions').find({}, { projection: { _id: 0 } }).toArray(),
-          db.collection('broadcast_announcements').find({ pinned: true }, { projection: { _id: 0 } }).sort({ createdAt: -1 }).toArray()
+          db.collection('broadcast_announcements').find({ pinned: true }, { projection: { _id: 0 } }).sort({ createdAt: -1 }).toArray(),
+          db.collection('monitoring_discrepancies').find({}, { projection: { _id: 0 } }).toArray()
         ]);
         dbChats = chats || [];
         dbEscalations = escs || [];
         dbResolutions = resols || [];
         dbAnnouncements = anns || [];
+        dbDiscrepancies = discs || [];
       } catch (e) {
         console.warn('monitoringDb MongoDB read notice:', e.message);
       }
@@ -1790,12 +1793,18 @@ export const monitoringDb = {
       });
     });
 
-    // 5. Discrepancies (Active Shortages, Damage or Flagged Issues)
+    // 5. Discrepancies (Active Shortages, Damage or Flagged Issues with Status Flow)
     const discrepancies = [];
     lifecycles.forEach(lc => {
       if (lc.shortageCount > 0 || lc.damagedCount > 0) {
+        const discId = `DISC-${lc.dispatchId || lc.allocId}`;
+        const savedDisc = dbDiscrepancies.find(d => d.id === discId || d.destination === lc.village);
+        
+        // Status flow: Open → Under Review → Clarification Requested → Escalated → Resolved → Closed
+        let currentStatus = savedDisc?.status || (lc.hasEscalation ? 'Escalated' : (lc.shortageCount > 0 ? 'Open' : 'Under Review'));
+
         discrepancies.push({
-          id: `DISC-${lc.dispatchId || lc.allocId}`,
+          id: discId,
           allocId: lc.allocId,
           dispatchId: lc.dispatchId,
           destination: lc.village,
@@ -1807,9 +1816,38 @@ export const monitoringDb = {
           damaged: lc.damagedCount,
           leadOfficer: lc.leadOfficer,
           reportedBy: 'Ground Officer Field Intake Audit',
-          status: lc.hasEscalation ? 'Escalated to Authority' : 'Pending Investigation'
+          status: currentStatus,
+          notes: savedDisc?.notes || '',
+          updatedAt: savedDisc?.updatedAt || 'Live'
         });
       }
+    });
+
+    // 5b. Delivery Verification Audit Records (Point 5)
+    const deliveryAudits = groundDeliveries.map((g, idx) => {
+      const disp = godownDispatches.find(d => (d.dispatchId === g.dispatchId || d.refNo === g.dispatchId || d.destination === g.destination));
+      const alloc = authAllocations.find(a => (a.id === g.allocId || a.refNo === g.dispatchId || a.village === g.destination));
+      const dispatchedSupplies = g.dispatched || (disp ? disp.summary : '3 Boats, 33 Jackets, 264 Food, 44 Meds');
+      const receivedSupplies = g.received || (g.status === 'Verified' ? dispatchedSupplies : 'Pending Handover');
+      const isConsistent = g.status === 'Verified' && Number(g.shortage || 0) === 0 && Number(g.damaged || 0) === 0;
+
+      return {
+        id: `AUD-DEL-${idx + 1}`,
+        dispatchId: g.dispatchId || 'DSP-2026-932',
+        allocId: g.allocId || alloc?.id || 'ALC-565',
+        destination: g.destination || 'Field Sector',
+        dispatchedSupplies,
+        receivedSupplies,
+        shortage: Number(g.shortage || 0),
+        damaged: Number(g.damaged || 0),
+        remarks: g.remarks || 'Standard field delivery handover',
+        status: g.status || 'Pending Verification',
+        auditResult: isConsistent ? 'Verified Consistent' : (g.status === 'Verified' ? 'Mismatch Flagged' : 'Audit Pending Intake'),
+        verifiedAt: g.verifiedAt || 'Pending Handover',
+        verifiedBy: g.verifiedBy || 'NDRF (1st Bn) Field Unit',
+        leadOfficer: alloc?.leadOfficerName ? `${alloc.leadAgency || 'NDRF'} ${alloc.leadOfficerName}` : 'Inspector Rajesh Kalita',
+        auditNotes: isConsistent ? 'Original gate-pass matched field receipt count.' : 'Requires field verification audit & evidence cross-check.'
+      };
     });
 
     // 6. Returns Audit
@@ -1902,35 +1940,82 @@ export const monitoringDb = {
       });
     });
 
-    // 9. Overall KPI Metrics
+    // 9. Overall KPI Metrics covering all 10 specifications
     const totalApprovedUnits = lifecycles.reduce((acc, l) => acc + l.approvedSupplies.total, 0);
     const totalDispatchedUnits = lifecycles.reduce((acc, l) => acc + l.dispatchedSupplies.total, 0);
     const totalReceivedUnits = lifecycles.reduce((acc, l) => acc + (l.stageIndex >= 4 ? l.receivedSupplies.total : 0), 0);
     const totalEvacuatedCitizens = operationsWatch.reduce((acc, o) => acc + o.rescued, 0);
+    const pendingVerificationsCount = lifecycles.filter(l => l.stageIndex === 3).length;
+    const activeShortagesCount = discrepancies.filter(d => d.status !== 'Closed' && d.status !== 'Resolved').length;
+
+    // 10. Notifications & Escalation Stream (Point 10)
+    const notifications = [
+      ...discrepancies.map(d => ({
+        id: `NOTIF-DISC-${d.id}`,
+        type: 'CRITICAL_SHORTAGE',
+        severity: 'ALERT',
+        title: `Critical Supply Shortage: ${d.destination}`,
+        detail: `${d.item} reported at sector gate. Handover escort: ${d.leadOfficer}.`,
+        status: d.status,
+        time: 'Real-time',
+        target: d.destination
+      })),
+      ...lifecycles.filter(l => l.stageIndex === 3).map(l => ({
+        id: `NOTIF-UNVER-${l.id}`,
+        type: 'UNVERIFIED_DELIVERY',
+        severity: 'WARNING',
+        title: `Pending Ground Delivery Verification: ${l.village}`,
+        detail: `Dispatch ${l.dispatchRef} in transit with ${l.resourcesDispatched}. Ground officer acknowledgment required.`,
+        status: 'In Transit',
+        time: '2 hours ago',
+        target: l.village
+      })),
+      ...operationsWatch.filter(o => o.stranded > 10).map(o => ({
+        id: `NOTIF-OPS-${o.opId}`,
+        type: 'RESCUE_ANOMALY',
+        severity: 'INFO',
+        title: `Active High-Priority Rescue: ${o.location}`,
+        detail: `${o.rescued} citizens evacuated so far, ${o.stranded} citizens awaiting extraction by ${o.agency}.`,
+        status: o.status,
+        time: 'Active Now',
+        target: o.location
+      }))
+    ];
 
     const statePayload = {
       kpis: {
         totalApproved: totalApprovedUnits || 4220,
         totalDispatched: totalDispatchedUnits || 4220,
         totalReceived: totalReceivedUnits || 3876,
-        activeDiscrepancies: discrepancies.length,
+        pendingVerifications: pendingVerificationsCount,
+        activeShortages: activeShortagesCount,
         totalEvacuated: totalEvacuatedCitizens || 48,
+        activeRescueOps: operationsWatch.length || 2,
+        pendingAudits: lifecycles.filter(l => l.stageIndex < 5).length,
+        activeEscalations: dbEscalations.length,
         activeSectors: lifecycles.length
       },
       summary: {
+        totalApproved: totalApprovedUnits || 4220,
         totalDispatched: totalDispatchedUnits || 4220,
         totalReceived: totalReceivedUnits || 3876,
-        activeShortages: discrepancies.length,
-        activeRescueOps: operationsWatch.length || 2
+        pendingVerifications: pendingVerificationsCount,
+        activeShortages: activeShortagesCount,
+        activeRescueOps: operationsWatch.length || 2,
+        totalEvacuated: totalEvacuatedCitizens || 48,
+        pendingAudits: lifecycles.filter(l => l.stageIndex < 5).length,
+        activeEscalations: dbEscalations.length
       },
       lifecycles,
       reconciliation,
       discrepancies,
+      deliveryAudits,
       returns: returnsAudit,
       operations: operationsWatch,
       chats: chatsByRole,
       escalations: dbEscalations,
       announcements: dbAnnouncements,
+      notifications,
       logs: auditLogs,
       areas: Array.from(sectorMap.values())
     };
@@ -1958,6 +2043,25 @@ export const monitoringDb = {
         await db.collection('monitoring_chats').insertOne({ ...record });
       } catch (e) {
         console.warn('sendChat MongoDB write notice:', e.message);
+      }
+    }
+    return record;
+  },
+
+  async updateDiscrepancyStatus(payload) {
+    const { id, status, notes } = payload;
+    const record = {
+      id,
+      status: status || 'Under Review',
+      notes: notes || '',
+      updatedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    const db = await getDatabase();
+    if (db) {
+      try {
+        await db.collection('monitoring_discrepancies').updateOne({ id }, { $set: record }, { upsert: true });
+      } catch (e) {
+        console.warn('updateDiscrepancyStatus MongoDB error:', e.message);
       }
     }
     return record;

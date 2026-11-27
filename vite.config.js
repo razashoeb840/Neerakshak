@@ -597,6 +597,13 @@ function monitoringBackendPlugin() {
             }
           }
 
+          if (pathname === '/api/monitoring/discrepancies/status' && method === 'POST') {
+            const result = await monitoringDb.updateDiscrepancyStatus(body);
+            res.statusCode = 200;
+            res.end(JSON.stringify({ success: true, data: result }));
+            return;
+          }
+
           if (pathname === '/api/monitoring' || pathname === '/api/monitoring/state') {
             const data = await monitoringDb.getState();
             res.statusCode = 200;

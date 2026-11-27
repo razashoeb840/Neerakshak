@@ -204,6 +204,39 @@ export async function unpinBroadcastAnnouncementApi(id = 'ALL') {
 }
 
 /**
+ * Update Discrepancy Status Flow (Open → Under Review → Clarification Requested → Escalated → Resolved → Closed)
+ */
+export async function updateDiscrepancyStatusApi(payload) {
+  try {
+    const res = await fetch('/api/monitoring/discrepancies/status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      const json = await res.json();
+      if (json && json.success) {
+        await fetchFullMonitoringState();
+        return json.data;
+      }
+    }
+  } catch (err) {
+    console.warn('updateDiscrepancyStatusApi error:', err);
+  }
+
+  // Fallback locally
+  if (cachedState && cachedState.discrepancies) {
+    const match = cachedState.discrepancies.find(d => d.id === payload.id);
+    if (match) {
+      match.status = payload.status;
+      if (payload.notes) match.notes = payload.notes;
+      notifySync(cachedState);
+    }
+  }
+  return payload;
+}
+
+/**
  * Real CSV SITREP Generator and Downloader
  */
 export function exportSitrepCsv(state) {
